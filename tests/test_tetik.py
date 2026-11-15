@@ -304,3 +304,15 @@ def test_dinleyici_olcum_sayaclar_doner():
     assert olcum["adet"] == 3
     assert olcum["en_yuksek_ns"] >= 0
     assert olcum["ortalama_ns"] >= 0
+
+
+def test_kisayol_ctrl_ile_gelen_kontrol_karakterini_tanir():
+    """Gerileme (Polat'ın elle testi, 15.11.2026): Windows Ctrl+Shift+T'yi KeyCode(vk=84, char='\x14') olarak verir."""
+    from pynput.keyboard import Key, KeyCode
+
+    from ceviri_katmani.uygulama.tetik import Dinleyici
+
+    d = Dinleyici("<ctrl>+<shift>+t", ";en", lambda: None, lambda m, s: None, lambda: False)
+    for k in (Key.ctrl_l, Key.shift, KeyCode(vk=84, char="\x14")):
+        d._on_press(k)
+    assert list(d._kuyruk.queue) == [("kisayol",)]

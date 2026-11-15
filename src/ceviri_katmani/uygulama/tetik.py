@@ -125,8 +125,14 @@ class Dinleyici:
         Key = kb.Key
         KeyCode = kb.KeyCode
         nm = kb._NORMAL_MODIFIERS
-        if isinstance(key, KeyCode) and key.char is not None:
-            return KeyCode.from_char(key.char.lower())
+        if isinstance(key, KeyCode):
+            vk = getattr(key, "vk", None)
+            # Ctrl basılıyken Windows harfleri kontrol karakteri (ör. Ctrl+T -> '') olarak verir;
+            # harf/rakam tuşlarında sanal tuş kodundan gerçek harfe dön.
+            if vk is not None and (0x41 <= vk <= 0x5A or 0x30 <= vk <= 0x39):
+                return KeyCode.from_char(chr(vk).lower())
+            if key.char is not None:
+                return KeyCode.from_char(key.char.lower())
         if isinstance(key, Key) and key.value in nm:
             return nm[key.value]
         if isinstance(key, Key) and key.value.vk is not None:
