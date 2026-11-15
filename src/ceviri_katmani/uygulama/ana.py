@@ -49,12 +49,12 @@ class Uygulama:
             return
         self._kuyruk.put(("tetik", (metin, silinecek)))
 
-    def guvensiz(self) -> None:
+    def guvensiz(self, sebep: str | None = None) -> None:
         """Güvensiz tamponla tetik geldiğinde dinleyici tarafından çağrılır."""
         if self._meşgul:
             self.bildir("Önceki çeviri sürüyor")
             return
-        self._kuyruk.put(("guvensiz", None))
+        self._kuyruk.put(("guvensiz", sebep))
 
     # ---- işçi döngüsü ----
 
@@ -73,9 +73,39 @@ class Uygulama:
                 elif tur == "tetik":
                     self._tetik_isle(*arg)
                 elif tur == "guvensiz":
-                    self._guvensiz_isle()
+                    self._guvensiz_isle(arg)
             finally:
                 self._meşgul = False
+
+    # ---- özet kaydı (metin İÇERİĞİ asla yazılmaz) ----
+
+    def _kaydet(self, tur: str, durum: str, *, surec: str | None = None, cevirmen: str | None = None,
+                baslangic: float | None = None, giris: int | None = None, cikis: int | None = None,
+                ayrinti: str | None = None) -> None:
+        if not self.ayarlar.get("ozet_kaydi", True):
+            return
+        parca = [time.strftime("%H:%M:%S"), f"{tur:<8}", f"{durum:<16}"]
+        if surec:
+            parca.append(surec)
+        if cevirmen:
+            parca.append(cevirmen)
+        if baslangic is not None:
+            parca.append(f"{time.perf_counter() - baslangic:.1f} sn")
+        if giris is not None:
+            parca.append(f"{giris} -> {cikis if cikis is not None else '?'} karakter")
+        if ayrinti:
+            parca.append(f"({ayrinti})")
+        try:
+            print("  ".join(parca), flush=True)
+        except Exception:
+            pass
+
+    def _surec_adi(self) -> str | None:
+        try:
+            p = self.pencere.aktif_pencere()
+            return getattr(p, "surec", None)
+        except Exception:
+            return None
 
     # ---- işleyiciler ----
 
@@ -87,10 +117,14 @@ class Uygulama:
             self.bildir("Çevrilemedi", mesaj, "hata")
 
     def _kisayol_isle(self) -> None:
+        t0 = time.perf_counter()
         pencere = self.pencere.aktif_pencere()
         if pencere is None:
+            self._kaydet("kisayol", "pencere-yok")
             return
+        surec = getattr(pencere, "surec", None)
         if not self.pencere.izinli_mi(pencere, self.ayarlar["izinli"], self.ayarlar["yasak"]):
+            self._kaydet("kisayol", "izinsiz-pencere", surec=surec)
             return
 
         yedek = self.pano.PanoYedegi()
@@ -98,20 +132,25 @@ class Uygulama:
         try:
             metin = self.pano.secimi_kopyala()
             if not metin:
+                self._kaydet("kisayol", "secim-yok", surec=surec, baslangic=t0)
                 self.bildir("Seçim yok")
                 return
 
             try:
                 sonuc = akilli_cevir(self.zincir, metin)
             except CeviriHatasi as e:
+                self._kaydet("kisayol", "hata", surec=surec, baslangic=t0, giris=len(metin), ayrinti=str(e)[:160])
                 self._bildir_hata(e)
                 return
 
             if sonuc.durum == "zaten-ingilizce":
+                self._kaydet("kisayol", "zaten-ingilizce", surec=surec, baslangic=t0, giris=len(metin))
                 self.bildir("Zaten İngilizce")
                 return
 
             if sonuc.durum == "cevrildi":
+                self._kaydet("kisayol", "cevrildi", surec=surec, cevirmen=sonuc.cevirmen, baslangic=t0,
+                             giris=len(metin), cikis=len(sonuc.metin))
                 self.pano.metin_koy(sonuc.metin)
                 self.pano.yapistir()
                 time.sleep(0.15)
@@ -127,6 +166,8 @@ class Uygulama:
             yedek.geri_yukle()
 
     def _tetik_isle(self, metin: str, silinecek: int) -> None:
+        t0 = time.perf_counter()
+        surec = self._surec_adi()
         yedek = self.pano.PanoYedegi()
         yedek.kaydet()
         tetik = self.ayarlar["tetik"]
@@ -134,18 +175,24 @@ class Uygulama:
             try:
                 sonuc = akilli_cevir(self.zincir, metin)
             except CeviriHatasi as e:
+                self._kaydet("tetik", "hata", surec=surec, baslangic=t0, giris=len(metin), ayrinti=str(e)[:160])
                 self.pano.geri_sil(len(tetik))
                 self._bildir_hata(e)
                 return
 
             if sonuc.durum == "zaten-ingilizce":
+                self._kaydet("tetik", "zaten-ingilizce", surec=surec, baslangic=t0, giris=len(metin))
                 self.pano.geri_sil(len(tetik))
                 self.bildir("Zaten İngilizce")
                 return
 
             if sonuc.durum != "cevrildi":
+                self._kaydet("tetik", sonuc.durum, surec=surec, baslangic=t0, giris=len(metin))
                 self.pano.geri_sil(len(tetik))
                 return
+
+            self._kaydet("tetik", "cevrildi", surec=surec, cevirmen=sonuc.cevirmen, baslangic=t0,
+                         giris=len(metin), cikis=len(sonuc.metin))
 
             self.pano.geri_sil(silinecek)
             self.pano.metin_koy(sonuc.metin)
@@ -162,9 +209,11 @@ class Uygulama:
         finally:
             yedek.geri_yukle()
 
-    def _guvensiz_isle(self) -> None:
+    def _guvensiz_isle(self, sebep: str | None = None) -> None:
+        self._kaydet("tetik", "guvensiz", surec=self._surec_adi(), ayrinti=sebep)
         self.bildir(
-            "Terminalde metni düzenlediniz — çevrilemedi, ;en'i silin ve tekrar yazın"
+            "Terminalde metni düzenlediniz — çevrilemedi, ;en'i silin ve tekrar yazın",
+            f"Sebep: {sebep}" if sebep else "",
         )
 
     # ---- yaşam döngüsü ----

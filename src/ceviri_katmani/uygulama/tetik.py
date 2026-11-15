@@ -27,6 +27,7 @@ class TusTamponu:
         self.tetik = tetik
         self.en_fazla = en_fazla
         self.guvenli = True
+        self.sebep: str | None = None
         self._karakterler: list[str] = []
 
     def _tetik_ile_bitiyor_mu(self) -> bool:
@@ -43,24 +44,33 @@ class TusTamponu:
             return False
         self._karakterler.append(k)
         if len(self._karakterler) > self.en_fazla:
-            self.guvensiz_yap()
+            self.guvensiz_yap("metin çok uzun")
             self._karakterler = self._karakterler[-self.en_fazla:]
         return self._tetik_ile_bitiyor_mu()
 
     def geri(self) -> None:
-        """Backspace: son karakteri siler (boşsa güvensiz yapar)."""
+        """Backspace: son karakteri siler (boşken etkisiz; imleç önündeki eski metni siler, tamponu bozmaz)."""
         if self._karakterler:
             self._karakterler.pop()
         else:
-            self.guvensiz_yap()
+            self.guvensiz_yap("boşken geri silme")
 
     def sifirla(self) -> None:
         """Enter/Esc/Tab ve pencere değişimi için tamponu boşaltır."""
         self._karakterler.clear()
         self.guvenli = True
+        self.sebep = None
 
-    def guvensiz_yap(self) -> None:
-        """Tamponu güvensiz işaretler (ok tuşu, fare, Ctrl+tuş...)."""
+    def guvensiz_yap(self, sebep: str = "bilinmiyor", zorla: bool = False) -> None:
+        """Tamponu güvensiz işaretler (ok tuşu, fare, Ctrl+tuş...).
+
+        Tampon boşken olan olaylar (terminale tıklamak, Alt+Tab ile gelmek) önemsizdir:
+        sonradan yazılan karakterler imlecin hemen önünde bitişik durur, geri silme yine doğru çalışır.
+        """
+        if not self._karakterler and not zorla:
+            return
+        if self.guvenli:
+            self.sebep = sebep
         self.guvenli = False
 
     def metin(self) -> str:
@@ -97,6 +107,7 @@ class Dinleyici:
         self._aktif_hwnd_cb = aktif_hwnd_cb
 
         self._kuyruk: queue.Queue = queue.Queue()
+        self._son_sebep: str | None = None
         self._tampon = TusTamponu(tetik=tetik)
         self._baslangic_hwnd: int | None = None
 
@@ -200,7 +211,9 @@ class Dinleyici:
             self._ctrl_alt.add(kanonik)
             return
         if self._ctrl_alt:
-            self._tampon.guvensiz_yap()
+            yapistirma = getattr(kanonik, "char", None) == "v"
+            # Ctrl+V: tampona bilinmeyen metin girdi; boş tamponda bile güvensiz (yapıştır + ;en çevrilemez)
+            self._tampon.guvensiz_yap("yapıştırma (Ctrl+V)" if yapistirma else "Ctrl/Alt kısayolu", zorla=yapistirma)
             return
         self._tus_tampona(key)
 
@@ -234,7 +247,7 @@ class Dinleyici:
             Key.page_up,
             Key.page_down,
         ):
-            self._tampon.guvensiz_yap()
+            self._tampon.guvensiz_yap("ok/Home/End/Delete tuşu")
             return
         if key is Key.space:
             c = " "
@@ -255,8 +268,9 @@ class Dinleyici:
             and simdiki is not None
             and simdiki != self._baslangic_hwnd
         ):
-            self._tampon.guvensiz_yap()
+            self._tampon.guvensiz_yap("pencere değişti")
         guvenli = self._tampon.guvenli
+        self._son_sebep = self._tampon.sebep
         metin = self._tampon.metin()
         silinecek = self._tampon.uzunluk_tetik_dahil()
         self._tampon.sifirla()
@@ -265,10 +279,10 @@ class Dinleyici:
         if guvenli:
             self._kuyruk.put_nowait(("tetik", metin, silinecek))
         else:
-            self._kuyruk.put_nowait(("guvensiz",))
+            self._kuyruk.put_nowait(("guvensiz", self._son_sebep))
 
     def _on_click(self, x, y, button, pressed):
-        self._tampon.guvensiz_yap()
+        self._tampon.guvensiz_yap("fare tıklaması")
 
     def _isci_dongusu(self) -> None:
         while True:
@@ -290,7 +304,11 @@ class Dinleyici:
             self._tetik_cb(job[1], job[2])
         elif tur == "guvensiz":
             if self._guvensiz_cb is not None:
-                self._guvensiz_cb()
+                sebep = job[1] if len(job) > 1 else None
+                try:
+                    self._guvensiz_cb(sebep)
+                except TypeError:  # eski imza: argümansız
+                    self._guvensiz_cb()
 
     def baslat(self) -> None:
         if not _IS_WIN:

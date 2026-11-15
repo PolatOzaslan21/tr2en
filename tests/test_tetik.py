@@ -69,10 +69,11 @@ def test_geri_son_karakteri_siler():
     assert t.metin() == "ab"
 
 
-def test_geri_bos_tamponda_guvensiz():
+def test_geri_bos_tamponda_etkisiz():
+    # Boş tamponda geri silme imleç önündeki eski metni siler; sonradan yazılanlar yine bitişik kalır.
     t = TusTamponu()
     t.geri()
-    assert t.guvenli is False
+    assert t.guvenli is True
 
 
 def test_sifirla_tamponu_ve_guvenligi_temizler():
@@ -87,7 +88,16 @@ def test_sifirla_tamponu_ve_guvenligi_temizler():
 def test_guvensiz_yap():
     t = TusTamponu()
     assert t.guvenli is True
-    t.guvensiz_yap()
+    t.guvensiz_yap("deneme")  # boş tamponda etkisiz (terminale tıklamak, Alt+Tab)
+    assert t.guvenli is True
+    t.karakter("a")
+    t.guvensiz_yap("deneme")
+    assert t.guvenli is False and t.sebep == "deneme"
+
+
+def test_guvensiz_yap_zorla_bos_tamponda():
+    t = TusTamponu()
+    t.guvensiz_yap("yapıştırma", zorla=True)
     assert t.guvenli is False
 
 
@@ -218,7 +228,7 @@ def test_dinleyici_ok_tusu_sonrasi_guvensiz():
     _bas(d, _karakter(";"))
     _bas(d, _karakter("e"))
     _bas(d, _karakter("n"))
-    assert _kuyruk_joblari(d) == [("guvensiz",)]
+    assert _kuyruk_joblari(d) == [("guvensiz", "ok/Home/End/Delete tuşu")]
 
 
 @needs_pynput
@@ -256,7 +266,7 @@ def test_dinleyici_ctrl_v_guvensiz():
     _bas(d, _karakter(";"))
     _bas(d, _karakter("e"))
     _bas(d, _karakter("n"))
-    assert _kuyruk_joblari(d) == [("guvensiz",)]
+    assert _kuyruk_joblari(d) == [("guvensiz", "yapıştırma (Ctrl+V)")]
 
 
 @needs_pynput
@@ -292,7 +302,20 @@ def test_dinleyici_hwnd_degisince_guvensiz():
     _bas(d, _karakter(";"))
     _bas(d, _karakter("e"))
     _bas(d, _karakter("n"))
-    assert _kuyruk_joblari(d) == [("guvensiz",)]
+    assert _kuyruk_joblari(d) == [("guvensiz", "pencere değişti")]
+
+
+def test_dinleyici_bos_tamponda_tiklama_ve_alt_tab_sorun_degil():
+    """Gerileme (Polat'ın elle testi, 16.11.2026): terminale tıklayıp yazınca 'düzenlediniz' hatası veriyordu."""
+    d = _dinleyici(terminal=True)
+    d._on_click(0, 0, None, True)
+    _bas(d, keyboard.Key.alt)
+    _bas(d, keyboard.Key.tab)
+    _birak(d, keyboard.Key.alt)
+    for c in "merhaba nasılsın ;en":
+        _bas(d, keyboard.Key.space if c == " " else _karakter(c))
+    joblar = _kuyruk_joblari(d)
+    assert joblar and joblar[0][0] == "tetik" and joblar[0][1] == "merhaba nasılsın "
 
 
 @needs_pynput
