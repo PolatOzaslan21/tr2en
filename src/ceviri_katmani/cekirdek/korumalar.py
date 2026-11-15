@@ -152,7 +152,7 @@ def olumsuz_tr(metin: str) -> bool:
 
 
 _NEG_EN = re.compile(
-    r"\b(?:not|never|no|none|nothing|nor|without|avoid|stop)\b"
+    r"\b(?:not|never|no|none|nothing|nor|without|avoid|stop|ignore|skip|neither|cannot)\b"
     r"|n['’]t\b"
     r"|\binstead\s+of\b",
     re.IGNORECASE,

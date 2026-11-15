@@ -45,7 +45,7 @@ _EK_LISTE = (
     "ın", "in", "un", "ün", "ı", "i", "u", "ü", "a", "e",
     # zaman / kip
     "acaktır", "ecektir", "acağı", "eceği", "acak", "ecek",
-    "madan", "meden", "malı", "meli", "mış", "miş", "muş", "müş",
+    "malı", "meli", "mış", "miş", "muş", "müş",
     "ıyor", "iyor", "uyor", "üyor", "yor",
     "dık", "dik", "duk", "dük", "tık", "tik", "tuk", "tük",
     "dı", "di", "du", "dü", "tı", "ti", "tu", "tü",

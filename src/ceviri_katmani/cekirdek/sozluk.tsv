@@ -98,3 +98,10 @@ yeni özellik ekle	add a new feature
 özellik bayrağı ekle	add a feature flag
 performansı iyileştir	improve performance
 performansı artır	improve performance
+# "-madan önce" kalıpları (ek silinince anlam bozuluyordu)
+yayına almadan önce	before deploying
+canlıya almadan önce	before deploying to production
+commit atmadan önce	before committing
+push'lamadan önce	before pushing
+testleri çalıştırmadan önce	before running the tests
+PR açmadan önce	before opening a PR
