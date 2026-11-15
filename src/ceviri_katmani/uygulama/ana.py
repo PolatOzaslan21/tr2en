@@ -11,6 +11,16 @@ from ..cekirdek.cevirmen import CeviriHatasi
 from ..cekirdek.kurulum import akilli_cevir, zincir_kur
 
 
+def _silme_bekle(adet: int) -> float:
+    """Terminal geri silmeleri işlerken beklenecek süre (uzun metinde terminal yavaş işler)."""
+    return min(1.5, 0.05 + adet * 0.003)
+
+
+def _yapistirma_bekle(uzunluk: int) -> float:
+    """Ctrl+V işlenmeden pano geri yüklenirse hiçbir şey yapıştırılmaz (Polat'ın testi, 16.11.2026)."""
+    return min(2.0, 0.35 + uzunluk / 800)
+
+
 class Uygulama:
     """Çeviri uygulamasının iş mantığı; bağımlılıkları dışarıdan alır."""
 
@@ -153,7 +163,7 @@ class Uygulama:
                              giris=len(metin), cikis=len(sonuc.metin))
                 self.pano.metin_koy(sonuc.metin)
                 self.pano.yapistir()
-                time.sleep(0.15)
+                time.sleep(_yapistirma_bekle(len(sonuc.metin)))
                 if sonuc.cevirmen and sonuc.cevirmen.startswith("yerel:"):
                     self.bildir(
                         "Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin",
@@ -196,8 +206,9 @@ class Uygulama:
 
             self.pano.geri_sil(silinecek)
             self.pano.metin_koy(sonuc.metin)
+            time.sleep(_silme_bekle(silinecek))
             self.pano.yapistir()
-            time.sleep(0.15)
+            time.sleep(_yapistirma_bekle(len(sonuc.metin)))
             if sonuc.cevirmen and sonuc.cevirmen.startswith("yerel:"):
                 self.bildir(
                     "Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin",

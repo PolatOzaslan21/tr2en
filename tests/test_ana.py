@@ -301,3 +301,12 @@ def test_kisayol_pano_kaydet_geri_yukle():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_uzun_metinde_bekleme_sureleri_uzar():
+    """Gerileme (Polat'ın testi, 16.11.2026): 300 karakterlik metin silinip yapıştırılmadan kayboluyordu."""
+    from ceviri_katmani.uygulama.ana import _silme_bekle, _yapistirma_bekle
+
+    assert _silme_bekle(303) > _silme_bekle(17) and _silme_bekle(303) >= 0.9
+    assert _yapistirma_bekle(330) > _yapistirma_bekle(19) and _yapistirma_bekle(330) >= 0.7
+    assert _silme_bekle(10_000) <= 1.5 and _yapistirma_bekle(10_000) <= 2.0
