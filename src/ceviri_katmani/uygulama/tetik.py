@@ -278,7 +278,9 @@ class Dinleyici:
             try:
                 self._isi_yurut(job)
             except Exception:
-                pass
+                import traceback
+
+                traceback.print_exc()  # yalnızca hata; tuşlar asla yazdırılmaz
 
     def _isi_yurut(self, job) -> None:
         tur = job[0]
