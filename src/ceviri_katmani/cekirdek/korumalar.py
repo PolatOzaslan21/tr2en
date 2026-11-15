@@ -136,6 +136,7 @@ def _kelime_geciyor(metin: str, kelime: str) -> bool:
 def olumsuz_tr(metin: str) -> bool:
     """Türkçe metinde olumsuzluk var mı (sezgisel, maskelenmiş metin üzerinde)."""
     m = _kucuk_tr(metin)
+    m = re.sub(r"m[ae]d[ae]n\s+önce", "önce", m)
     for kelime in _NEG_SABIT:
         if _kelime_geciyor(m, kelime):
             return True
@@ -168,6 +169,15 @@ def olumsuzluk_kaybi(tr: str, en: str) -> bool:
     return olumsuz_tr(tr) and not olumsuz_en(en)
 
 
+def _cikti_kontrol(girdi: str, cikti: str) -> str:
+    from .cikti import temizle_ve_dogrula as f  # döngüsel içe aktarmayı önlemek için geç
+
+    return f(girdi, cikti)
+
+
+temizle_ve_dogrula = _cikti_kontrol
+
+
 class KorumaliCevirmen:
     """İçteki çevirmeni koruma katmanıyla saran sarmalayıcı."""
 
@@ -177,7 +187,7 @@ class KorumaliCevirmen:
 
     def cevir(self, metin: str, kaynak: str = "tr", hedef: str = "en") -> str:
         maskeli, parcalar = maskele(metin)
-        ceviri = self.ic.cevir(maskeli, kaynak, hedef)
+        ceviri = temizle_ve_dogrula(maskeli, self.ic.cevir(maskeli, kaynak, hedef))
         sonuc = geri_koy(ceviri, parcalar)  # KorumaHatasi yukarı çıkar
         if kaynak == "tr" and olumsuzluk_kaybi(maskeli, ceviri):
             raise KorumaHatasi("olumsuzluk çeviride kayboldu")

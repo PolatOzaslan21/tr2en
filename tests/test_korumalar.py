@@ -383,9 +383,9 @@ def test_korumali_cevirmen_yer_tutucu_kaybolunca_hata():
 
 
 def test_korumali_cevirmen_kaynak_tr_degilse_olumsuzluk_kontrol_etmez():
-    ic = SahteIc("ic", lambda m: "sil")
+    ic = SahteIc("ic", lambda m: "dosyayı sil lütfen hemen")  # uzunluk kontrolünden geçecek boyda
     sonuc = KorumaliCevirmen(ic).cevir("do not delete the file", kaynak="en", hedef="tr")
-    assert sonuc == "sil"
+    assert sonuc == "dosyayı sil lütfen hemen"
     assert ic.cagrilar[0][1:] == ("en", "tr")
 
 

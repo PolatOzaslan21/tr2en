@@ -4,10 +4,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .cekirdek import CeviriHatasi, CevirmenZinciri
-from .cekirdek.gemini import GeminiCevirmen
-from .cekirdek.korumalar import KorumaliCevirmen
-from .cekirdek.yerel import YerelCevirmen
+from .cekirdek import CeviriHatasi
+from .cekirdek.kurulum import akilli_cevir, zincir_kur
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -17,26 +15,20 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--yalniz", choices=["gemini", "yerel"], help="Yalnızca bu çevirmeni kullan")
     p.add_argument("-v", "--ayrinti", action="store_true", help="Hangi çevirmenin kullanıldığını göster")
     p.add_argument("--korumasiz", action="store_true", help="Koruma katmanını devre dışı bırak")
+    p.add_argument("--dil-kontrolsuz", action="store_true", help="Zaten İngilizce mi kontrolünü atla")
     a = p.parse_args(argv)
     for akis in (sys.stdout, sys.stderr):
         akis.reconfigure(encoding="utf-8")
     metin = " ".join(a.metin) if a.metin else sys.stdin.read()
-    if a.yalniz == "gemini":
-        cevirmenler = [GeminiCevirmen(model=a.model)]
-    elif a.yalniz == "yerel":
-        cevirmenler = [YerelCevirmen()]
-    else:
-        cevirmenler = [GeminiCevirmen(model=a.model), YerelCevirmen()]
-    if not a.korumasiz:
-        cevirmenler = [KorumaliCevirmen(c) for c in cevirmenler]
-    zincir = CevirmenZinciri(cevirmenler)
+    zincir = zincir_kur(model=a.model, yalniz=a.yalniz, korumasiz=a.korumasiz)
     try:
-        print(zincir.cevir(metin.strip()))
+        sonuc = akilli_cevir(zincir, metin.strip(), dil_kontrolu=not a.dil_kontrolsuz)
     except CeviriHatasi as e:
         print(f"Hata: {e}", file=sys.stderr)
         return 1
+    print(sonuc.metin)
     if a.ayrinti:
-        print(f"[{zincir.son_kullanilan}]", file=sys.stderr)
+        print(f"[{sonuc.durum}{': ' + sonuc.cevirmen if sonuc.cevirmen else ''}]", file=sys.stderr)
     return 0
 
 
