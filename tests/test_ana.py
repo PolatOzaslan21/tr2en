@@ -130,6 +130,8 @@ def make_uygulama(secim=None, sonuc=None, hata=None, aktif_surec="notepad.exe"):
         "tetik": ";en",
         "izinli": None,
         "yasak": {"keepass.exe", "1password.exe", "bitwarden.exe"},
+        "sona_bosluk": False,
+        "ek_terminaller": [],
     }
     uyg = Uygulama(pano, pencere, zincir, bildir, ayarlar)
     return uyg, pano, pencere, zincir, calls
