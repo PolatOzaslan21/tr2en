@@ -1,0 +1,100 @@
+# Türkçe geliştirme ifadesi <TAB> İngilizce karşılık
+# Yorum satırları # ile başlar; boş satırlar yok sayılır.
+# Uzun ifadeler (kelime sayısı çok olanlar) önce eşleşir.
+# --- sürüm kontrolü ---
+commit at	commit
+commitle	commit
+commit'le	commit
+commit'i geri al	revert the commit
+commit geri al	revert the commit
+son commit'i geri al	revert the last commit
+değişiklikleri commit'le	commit the changes
+push'la	push
+push et	push
+dal aç	create a branch
+yeni dal aç	create a new branch
+dalı birleştir	merge the branch
+dalları birleştir	merge the branches
+dalı sil	delete the branch
+uzak dalı sil	delete the remote branch
+dalı güncelle	update the branch
+değişiklikleri çek	pull the changes
+değişiklikleri birleştir	merge the changes
+değişiklikleri geri al	revert the changes
+depoyu klonla	clone the repository
+yeni depo oluştur	create a new repository
+uzak depoyu güncelle	update the remote
+# --- pull request ---
+PR aç	open a PR
+PR oluştur	create a PR
+pull request aç	open a pull request
+pull request oluştur	create a pull request
+PR'ı birleştir	merge the PR
+PR'ı kapat	close the PR
+PR'ı incele	review the PR
+# --- yayın / dağıtım ---
+yayına al	deploy
+canlıya al	deploy to production
+yayına çıkar	deploy
+üretime al	deploy to production
+sürümü yayınla	release the version
+yeni sürüm yayınla	release a new version
+sürüm etiketi oluştur	create a release tag
+etiket oluştur	create a tag
+# --- test / hata ---
+testleri çalıştır	run the tests
+testleri koştur	run the tests
+test çalıştır	run the test
+hata ayıkla	debug
+hataları ayıkla	debug the errors
+hatayı düzelt	fix the bug
+hatayı tekrar üret	reproduce the bug
+sorunu tekrar üret	reproduce the issue
+kapsam raporu üret	generate the coverage report
+kod kapsamını ölç	measure code coverage
+# --- derleme / bağımlılık ---
+derle	build
+projeyi derle	build the project
+paketi derle	build the package
+bağımlılıkları kur	install the dependencies
+bağımlılıkları yükle	install the dependencies
+sanal ortam oluştur	create a virtual environment
+# --- yapılandırma / ortam ---
+ortam değişkeni ekle	add an environment variable
+ortam değişkenlerini ayarla	set the environment variables
+yapılandırmayı güncelle	update the configuration
+ayarları güncelle	update the settings
+# --- kod kalitesi ---
+kodu incele	review the code
+kodu gözden geçir	review the code
+kod incelemesi yap	do a code review
+kod biçimlendir	format the code
+kodu biçimlendir	format the code
+statik analiz çalıştır	run static analysis
+tip denetimi çalıştır	run the type check
+# --- sunucu / işletim ---
+sunucuyu başlat	start the server
+sunucuyu yeniden başlat	restart the server
+sunucuyu durdur	stop the server
+günlükleri kontrol et	check the logs
+günlük kaydı ekle	add logging
+günlük seviyesini ayarla	set the log level
+önbelleği temizle	clear the cache
+# --- veritabanı ---
+göç işlemini çalıştır	run the migration
+veritabanı göçü oluştur	create a database migration
+veritabanını yedekle	back up the database
+şemayı güncelle	update the schema
+# --- dokümantasyon / süreç ---
+belgeleri güncelle	update the docs
+dokümantasyonu güncelle	update the documentation
+README'yi güncelle	update the README
+değişiklik günlüğü yaz	write the changelog
+issue aç	open an issue
+issue'yu kapat	close the issue
+sorunu kapat	close the issue
+hata raporu oluştur	create a bug report
+yeni özellik ekle	add a new feature
+özellik bayrağı ekle	add a feature flag
+performansı iyileştir	improve performance
+performansı artır	improve performance
