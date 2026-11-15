@@ -116,7 +116,7 @@ class SahteIc:
 
 def _yer_tutucu_bolgeleri(maskeli: str, orijinal: str) -> list[str]:
     sm = difflib.SequenceMatcher(None, orijinal, maskeli, autojunk=False)
-    return [maskeli[j1:j2] for tag, _i1, _i2, j1, _j2 in sm.get_opcodes() if tag in ("replace", "insert")]
+    return [maskeli[j1:j2] for tag, _i1, _i2, j1, j2 in sm.get_opcodes() if tag in ("replace", "insert")]
 
 
 def _tek_yer_tutucu(maskeli: str, orijinal: str) -> str:

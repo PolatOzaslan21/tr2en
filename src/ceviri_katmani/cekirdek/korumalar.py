@@ -107,10 +107,13 @@ def geri_koy(metin: str, parcalar: list[str]) -> str:
 _NEG_SABIT = ("değil", "yok", "asla", "sakın", "hiçbir", "hiç")
 
 _NEG_EK = re.compile(
-    rf"[{_HARF_KUCUK}]+"
-    rf"(?:m[ıiuü]yor|m[ae]z|m[ae]d[ıi]|m[ae]d[ae]n|m[ae]y[ae]c[ae]k"
-    rf"|m[ae]m[ae]l[ıi]|m[ae]y[ıi]n|m[ae]s[ıi]n)"
-    rf"(?![{_HARF_KUCUK}])"
+    rf"[{_HARF_KUCUK}]+(?:"
+    # kişi/zaman ekleri gelebilir: istemiyorum, yapmadık, güncellemeyeceğiz
+    rf"(?:m[ıiuü]yor|m[ae]d[ıi]|m[ae]y[ae]c[ae][kğ])[{_HARF_KUCUK}]*"
+    # -maz/-mez yalnızca sonda ya da s/l ile devam (amazon gibi yanlış eşleşmeyi önler)
+    rf"|m[ae]z(?:[sl][{_HARF_KUCUK}]*)?"
+    rf"|m[ae]d[ae]n|m[ae]m[ae]l[ıi]|m[ae]y[ıi]n|m[ae]s[ıi]n"
+    rf")(?![{_HARF_KUCUK}])"
 )
 
 _KELIME = re.compile(rf"[{_HARF_KUCUK}]+")
