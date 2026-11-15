@@ -178,13 +178,15 @@ class Uygulama:
     def baslat(self) -> None:
         self._calis = True
         self._isci.start()
-        self._dinleyici = self.pencere.Dinleyici(
+        dinleyici_sinifi = self.ayarlar.get("dinleyici_sinifi") or self.pencere.Dinleyici
+        self._dinleyici = dinleyici_sinifi(
             kisayol=self.ayarlar["kisayol"],
             tetik=self.ayarlar["tetik"],
             kisayol_cb=self.kisayol,
             tetik_cb=self.tetik,
             terminal_mi_cb=self._terminal_mi,
             guvensiz_cb=self.guvensiz,
+            **({"aktif_hwnd_cb": self.ayarlar["aktif_hwnd_cb"]} if self.ayarlar.get("aktif_hwnd_cb") else {}),
         )
         self._dinleyici.baslat()
 
@@ -207,11 +209,21 @@ class Uygulama:
         except KeyboardInterrupt:
             pass
         finally:
+            olc = getattr(self._dinleyici, "olcum", None)
             self.durdur()
+            if callable(olc):
+                o = olc()
+                print(f"Kanca olcumu: {o.get('adet', 0)} tus, ortalama {o.get('ortalama_ns', 0) / 1000:.1f} us, "
+                      f"en yuksek {o.get('en_yuksek_ns', 0) / 1000:.1f} us")
         return 0
 
 
 if sys.platform == "win32":
+
+    def _aktif_hwnd() -> int | None:
+        import win32gui
+
+        return win32gui.GetForegroundWindow() or None
 
     def main(argv: list[str] | None = None) -> int:
         """ceviri-uygulama giriş noktası."""
@@ -223,6 +235,8 @@ if sys.platform == "win32":
             "tetik": ";en",
             "izinli": None,
             "yasak": {"keepass.exe", "1password.exe", "bitwarden.exe"},
+            "dinleyici_sinifi": tetik.Dinleyici,
+            "aktif_hwnd_cb": _aktif_hwnd,
         }
         zincir = zincir_kur()
         uygulama = Uygulama(pano, pencere, zincir, bildir, ayarlar)
