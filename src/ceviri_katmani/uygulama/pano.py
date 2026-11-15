@@ -180,9 +180,11 @@ def _tuslari_birak(k) -> None:
 
 
 def _ctrl_tus(karakter: str) -> None:
+    from pynput.keyboard import Key
+
     k = _klavye()
     _tuslari_birak(k)
-    with k.pressed("ctrl"):
+    with k.pressed(Key.ctrl):
         k.press(karakter)
         k.release(karakter)
 

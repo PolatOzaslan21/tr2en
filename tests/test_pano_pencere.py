@@ -193,3 +193,32 @@ def test_terminal_mi_ek_surecler(surec: str, ek: set[str], beklenen: bool):
 def test_izinli_mi(surec: str, izinli: set[str] | None, beklenen: bool):
     yasak = {"keepass.exe", "1password.exe", "bitwarden.exe"}
     assert izinli_mi(Pencere(1, surec, "Sinif", "Başlık"), izinli, yasak) is beklenen
+
+
+def test_ctrl_tus_gercek_pynput_tusunu_kullanir(monkeypatch):
+    """Gerileme: k.pressed("ctrl") pynput'ta ValueError veriyordu (Polat'ın elle testi, 15.11.2026)."""
+    import contextlib
+
+    from pynput.keyboard import Controller, Key
+
+    from ceviri_katmani.uygulama import pano
+
+    olaylar = []
+
+    class Sahte(Controller):
+        def __init__(self):
+            pass
+
+        def press(self, key):
+            self._resolve(key)  # gerçek doğrulama: geçersiz tuşta ValueError
+            olaylar.append(("bas", key))
+
+        def release(self, key):
+            olaylar.append(("birak", key))
+
+        def _resolve(self, key):
+            return Controller._resolve(self, key)
+
+    monkeypatch.setattr(pano, "_klavye", lambda: Sahte())
+    pano._ctrl_tus("c")
+    assert ("bas", Key.ctrl) in olaylar and ("bas", "c") in olaylar
