@@ -1,0 +1,17 @@
+[project]
+name = "ceviri-katmani"
+version = "0.1.0"
+description = "Seçili metni yerel ya da bulut çevirmenle anında İngilizceye çeviren katman"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27"]
+
+[project.optional-dependencies]
+yerel = ["ctranslate2>=4", "sentencepiece>=0.2"]
+test = ["pytest>=8"]
+
+[project.scripts]
+ceviri = "ceviri_katmani.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
