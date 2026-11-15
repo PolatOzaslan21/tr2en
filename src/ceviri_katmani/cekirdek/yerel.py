@@ -4,9 +4,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from .bolme import birlestir, parcala
 from .cevirmen import CeviriHatasi
+from .korumalar import KorumaHatasi
 
 ORTAM_DEGISKENI = "CEVIRI_YEREL_MODEL"
+MAX_DECODING_LENGTH = 256
 
 
 def _varsayilan_klasor() -> Path:
@@ -52,22 +55,25 @@ class YerelCevirmen:
         if not metin.strip():
             return metin
         self._yukle()
-        satirlar = metin.split("\n")
+        satir_parcalari = parcala(metin)
         girdiler: list[list[str]] = []
-        dolu_indeksler: list[int] = []
-        for i, satir in enumerate(satirlar):
-            if satir.strip():
-                girdiler.append(self._src.encode(satir, out_type=str) + ["</s>"])
-                dolu_indeksler.append(i)
-        cikti = list(satirlar)
-        if girdiler:
-            ceviriler = self._translator.translate_batch(
-                girdiler, beam_size=4, max_decoding_length=256,
-            )
-            for i, cevirilen in zip(dolu_indeksler, ceviriler):
-                tokenlar = [t for t in cevirilen.hypotheses[0] if t != "</s>"]
-                cikti[i] = self._tgt.decode(tokenlar)
-        return "\n".join(cikti)
+        konumlar: list[tuple[int, int]] = []
+        for satir_i, parcalar in enumerate(satir_parcalari):
+            for parca_i, parca in enumerate(parcalar):
+                girdiler.append(self._src.encode(parca, out_type=str) + ["</s>"])
+                konumlar.append((satir_i, parca_i))
+        if not girdiler:
+            return "\n".join("" for _ in satir_parcalari)
+        ceviriler = self._translator.translate_batch(
+            girdiler, beam_size=4, max_decoding_length=MAX_DECODING_LENGTH,
+        )
+        cikti = [list(p) for p in satir_parcalari]
+        for (satir_i, parca_i), cevirilen in zip(konumlar, ceviriler):
+            tokenlar = [t for t in cevirilen.hypotheses[0] if t != "</s>"]
+            if len(tokenlar) >= MAX_DECODING_LENGTH:
+                raise KorumaHatasi("yerel çeviri kesildi")
+            cikti[satir_i][parca_i] = self._tgt.decode(tokenlar)
+        return birlestir(cikti)
 
     def bosalt(self) -> None:
         """Modeli bellekten atar."""
