@@ -69,3 +69,39 @@ def test_terminal_kisayol_isi_cb_cagirir():
     d = _dinleyici(terminal=True, tetik_etkin=False, cb=lambda: cagri.append(1))
     d._isi_yurut(("terminal_kisayol",))
     assert cagri == [1]
+
+
+def test_kisayol_adi():
+    assert ayarlar_mod.kisayol_adi("<ctrl>+<shift>+<space>") == "Ctrl+Shift+Space"
+    assert ayarlar_mod.kisayol_adi("<ctrl>+<shift>+y") == "Ctrl+Shift+Y"
+    assert ayarlar_mod.VARSAYILAN["kisayol"] == "<ctrl>+<shift>+<space>"
+
+
+def test_uygulama_kisayol_sec_dinleyiciyi_yeniden_kurar():
+    from ceviri_katmani.uygulama.ana import Uygulama
+
+    kurulan, duran, kayit, bildirim = [], [], [], []
+
+    class SahteDinleyici:
+        def __init__(self, **kw):
+            self.kisayol = kw["kisayol"]
+            kurulan.append(self.kisayol)
+
+        def baslat(self):
+            pass
+
+        def durdur(self):
+            duran.append(self.kisayol)
+
+    ayarlar = {"kisayol": "<ctrl>+<shift>+<space>", "tetik": ";en", "izinli": None, "yasak": set(),
+               "dinleyici_sinifi": SahteDinleyici, "kaydet_cb": lambda: kayit.append(1)}
+    u = Uygulama(object(), object(), object(), lambda *a: bildirim.append(a), ayarlar)
+    u.baslat()
+    u.kisayol_sec("<ctrl>+<shift>+y")
+    u.kisayol_sec("<ctrl>+<shift>+y")  # aynı: işlem yok
+    assert kurulan == ["<ctrl>+<shift>+<space>", "<ctrl>+<shift>+y"]
+    assert duran == ["<ctrl>+<shift>+<space>"]
+    assert kayit == [1]
+    assert bildirim[-1][:2] == ("Kısayol değişti", "Ctrl+Shift+Y")
+    assert u.kisayol_simdiki() == "<ctrl>+<shift>+y"
+    u.durdur()

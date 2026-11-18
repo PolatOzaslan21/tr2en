@@ -333,9 +333,39 @@ class Uygulama:
             return False
         return self.pencere.terminal_mi(pencere, set(self.ayarlar.get("ek_terminaller", [])))
 
+    def kisayol_simdiki(self) -> str:
+        """Tepsi için: geçerli kısayol (pynput biçimi)."""
+        return self.ayarlar["kisayol"]
+
+    def kisayol_adi(self) -> str:
+        from .ayarlar import kisayol_adi
+
+        return kisayol_adi(self.ayarlar["kisayol"])
+
+    def kisayol_sec(self, kisayol: str) -> None:
+        """Kısayolu değiştirir; dinleyiciyi yeni kısayolla yeniden başlatır ve ayar dosyasına yazar."""
+        if self.ayarlar.get("kisayol") == kisayol:
+            return
+        self.ayarlar["kisayol"] = kisayol
+        if self._dinleyici is not None:
+            try:
+                self._dinleyici.durdur()
+            except Exception:
+                pass
+            self._dinleyici_kur()
+        kaydet_cb = self.ayarlar.get("kaydet_cb")
+        if kaydet_cb is not None:
+            kaydet_cb()
+        self.bildir("Kısayol değişti", self.kisayol_adi())
+        if self.tepsi is not None:
+            self.tepsi.guncelle()
+
     def baslat(self) -> None:
         self._calis = True
         self._isci.start()
+        self._dinleyici_kur()
+
+    def _dinleyici_kur(self) -> None:
         dinleyici_sinifi = self.ayarlar.get("dinleyici_sinifi") or self.pencere.Dinleyici
         self._dinleyici = dinleyici_sinifi(
             kisayol=self.ayarlar["kisayol"],
@@ -419,6 +449,7 @@ if sys.platform == "win32":
 
         def kaydet_cb() -> None:
             dosya["cevirmen"] = uygulama.cevirmen()
+            dosya["kisayol"] = uygulama.kisayol_simdiki()
             ayarlar_mod.kaydet(dosya)
 
         ayarlar = {
@@ -443,7 +474,7 @@ if sys.platform == "win32":
         uygulama.tepsi = t
         bildir(
             "Çeviri Katmanı çalışıyor",
-            f"Kısayol: {dosya['kisayol']}" + (f" · Terminal: {dosya['tetik']}" if dosya["terminal_tetigi"] else ""),
+            f"Kısayol: {ayarlar_mod.kisayol_adi(dosya['kisayol'])}" + (f" · Terminal: {dosya['tetik']}" if dosya["terminal_tetigi"] else ""),
         )
 
         try:

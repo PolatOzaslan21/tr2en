@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 VARSAYILAN: dict[str, Any] = {
-    "kisayol": "<ctrl>+<shift>+t",
+    "kisayol": "<ctrl>+<shift>+<space>",
     "tetik": ";en",
     "cevirmen": "gemini",
     "gemini_model": "gemini-3.5-flash-lite",
@@ -189,3 +189,19 @@ def kaydet(ayarlar: dict[str, Any], yol: Path | None = None) -> None:
     finally:
         if gecici.exists():
             gecici.unlink()
+
+
+KISAYOL_SECENEKLERI: tuple[str, ...] = (
+    "<ctrl>+<shift>+<space>",
+    "<ctrl>+<shift>+y",
+    "<ctrl>+<shift>+t",
+)
+
+
+def kisayol_adi(kisayol: str) -> str:
+    """pynput biçimini okunur hale getirir: "<ctrl>+<shift>+<space>" -> "Ctrl+Shift+Space"."""
+    parcalar = []
+    for p in kisayol.split("+"):
+        p = p.strip().strip("<>")
+        parcalar.append(p.upper() if len(p) == 1 else p.capitalize())
+    return "+".join(parcalar)

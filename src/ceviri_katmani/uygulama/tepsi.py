@@ -90,6 +90,34 @@ class Tepsi:
     def _yerel_sec(self, _icon=None, _item=None) -> None:
         _yut(lambda: self.arayuz.cevirmen_sec("yerel"))
 
+    def _kisayol_simdiki(self) -> str | None:
+        try:
+            return self.arayuz.kisayol_simdiki()
+        except Exception:
+            traceback.print_exc()
+            return None
+
+    def _kisayol_menu(self):
+        """Kısayol alt menüsü: hazır seçenekler (radyo) + ayar dosyasından gelen özel kısayol."""
+        from .ayarlar import KISAYOL_SECENEKLERI, kisayol_adi
+
+        pystray = self._pystray_getir()
+        simdiki = self._kisayol_simdiki()
+        ogeler = []
+        for k in KISAYOL_SECENEKLERI:
+            ogeler.append(pystray.MenuItem(
+                kisayol_adi(k),
+                (lambda kk: (lambda _i=None, _t=None: _yut(lambda: self.arayuz.kisayol_sec(kk))))(k),
+                checked=(lambda kk: (lambda _i=None: self._kisayol_simdiki() == kk))(k),
+                radio=True,
+            ))
+        if simdiki and simdiki not in KISAYOL_SECENEKLERI:
+            ogeler.append(pystray.MenuItem(
+                f"Özel: {kisayol_adi(simdiki)} (ayar dosyasından)", None, checked=lambda _i=None: True,
+                radio=True, enabled=False,
+            ))
+        return ogeler
+
     def _son_ceviriyi_goster(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.son_ceviriyi_goster)
 
@@ -155,6 +183,7 @@ class Tepsi:
                 enabled=self._son_ceviri_durum,
             ),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Kısayol", pystray.Menu(self._kisayol_menu)),
             pystray.MenuItem("Ayarlar dosyasını aç", self._ayarlari_ac),
             pystray.MenuItem("Çıkış", self._cikis),
         ]

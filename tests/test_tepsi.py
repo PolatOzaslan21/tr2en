@@ -13,6 +13,7 @@ class SahteArayuz:
     def __init__(self):
         self.aktif = True
         self.cevirmen_ad = "gemini"
+        self.kisayol_deger = "<ctrl>+<shift>+<space>"
         self.islemler = []
         self.son_var = False
         self.cagrilar = []
@@ -26,6 +27,13 @@ class SahteArayuz:
 
     def cevirmen(self):
         return self.cevirmen_ad
+
+    def kisayol_simdiki(self):
+        return self.kisayol_deger
+
+    def kisayol_sec(self, k):
+        self.cagrilar.append(("kisayol_sec", k))
+        self.kisayol_deger = k
 
     def cevirmen_sec(self, ad):
         self.cagrilar.append(("cevirmen_sec", ad))
@@ -69,6 +77,7 @@ def test_menu_sira_ve_adlar(tepsi):
         "Son işlemler",
         "Son çeviriyi göster",
         "Son orijinali kopyala",
+        "Kısayol",
         "Ayarlar dosyasını aç",
         "Çıkış",
     ]
@@ -145,8 +154,8 @@ def test_son_ceviri_yoksa_pasif(tepsi, arayuz):
 
 
 def test_ayarlar_ve_cikis(tepsi, arayuz):
-    ayarlar = tepsi.menu_ogeleri()[7]
-    cikis = tepsi.menu_ogeleri()[8]
+    ayarlar = tepsi.menu_ogeleri()[8]
+    cikis = tepsi.menu_ogeleri()[9]
     ayarlar(None)
     assert "ayarlari_ac" in arayuz.cagrilar
     cikis(None)
@@ -164,7 +173,7 @@ class SahteIcon:
 def test_cikis_ikonu_durdurur(tepsi, arayuz):
     sahte = SahteIcon()
     tepsi._icon = sahte
-    cikis = tepsi.menu_ogeleri()[8]
+    cikis = tepsi.menu_ogeleri()[9]
     cikis(None)
     assert sahte.durdu is True
 
@@ -198,3 +207,18 @@ def test_simge_uret_boyut():
     img = simge_uret(True, boyut=32)
     assert img.size == (32, 32)
     assert img.getpixel((16, 2))[:3] == (37, 99, 235)
+
+
+def test_kisayol_alt_menusu_secenekler_ve_secim(tepsi):
+    alt = list(tepsi.menu_ogeleri()[7].submenu)
+    assert [o.text for o in alt] == ["Ctrl+Shift+Space", "Ctrl+Shift+Y", "Ctrl+Shift+T"]
+    assert [o.checked for o in alt] == [True, False, False]
+    alt[1](None)
+    assert ("kisayol_sec", "<ctrl>+<shift>+y") in tepsi.arayuz.cagrilar
+
+
+def test_kisayol_ozel_deger_gosterilir(tepsi):
+    tepsi.arayuz.kisayol_deger = "<ctrl>+<shift>+k"
+    alt = list(tepsi.menu_ogeleri()[7].submenu)
+    assert alt[-1].text == "Özel: Ctrl+Shift+K (ayar dosyasından)"
+    assert alt[-1].enabled is False
