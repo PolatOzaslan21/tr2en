@@ -105,6 +105,13 @@ class Uygulama:
                     self._guvensiz_isle(arg)
             finally:
                 self._meşgul = False
+                # Tepsi menüsü Windows'ta önbellekli; her işten sonra tazelenmezse
+                # "Son işlemler" / "Son çeviriyi göster" bir sonraki işe kadar eski kalıyor (Polat'ın testi, 19.11.2026).
+                if self.tepsi is not None:
+                    try:
+                        self.tepsi.guncelle()
+                    except Exception:
+                        pass
 
     # ---- özet kaydı (metin İÇERİĞİ asla yazılmaz) ----
 

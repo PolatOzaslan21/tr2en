@@ -105,3 +105,24 @@ def test_uygulama_kisayol_sec_dinleyiciyi_yeniden_kurar():
     assert bildirim[-1][:2] == ("Kısayol değişti", "Ctrl+Shift+Y")
     assert u.kisayol_simdiki() == "<ctrl>+<shift>+y"
     u.durdur()
+
+
+def test_her_isten_sonra_tepsi_tazelenir():
+    from ceviri_katmani.uygulama.ana import Uygulama
+
+    class SahteTepsi:
+        def __init__(self):
+            self.adet = 0
+
+        def guncelle(self):
+            self.adet += 1
+
+    ayarlar = {"kisayol": "<ctrl>+<shift>+<space>", "tetik": ";en", "izinli": None, "yasak": set()}
+    u = Uygulama(object(), object(), object(), lambda *a: None, ayarlar)
+    u.tepsi = SahteTepsi()
+    u._calis = True
+    u._kuyruk.put(("guvensiz", "deneme"))
+    u._kuyruk.put(None)
+    u._surec_adi = lambda: None
+    u._isci_dongusu()
+    assert u.tepsi.adet == 1
