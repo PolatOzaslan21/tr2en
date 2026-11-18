@@ -506,6 +506,10 @@ if sys.platform == "win32":
         }
         uygulama = Uygulama(pano, pencere, zincir_uretici(dosya["cevirmen"]), bildir, ayarlar)
         uygulama.baslat()
+        # Yerel model yoksa arka planda indir (Hugging Face, SHA256 doğrulamalı); bu sırada Gemini çalışır.
+        from .model_indirme import gerekirse_arkaplanda_indir
+
+        gerekirse_arkaplanda_indir(bildir)
         t = tepsi.Tepsi(uygulama)
         uygulama.tepsi = t
         bildir(
