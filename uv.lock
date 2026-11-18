@@ -29,44 +29,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ceviri-katmani"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "httpx" },
-]
-
-[package.optional-dependencies]
-test = [
-    { name = "pytest" },
-]
-uygulama = [
-    { name = "pillow" },
-    { name = "pynput" },
-    { name = "pystray" },
-    { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "winotify", marker = "sys_platform == 'win32'" },
-]
-yerel = [
-    { name = "ctranslate2" },
-    { name = "sentencepiece" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ctranslate2", marker = "extra == 'yerel'", specifier = ">=4" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "pillow", marker = "extra == 'uygulama'", specifier = ">=10" },
-    { name = "pynput", marker = "extra == 'uygulama'", specifier = ">=1.7" },
-    { name = "pystray", marker = "extra == 'uygulama'", specifier = ">=0.19" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
-    { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'uygulama'", specifier = ">=306" },
-    { name = "sentencepiece", marker = "extra == 'yerel'", specifier = ">=0.2" },
-    { name = "winotify", marker = "sys_platform == 'win32' and extra == 'uygulama'", specifier = ">=1.1" },
-]
-provides-extras = ["yerel", "test", "uygulama"]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -742,6 +704,44 @@ sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
+
+[[package]]
+name = "tr2en"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "pytest" },
+]
+uygulama = [
+    { name = "pillow" },
+    { name = "pynput" },
+    { name = "pystray" },
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "winotify", marker = "sys_platform == 'win32'" },
+]
+yerel = [
+    { name = "ctranslate2" },
+    { name = "sentencepiece" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ctranslate2", marker = "extra == 'yerel'", specifier = ">=4" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pillow", marker = "extra == 'uygulama'", specifier = ">=10" },
+    { name = "pynput", marker = "extra == 'uygulama'", specifier = ">=1.7" },
+    { name = "pystray", marker = "extra == 'uygulama'", specifier = ">=0.19" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
+    { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'uygulama'", specifier = ">=306" },
+    { name = "sentencepiece", marker = "extra == 'yerel'", specifier = ">=0.2" },
+    { name = "winotify", marker = "sys_platform == 'win32' and extra == 'uygulama'", specifier = ">=1.1" },
+]
+provides-extras = ["yerel", "test", "uygulama"]
 
 [[package]]
 name = "typing-extensions"

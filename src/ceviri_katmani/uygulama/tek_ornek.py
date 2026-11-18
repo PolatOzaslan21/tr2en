@@ -18,7 +18,7 @@ def _gercek_win():
     )
 
 
-def kilit_al(ad: str = "Local\\CeviriKatmaniTekOrnek", *, _win=None) -> object | None:
+def kilit_al(ad: str = "Local\\Tr2enTekOrnek", *, _win=None) -> object | None:
     """Named mutex alır; zaten varsa handle kapatılıp None döner.
 
     ``_win`` test için: CreateMutex, GetLastError, CloseHandle ve

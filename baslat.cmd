@@ -1,5 +1,5 @@
 @echo off
-rem Ceviri Katmani - deneme baslaticisi. Kapatmak icin bu pencerede Ctrl+C.
+rem tr2en - deneme baslaticisi (konsollu). Kapatmak icin bu pencerede Ctrl+C.
 cd /d "%~dp0"
-uv run --extra uygulama --extra yerel ceviri-uygulama
+uv run --extra uygulama --extra yerel tr2en-konsol
 pause

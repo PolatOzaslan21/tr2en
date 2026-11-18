@@ -16,6 +16,7 @@ class SahteArayuz:
         self.kisayol_deger = "<ctrl>+<shift>+<space>"
         self.islemler = []
         self.son_var = False
+        self.otomatik_baslat = False
         self.cagrilar = []
 
     def aktif_mi(self):
@@ -54,6 +55,13 @@ class SahteArayuz:
     def ayarlari_ac(self):
         self.cagrilar.append("ayarlari_ac")
 
+    def otomatik_baslat_acik_mi(self):
+        return self.otomatik_baslat
+
+    def otomatik_baslat_degistir(self):
+        self.cagrilar.append("otomatik_baslat_degistir")
+        self.otomatik_baslat = not self.otomatik_baslat
+
     def cikis(self):
         self.cagrilar.append("cikis")
 
@@ -78,6 +86,7 @@ def test_menu_sira_ve_adlar(tepsi):
         "Son çeviriyi göster",
         "Son orijinali kopyala",
         "Kısayol",
+        "Windows açılışında başlat",
         "Ayarlar dosyasını aç",
         "Çıkış",
     ]
@@ -154,8 +163,8 @@ def test_son_ceviri_yoksa_pasif(tepsi, arayuz):
 
 
 def test_ayarlar_ve_cikis(tepsi, arayuz):
-    ayarlar = tepsi.menu_ogeleri()[8]
-    cikis = tepsi.menu_ogeleri()[9]
+    ayarlar = tepsi.menu_ogeleri()[9]
+    cikis = tepsi.menu_ogeleri()[10]
     ayarlar(None)
     assert "ayarlari_ac" in arayuz.cagrilar
     cikis(None)
@@ -173,7 +182,7 @@ class SahteIcon:
 def test_cikis_ikonu_durdurur(tepsi, arayuz):
     sahte = SahteIcon()
     tepsi._icon = sahte
-    cikis = tepsi.menu_ogeleri()[9]
+    cikis = tepsi.menu_ogeleri()[10]
     cikis(None)
     assert sahte.durdu is True
 
@@ -222,3 +231,25 @@ def test_kisayol_ozel_deger_gosterilir(tepsi):
     alt = list(tepsi.menu_ogeleri()[7].submenu)
     assert alt[-1].text == "Özel: Ctrl+Shift+K (ayar dosyasından)"
     assert alt[-1].enabled is False
+
+
+def test_otomatik_baslat_oge_sira(tepsi):
+    ogeler = tepsi.menu_ogeleri()
+    adlar = [o.text for o in ogeler if o is not pystray.Menu.SEPARATOR]
+    assert adlar.index("Windows açılışında başlat") == adlar.index("Kısayol") + 1
+    assert adlar.index("Windows açılışında başlat") == adlar.index("Ayarlar dosyasını aç") - 1
+    assert ogeler[8].text == "Windows açılışında başlat"
+
+
+def test_otomatik_baslat_checked(tepsi, arayuz):
+    oge = tepsi.menu_ogeleri()[8]
+    assert oge.checked is False
+    arayuz.otomatik_baslat = True
+    assert oge.checked is True
+
+
+def test_otomatik_baslat_tiklaninca_degistir(tepsi, arayuz):
+    oge = tepsi.menu_ogeleri()[8]
+    oge(None)
+    assert "otomatik_baslat_degistir" in arayuz.cagrilar
+    assert arayuz.otomatik_baslat is True

@@ -43,12 +43,44 @@ def ayar_klasoru() -> Path:
     """Ayarların tutulduğu klasör; oluşturmaz."""
     appdata = os.environ.get("APPDATA")
     if appdata:
-        return Path(appdata) / "ceviri-katmani"
-    return Path.home() / ".ceviri-katmani"
+        return Path(appdata) / "tr2en"
+    return Path.home() / ".tr2en"
 
 
 def ayar_yolu() -> Path:
     return ayar_klasoru() / "ayarlar.toml"
+
+
+def _tasima_planlari() -> list[tuple[str, Path, Path]]:
+    """(ad, eski klasör, yeni klasör) üçlülerini hazırlar."""
+    plan: list[tuple[str, Path, Path]] = []
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        plan.append(("%APPDATA%", Path(appdata) / "ceviri-katmani", Path(appdata) / "tr2en"))
+    else:
+        plan.append(("ev", Path.home() / ".ceviri-katmani", Path.home() / ".tr2en"))
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        plan.append(("%LOCALAPPDATA%", Path(local) / "ceviri-katmani", Path(local) / "tr2en"))
+    return plan
+
+
+def eski_klasorleri_tasi() -> list[str]:
+    """Eski "ceviri-katmani" veri klasörlerini "tr2en" adına taşır (tek seferlik).
+
+    Yalnızca eski klasör varsa ve yeni klasör yoksa taşır; yapılan taşımaları
+    kısa Türkçe satırlar olarak döner. Hata olursa yutar, satıra yazar.
+    """
+    satirlar: list[str] = []
+    for ad, eski, yeni in _tasima_planlari():
+        if not eski.is_dir() or yeni.exists():
+            continue
+        try:
+            os.replace(eski, yeni)
+            satirlar.append(f"{ad}: '{eski.name}' klasörü '{yeni.name}' adına taşındı")
+        except OSError as e:
+            satirlar.append(f"{ad}: '{eski.name}' taşınamadı ({e})")
+    return satirlar
 
 
 def _tip_uygun(deger: Any, varsayilan: Any) -> bool:
@@ -173,7 +205,7 @@ def kaydet(ayarlar: dict[str, Any], yol: Path | None = None) -> None:
     dogrulanmis, _ = dogrula(ayarlar)
 
     satirlar = [
-        "# ceviri-katmani ayarları",
+        "# tr2en ayarları",
         "# Değiştirdikten sonra uygulamayı yeniden başlatın.",
     ]
     for anahtar, varsayilan in VARSAYILAN.items():

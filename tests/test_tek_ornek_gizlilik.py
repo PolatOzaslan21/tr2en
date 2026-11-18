@@ -50,7 +50,7 @@ def test_kilit_birak_none_sessiz():
 
 def test_gizlilik_sor_evet_gemini():
     def kutu(metin, baslik, bayrak):
-        assert baslik == "Çeviri Katmanı — Gizlilik"
+        assert baslik == "tr2en — Gizlilik"
         return 6
 
     assert gizlilik_sor(mesaj_kutusu=kutu) == "gemini"
@@ -68,3 +68,16 @@ def test_gizlilik_metin_dolu():
     assert "Gemini" in METIN
     assert "Yalnızca yerel" in METIN
     assert "bilgisayarınızdan çıkmaz" in METIN
+
+
+def test_bildirim_sesleri_winotify_da_var():
+    """Hata bildirimi olmayan bir ses adı yüzünden hiç gösterilmiyordu (19.11.2026)."""
+    import re
+    from pathlib import Path
+
+    import pytest
+
+    audio = pytest.importorskip("winotify.audio")
+    kaynak = Path(__file__).parents[1] / "src/ceviri_katmani/uygulama/bildirim.py"
+    for ad in re.findall(r"audio\.(\w+)", kaynak.read_text(encoding="utf-8")):
+        assert hasattr(audio, ad), ad

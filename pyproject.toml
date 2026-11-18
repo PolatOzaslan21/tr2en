@@ -1,7 +1,9 @@
 [project]
-name = "ceviri-katmani"
+name = "tr2en"
 version = "0.1.0"
-description = "Seçili metni yerel ya da bulut çevirmenle anında İngilizceye çeviren katman"
+description = "Yerel Türkçe → İngilizce çeviri katmanı: metni seç, kısayola bas. Local Turkish to English translator for Windows (offline model + optional Gemini)."
+license = "MIT"
+keywords = ["turkish", "turkce", "ceviri", "translation", "turkish-english", "offline-translation", "local", "windows"]
 requires-python = ">=3.11"
 dependencies = ["httpx>=0.27"]
 
@@ -11,8 +13,14 @@ test = ["pytest>=8"]
 uygulama = ["pynput>=1.7", "pywin32>=306; sys_platform == 'win32'", "winotify>=1.1; sys_platform == 'win32'", "pystray>=0.19", "pillow>=10"]
 
 [project.scripts]
-ceviri = "ceviri_katmani.cli:main"
-ceviri-uygulama = "ceviri_katmani.uygulama.ana:main"
+tr2en-cli = "ceviri_katmani.cli:main"
+tr2en-konsol = "ceviri_katmani.uygulama.ana:main"
+
+[project.gui-scripts]
+tr2en = "ceviri_katmani.uygulama.ana:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ceviri_katmani"]
 
 [build-system]
 requires = ["hatchling"]
