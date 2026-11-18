@@ -325,6 +325,30 @@ class Uygulama:
         except Exception:
             self.bildir("Ayar dosyası açılamadı")
 
+    def otomatik_baslat_acik_mi(self) -> bool:
+        from . import otomatik_baslat
+
+        try:
+            return otomatik_baslat.acik_mi()
+        except Exception:
+            return False
+
+    def otomatik_baslat_degistir(self) -> None:
+        from . import otomatik_baslat
+
+        try:
+            if otomatik_baslat.acik_mi():
+                otomatik_baslat.kapat()
+                self.bildir("Windows açılışında başlamayacak")
+            else:
+                otomatik_baslat.ac()
+                self.bildir("Windows açılışında başlayacak")
+        except Exception as e:
+            self.bildir("Ayar değiştirilemedi", str(e), "uyari")
+            return
+        if self.tepsi is not None:
+            self.tepsi.guncelle()
+
     def cikis(self) -> None:
         self._calis = False
         self.durdur()
@@ -396,10 +420,11 @@ class Uygulama:
             self._isci.join(timeout=2)
 
     def calis(self) -> int:
-        print(
-            f"Ceviri Katmani: kisayol={self.ayarlar['kisayol']} "
-            f"tetik={self.ayarlar['tetik']}"
-        )
+        if sys.stdout is not None:
+            print(
+                f"tr2en: kisayol={self.ayarlar['kisayol']} "
+                f"tetik={self.ayarlar['tetik']}"
+            )
         self.baslat()
         try:
             while self._calis:
@@ -409,7 +434,7 @@ class Uygulama:
         finally:
             olc = getattr(self._dinleyici, "olcum", None)
             self.durdur()
-            if callable(olc):
+            if callable(olc) and sys.stdout is not None:
                 o = olc()
                 print(f"Kanca olcumu: {o.get('adet', 0)} tus, ortalama {o.get('ortalama_ns', 0) / 1000:.1f} us, "
                       f"en yuksek {o.get('en_yuksek_ns', 0) / 1000:.1f} us")
@@ -424,15 +449,19 @@ if sys.platform == "win32":
         return win32gui.GetForegroundWindow() or None
 
     def main(argv: list[str] | None = None) -> int:
-        """ceviri-uygulama giriş noktası."""
+        """tr2en giriş noktası."""
         from . import gizlilik, pano, pencere, tek_ornek, tepsi, tetik
         from . import ayarlar as ayarlar_mod
         from .bildirim import bildir
 
         kilit = tek_ornek.kilit_al()
         if kilit is None:
-            bildir("Çeviri Katmanı zaten çalışıyor", "Tepsi simgesine bakın")
+            bildir("tr2en zaten çalışıyor", "Tepsi simgesine bakın")
             return 0
+
+        for satir in ayarlar_mod.eski_klasorleri_tasi():
+            if sys.stdout is not None:
+                print(satir)
 
         dosya, uyarilar = ayarlar_mod.yukle()
         if uyarilar:
@@ -480,7 +509,7 @@ if sys.platform == "win32":
         t = tepsi.Tepsi(uygulama)
         uygulama.tepsi = t
         bildir(
-            "Çeviri Katmanı çalışıyor",
+            "tr2en çalışıyor",
             f"Kısayol: {ayarlar_mod.kisayol_adi(dosya['kisayol'])}" + (f" · Terminal: {dosya['tetik']}" if dosya["terminal_tetigi"] else ""),
         )
 
@@ -499,4 +528,4 @@ if sys.platform == "win32":
 else:  # pragma: no cover
 
     def main(argv: list[str] | None = None) -> int:
-        raise NotImplementedError("ceviri-uygulama yalnızca Windows'ta çalışır")
+        raise NotImplementedError("tr2en yalnızca Windows'ta çalışır")

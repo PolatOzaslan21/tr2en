@@ -20,19 +20,19 @@ from ceviri_katmani.uygulama.ayarlar import (
 
 def test_ayar_klasoru_appdata_ile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("APPDATA", str(tmp_path))
-    assert ayar_klasoru() == tmp_path / "ceviri-katmani"
-    assert ayar_yolu() == tmp_path / "ceviri-katmani" / "ayarlar.toml"
+    assert ayar_klasoru() == tmp_path / "tr2en"
+    assert ayar_yolu() == tmp_path / "tr2en" / "ayarlar.toml"
 
 
 def test_ayar_klasoru_appdata_yoksa(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("APPDATA", raising=False)
-    assert ayar_klasoru().name == ".ceviri-katmani"
+    assert ayar_klasoru().name == ".tr2en"
 
 
 def test_ayar_klasoru_olusturmaz(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("APPDATA", str(tmp_path))
     ayar_klasoru()
-    assert not (tmp_path / "ceviri-katmani").exists()
+    assert not (tmp_path / "tr2en").exists()
 
 
 def test_varsayilan_dosya_olusturma(tmp_path: Path) -> None:
@@ -220,7 +220,7 @@ def test_kaydet_yorumlar_ve_sira(tmp_path: Path) -> None:
     kaydet({}, yol)
 
     satirlar = yol.read_text(encoding="utf-8").splitlines()
-    assert "ceviri-katmani" in satirlar[0]
+    assert "tr2en" in satirlar[0]
     assert "yeniden başlatın" in satirlar[1]
     metin = "\n".join(satirlar[2:])
     konumlar = [metin.index(f"\n{anahtar} = ") if f"\n{anahtar} = " in metin else metin.index(f"{anahtar} = ") for anahtar in VARSAYILAN]

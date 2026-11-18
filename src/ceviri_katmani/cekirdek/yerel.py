@@ -13,8 +13,10 @@ MAX_DECODING_LENGTH = 256
 
 
 def _varsayilan_klasor() -> Path:
-    yerel = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-    return Path(yerel) / "ceviri-katmani" / "modeller" / "tc-big-tr-en-int8"
+    yerel = os.environ.get("LOCALAPPDATA")
+    if yerel:
+        return Path(yerel) / "tr2en" / "modeller" / "tc-big-tr-en-int8"
+    return Path.home() / ".tr2en" / "modeller" / "tc-big-tr-en-int8"
 
 
 class YerelCevirmen:

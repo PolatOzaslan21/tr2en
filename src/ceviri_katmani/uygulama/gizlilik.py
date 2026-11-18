@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 
 METIN = (
-    "Çeviri Katmanı seçtiğiniz/yazdığınız metni İngilizceye çevirir.\n\n"
+    "tr2en seçtiğiniz/yazdığınız metni İngilizceye çevirir.\n\n"
     "• Gemini seçerseniz metin Google'a gönderilir. Ücretsiz katmanda Google bu metinleri "
     "ürünlerini geliştirmek için kullanabilir.\n"
     "• Yalnızca yerel seçerseniz metin bilgisayarınızdan çıkmaz (kalite daha düşük olabilir).\n\n"
@@ -13,7 +13,7 @@ METIN = (
     "Daha sonra tepsi simgesinden değiştirebilirsiniz."
 )
 
-BASLIK = "Çeviri Katmanı — Gizlilik"
+BASLIK = "tr2en — Gizlilik"
 
 MB_YESNOCANCEL = 0x00000003
 MB_ICONINFORMATION = 0x00000040

@@ -18,9 +18,10 @@ def bildir(baslik: str, mesaj: str = "", seviye: str = "bilgi") -> None:
     if sys.platform != "win32":
         raise NotImplementedError("bildir yalnızca Windows'ta çalışır")
     try:
-        toast = Notification(app_id="Ceviri Katmani", title=baslik, msg=mesaj)
+        toast = Notification(app_id="tr2en", title=baslik, msg=mesaj)
         if seviye == "hata":
-            toast.set_audio(audio.MSError, loop=False)
+            # winotify.audio'da MSError yok; hata bildirimi hiç görünmüyordu (19.11.2026)
+            toast.set_audio(audio.Reminder, loop=False)
         elif seviye == "uyari":
             toast.set_audio(audio.Default, loop=False)
         else:

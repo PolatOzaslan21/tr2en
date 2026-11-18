@@ -96,8 +96,10 @@ def _kucuk_tr(metin: str) -> str:
 
 
 def _kullanici_dosyasi() -> Path:
-    appdata = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
-    return Path(appdata) / "ceviri-katmani" / "sozluk.tsv"
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        return Path(appdata) / "tr2en" / "sozluk.tsv"
+    return Path.home() / ".tr2en" / "sozluk.tsv"
 
 
 def _satirlari_oku(dosya: Path) -> list[tuple[str, str]]:
@@ -122,7 +124,7 @@ def _sirala(kayitlar: list[tuple[str, str]]) -> list[tuple[str, str]]:
 def sozluk_yukle(ek_dosya: str | None = None) -> list[tuple[str, str]]:
     """Paket sözlüğünü ve varsa kullanıcı sözlüğünü birleştirir.
 
-    ``ek_dosya`` verilmezse ``%APPDATA%/ceviri-katmani/sozluk.tsv`` okunur.
+    ``ek_dosya`` verilmezse ``%APPDATA%/tr2en/sozluk.tsv`` okunur.
     Kullanıcı dosyası aynı ifadeyi geçersiz kılar; uzun ifadeler önce gelir.
     """
     kayitlar = _satirlari_oku(_PAKET_DOSYASI)

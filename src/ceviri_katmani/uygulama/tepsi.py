@@ -118,6 +118,16 @@ class Tepsi:
             ))
         return ogeler
 
+    def _otomatik_baslat_durum(self, _item=None) -> bool:
+        try:
+            return bool(self.arayuz.otomatik_baslat_acik_mi())
+        except Exception:
+            traceback.print_exc()
+            return False
+
+    def _otomatik_baslat_tiklandi(self, _icon=None, _item=None) -> None:
+        _yut(self.arayuz.otomatik_baslat_degistir)
+
     def _son_ceviriyi_goster(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.son_ceviriyi_goster)
 
@@ -184,6 +194,11 @@ class Tepsi:
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Kısayol", pystray.Menu(self._kisayol_menu)),
+            pystray.MenuItem(
+                "Windows açılışında başlat",
+                self._otomatik_baslat_tiklandi,
+                checked=self._otomatik_baslat_durum,
+            ),
             pystray.MenuItem("Ayarlar dosyasını aç", self._ayarlari_ac),
             pystray.MenuItem("Çıkış", self._cikis),
         ]
@@ -193,7 +208,7 @@ class Tepsi:
         pystray = self._pystray_getir()
         simge = self._simge_uretici(self.arayuz.aktif_mi())
         menu = pystray.Menu(*self.menu_ogeleri())
-        self._icon = pystray.Icon("ceviri-katmani", simge, "Çeviri Katmanı", menu)
+        self._icon = pystray.Icon("tr2en", simge, "tr2en — Türkçe → İngilizce", menu)
         self._icon.run()
 
     def guncelle(self) -> None:
