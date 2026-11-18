@@ -61,6 +61,12 @@ class Uygulama:
             return
         self._kuyruk.put(("kisayol", None))
 
+    def terminal_kisayol(self) -> None:
+        """Terminal tetiği kapalıyken terminalde kısayola basıldığında çağrılır."""
+        if not self._aktif:
+            return
+        self.bildir("Terminalde henüz desteklenmiyor", "Bu sürümde metni seçip kısayola basma yöntemi normal uygulamalarda çalışır.")
+
     def tetik(self, metin: str, silinecek: int) -> None:
         """Tetik tamamlandığında dinleyici tarafından çağrılır."""
         if not self._aktif:
@@ -339,6 +345,8 @@ class Uygulama:
             terminal_mi_cb=self._terminal_mi,
             guvensiz_cb=self.guvensiz,
             **({"aktif_hwnd_cb": self.ayarlar["aktif_hwnd_cb"]} if self.ayarlar.get("aktif_hwnd_cb") else {}),
+            **({"tetik_etkin": self.ayarlar["terminal_tetigi"], "terminal_kisayol_cb": self.terminal_kisayol}
+               if "terminal_tetigi" in self.ayarlar else {}),
         )
         self._dinleyici.baslat()
 
@@ -419,6 +427,7 @@ if sys.platform == "win32":
             "izinli": set(dosya["izinli"]) if dosya["izinli"] else None,
             "yasak": set(dosya["yasak"]),
             "ek_terminaller": dosya["ek_terminaller"],
+            "terminal_tetigi": dosya["terminal_tetigi"],
             "sona_bosluk": dosya["sona_bosluk"],
             "ozet_kaydi": dosya["ozet_kaydi"],
             "cevirmen": dosya["cevirmen"],
@@ -434,7 +443,7 @@ if sys.platform == "win32":
         uygulama.tepsi = t
         bildir(
             "Çeviri Katmanı çalışıyor",
-            f"Kısayol: Ctrl+Shift+T · Terminal: {dosya['tetik']}",
+            f"Kısayol: {dosya['kisayol']}" + (f" · Terminal: {dosya['tetik']}" if dosya["terminal_tetigi"] else ""),
         )
 
         try:

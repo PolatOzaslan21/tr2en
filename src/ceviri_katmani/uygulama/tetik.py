@@ -97,6 +97,8 @@ class Dinleyici:
         terminal_mi_cb: Callable[[], bool],
         guvensiz_cb: Callable[[], None] | None = None,
         aktif_hwnd_cb: Callable[[], int | None] | None = None,
+        tetik_etkin: bool = True,
+        terminal_kisayol_cb: Callable[[], None] | None = None,
     ):
         self.kisayol = kisayol
         self.tetik = tetik
@@ -105,6 +107,8 @@ class Dinleyici:
         self._terminal_mi_cb = terminal_mi_cb
         self._guvensiz_cb = guvensiz_cb
         self._aktif_hwnd_cb = aktif_hwnd_cb
+        self._tetik_etkin = tetik_etkin
+        self._terminal_kisayol_cb = terminal_kisayol_cb
 
         self._kuyruk: queue.Queue = queue.Queue()
         self._son_sebep: str | None = None
@@ -162,6 +166,8 @@ class Dinleyici:
         terminal = self._terminal_mi_guvenli()
         if not terminal:
             self._kuyruk.put_nowait(("kisayol",))
+        elif not self._tetik_etkin and self._terminal_kisayol_cb is not None:
+            self._kuyruk.put_nowait(("terminal_kisayol",))
 
     def _terminal_mi_guvenli(self) -> bool:
         try:
@@ -210,6 +216,8 @@ class Dinleyici:
         if kanonik in (kb.Key.ctrl, kb.Key.alt):
             self._ctrl_alt.add(kanonik)
             return
+        if not self._tetik_etkin:
+            return  # tetik kapalıyken tuşlar hiç tamponlanmaz
         if self._ctrl_alt:
             yapistirma = getattr(kanonik, "char", None) == "v"
             # Ctrl+V: tampona bilinmeyen metin girdi; boş tamponda bile güvensiz (yapıştır + ;en çevrilemez)
@@ -302,6 +310,9 @@ class Dinleyici:
             self._kisayol_cb()
         elif tur == "tetik":
             self._tetik_cb(job[1], job[2])
+        elif tur == "terminal_kisayol":
+            if self._terminal_kisayol_cb is not None:
+                self._terminal_kisayol_cb()
         elif tur == "guvensiz":
             if self._guvensiz_cb is not None:
                 sebep = job[1] if len(job) > 1 else None

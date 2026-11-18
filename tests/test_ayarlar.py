@@ -54,6 +54,7 @@ def test_yaz_oku_gidis_donus(tmp_path: Path) -> None:
         "cevirmen": "yerel",
         "gemini_model": "gemini-test",
         "zaman_asimi": 7,
+        "terminal_tetigi": True,
         "sona_bosluk": False,
         "izinli": ["Code.exe"],
         "yasak": [],
