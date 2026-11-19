@@ -103,6 +103,8 @@ Tray menu: enable/pause, translator, hotkey (Ctrl+Shift+Space / Ctrl+Shift+Y or 
 
 **Your own hotkey (Kendi kısayolum…):** pick it, then press the combination within 10 seconds (e.g. Ctrl+Shift+K; Esc cancels). Ctrl or Alt is required. Rejected: Ctrl+C/V/X/Z/Y/A/S (tr2en itself copies and pastes), Alt+F4 and Ctrl+Alt (equals AltGr on many layouts). **Note:** if your own hotkey clashes with another program, that program or tr2en may not work properly; single-modifier hotkeys (e.g. Ctrl+Q) clash more often. tr2en warns about well-known conflicts. **Recommended: the default Ctrl+Shift+Space.**
 
+The hotkey does not reach the program: with text selected, tr2en translates it; with nothing selected, it sends the hotkey back to the program (e.g. with Ctrl+P as your hotkey, the program's own Ctrl+P still works when nothing is selected). When tr2en is paused, and in terminals, keys pass through unchanged.
+
 Everything else is in `%APPDATA%\tr2en\ayarlar.toml` (tray: "Ayarlar dosyasını aç"): timeout, Gemini model, your own model, blocked apps, trailing space. Restart the app after editing.
 
 ## Measurements (2026-11-19, Windows 11)
