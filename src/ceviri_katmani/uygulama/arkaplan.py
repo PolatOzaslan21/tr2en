@@ -17,7 +17,8 @@ CREATE_NO_WINDOW = 0x08000000
 
 def main(argv: list[str] | None = None, *, popen=subprocess.Popen) -> int:
     """gui-scripts ``tr2en`` ve ``python -m ceviri_katmani.uygulama`` giriş noktası."""
-    if sys.platform != "win32" or os.environ.get(ORTAM) == "1":
+    # PyInstaller .exe'si (frozen) zaten konsolsuz derlenir; orada ``-m`` ile yeniden başlatılamaz.
+    if sys.platform != "win32" or os.environ.get(ORTAM) == "1" or getattr(sys, "frozen", False):
         from .ana import main as ana_main
 
         return ana_main(argv)

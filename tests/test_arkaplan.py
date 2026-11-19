@@ -28,3 +28,15 @@ def test_alt_surec_uygulamayi_calistirir(monkeypatch):
     monkeypatch.setattr(ana, "main", lambda argv=None: calisti.append(1) or 7)
     assert arkaplan.main(popen=lambda *a, **k: pytest.fail("yeniden başlatmamalı")) == 7
     assert calisti == [1]
+
+
+def test_exe_icinde_yeniden_baslatmadan_calisir(monkeypatch):
+    """PyInstaller .exe'si zaten konsolsuz; ``sys.executable -m`` orada çalışmaz."""
+    monkeypatch.delenv(arkaplan.ORTAM, raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    calisti = []
+    import ceviri_katmani.uygulama.ana as ana
+
+    monkeypatch.setattr(ana, "main", lambda argv=None: calisti.append(1) or 0)
+    assert arkaplan.main(popen=lambda *a, **k: pytest.fail("exe yeniden başlatmamalı")) == 0
+    assert calisti == [1]
