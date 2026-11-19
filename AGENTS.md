@@ -33,7 +33,7 @@ tr2en is a Windows tray app that replaces selected Turkish text with its English
 - **Privacy:** never log, store or send the user's text anywhere except the selected translator. Never print or write API keys; refer to them by environment variable name (`GEMINI_API_KEY`, or the name in `uyumlu_anahtar_degiskeni`).
 - `http://` is allowed only for localhost translators.
 - Clipboard: the user's original clipboard (text, image, files) must be restored after every job, including on errors.
-- Tests must not touch the network, the real `%APPDATA%`, the registry Run key or the real clipboard unless the test is explicitly a Windows integration test.
+- Tests must not touch the network, the real `%APPDATA%`, the registry Run key, the Windows Credential Manager, the real clipboard or the real web browser unless the test is explicitly a Windows integration test (`tests/conftest.py` blocks `webbrowser`).
 
 ## Model
 

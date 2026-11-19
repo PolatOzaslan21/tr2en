@@ -575,7 +575,7 @@ def test_anahtar_degeri_hicbir_donusmede_yok(yol, kasa):
     gizli = "GIZLI_HIC_YOK_789"
     kasa.veri["gemini"] = gizli
     kurucu = SahteZincirKurucu(SahteZincir(ceviri=f"ceviri {gizli} son"))
-    api = PencereApi(ayar_yolu=yol, kasa=kasa, zincir_kurucu=kurucu)
+    api = PencereApi(ayar_yolu=yol, kasa=kasa, zincir_kurucu=kurucu, tarayici_ac=[].append)
     donusler = [
         api.ayarlari_al(),
         api.ayar_kaydet({"tema": "koyu"}),

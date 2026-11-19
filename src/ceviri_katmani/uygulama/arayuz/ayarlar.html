@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tr2en Ayarlar</title>
+<style>
+:root{
+  --bg:#ececee; --sidebar:#e3e3e7; --panel:#ffffff; --text:#1d1d1f; --muted:#6e6e73;
+  --line:rgba(0,0,0,.09); --accent:#0a84ff; --accent-soft:rgba(10,132,255,.12);
+  --sel:#0a7cff; --sel-text:#fff; --field:#f5f5f7; --ok:#28a745; --warn:#c77800; --danger:#d70015;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 0 0 .5px rgba(0,0,0,.06);
+  --red:#e11d2e; --blue:#0ea5e9;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-tema="acik"]){
+    --bg:#1e1e20; --sidebar:#262628; --panel:#2c2c2e; --text:#f5f5f7; --muted:#a1a1a6;
+    --line:rgba(255,255,255,.09); --accent:#0a84ff; --accent-soft:rgba(10,132,255,.22);
+    --field:#3a3a3c; --shadow:0 0 0 .5px rgba(255,255,255,.07); --ok:#32d74b; --warn:#ffb340;
+  }
+}
+:root[data-tema="koyu"]{
+  --bg:#1e1e20; --sidebar:#262628; --panel:#2c2c2e; --text:#f5f5f7; --muted:#a1a1a6;
+  --line:rgba(255,255,255,.09); --accent-soft:rgba(10,132,255,.22);
+  --field:#3a3a3c; --shadow:0 0 0 .5px rgba(255,255,255,.07); --ok:#32d74b; --warn:#ffb340;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:13px;color:var(--text);
+  background:var(--bg);-webkit-font-smoothing:antialiased;user-select:none}
+.pencere{display:grid;grid-template-columns:220px 1fr;height:100vh;min-height:520px}
+
+/* kenar çubuğu */
+aside{background:var(--sidebar);border-right:1px solid var(--line);padding:18px 10px;display:flex;flex-direction:column;gap:2px}
+.marka{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}
+.marka b{font-size:15px;font-weight:600}
+.marka small{display:block;color:var(--muted);font-size:11px}
+.oge{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:7px;cursor:pointer;color:var(--text);
+  border:0;background:none;font:inherit;text-align:left;width:100%;transition:background .15s}
+.oge:hover{background:rgba(127,127,127,.12)}
+.oge[aria-current="page"]{background:var(--sel);color:var(--sel-text)}
+.oge:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent-soft);outline-offset:1px}
+.simge{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;flex:none}
+.simge svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.s-gri{background:#8e8e93}.s-mavi{background:#0a84ff}.s-mor{background:#7d5cf0}.s-yesil{background:#30b158}
+.alt{margin-top:auto;padding:10px 8px 0;color:var(--muted);font-size:11px;line-height:1.5}
+.durum{display:inline-flex;align-items:center;gap:6px}
+.nokta{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+
+/* içerik */
+main{overflow:auto;padding:26px 30px 30px}
+h1{font-size:20px;font-weight:600;margin:0 0 18px;letter-spacing:-.01em}
+.bolum{display:none}.bolum.acik{display:block;animation:gel .2s ease}
+@keyframes gel{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.bolum.acik{animation:none}}
+.baslik{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin:20px 12px 6px}
+.kart{background:var(--panel);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.satir{display:flex;align-items:center;gap:14px;min-height:44px;padding:9px 14px}
+.satir+.satir{border-top:1px solid var(--line)}
+.satir .etiket{flex:1;min-width:0}
+.satir .etiket small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px;line-height:1.4}
+.not{color:var(--muted);font-size:11.5px;margin:7px 12px 0;line-height:1.5}
+.not.uyari{color:var(--warn)}
+.gizli{display:none!important}
+
+/* anahtar (switch) */
+.anahtar{position:relative;width:38px;height:22px;flex:none}
+.anahtar input{appearance:none;margin:0;width:100%;height:100%;border-radius:11px;background:rgba(120,120,128,.32);cursor:pointer;transition:background .2s}
+.anahtar input:checked{background:var(--ok)}
+.anahtar span{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s;pointer-events:none}
+.anahtar input:checked+span{transform:translateX(16px)}
+
+/* bölümlü düğme */
+.segment{display:inline-flex;background:rgba(120,120,128,.16);border-radius:8px;padding:2px;gap:2px}
+.segment button{border:0;background:none;font:inherit;color:var(--text);padding:5px 16px;border-radius:6px;cursor:pointer;min-width:90px;transition:background .15s}
+.segment button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+.secenek-buyuk{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kutu{border:0;text-align:left;font:inherit;color:var(--text);background:var(--panel);box-shadow:var(--shadow);border-radius:10px;padding:14px;cursor:pointer;transition:box-shadow .15s}
+.kutu[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+.kutu b{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:4px}
+.kutu small{color:var(--muted);line-height:1.45;display:block}
+.rozet{font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:20px}
+
+/* alanlar */
+select,input[type=text],input[type=password]{font:inherit;color:var(--text);background:var(--field);border:1px solid var(--line);
+  border-radius:7px;padding:6px 9px;min-width:220px}
+.alan{display:flex;gap:6px;align-items:center}
+.dugme{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:7px;padding:6px 12px;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.04);transition:background .15s}
+.dugme:hover{background:var(--field)}
+.dugme.ana{background:var(--accent);color:#fff;border-color:transparent}
+.dugme.ana:hover{filter:brightness(1.08);background:var(--accent)}
+.ikon-dugme{padding:6px 8px;display:grid;place-items:center}
+.ikon-dugme svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.sonuc{font-size:12px}.sonuc.ok{color:var(--ok)}
+
+/* kısayol */
+.tus{display:inline-flex;gap:4px}
+kbd{font:600 12px "Segoe UI",system-ui;background:var(--field);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:3px 8px;color:var(--text)}
+.radyo{display:flex;align-items:center;gap:10px;cursor:pointer;width:100%}
+.radyo input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.kayit{color:var(--accent);font-weight:600;animation:yanip 1s infinite}
+@keyframes yanip{50%{opacity:.4}}
+
+/* hakkında */
+.hakkinda{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 0 8px}
+.hakkinda h2{margin:12px 0 2px;font-size:22px}
+.hakkinda p{color:var(--muted);margin:2px 0}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.yardim{width:18px;height:18px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:600 11px "Segoe UI",system-ui;
+  display:inline-grid;place-items:center;cursor:pointer;flex:none;vertical-align:middle;margin-left:4px;padding:0;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+.yardim:hover{color:var(--accent);border-color:var(--accent)}
+.oneri{font-size:10.5px;font-weight:600;color:#fff;background:var(--ok);padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:1px}
+.kapali-uyari{display:none;color:var(--warn);font-size:11.5px;margin-top:3px}
+.satir.uyar .kapali-uyari{display:block}
+.satir.uyar{background:rgba(255,179,64,.08)}
+.model{display:flex;align-items:center;gap:10px}
+.model .ad{font-weight:600}
+.etiketcik{font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.ekle-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 12px}
+.ekle-menu .kutu{padding:11px}
+.ekle-menu .kutu b{font-size:13px}
+.rehber-icerik{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start}
+.rehber-liste{display:flex;flex-direction:column;gap:2px}
+.rehber-liste button{border:0;background:none;font:inherit;color:var(--text);text-align:left;padding:6px 9px;border-radius:6px;cursor:pointer}
+.rehber-liste button:hover{background:rgba(127,127,127,.12)}
+.rehber-liste button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+article{display:none;background:var(--panel);border-radius:10px;box-shadow:var(--shadow);padding:16px 18px;line-height:1.6;user-select:text}
+article.acik{display:block}
+article h2{font-size:15px;margin:0 0 8px}
+article ol,article ul{padding-left:20px;margin:6px 0}
+article code{background:var(--field);border-radius:4px;padding:1px 5px;font-family:Consolas,monospace;font-size:12px}
+.vurgu{animation:vurgu 1.4s ease}
+@keyframes vurgu{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:var(--shadow)}}
+.geri{margin-top:12px}
+</style>
+</head>
+<body>
+<div class="pencere">
+  <aside aria-label="Bölümler">
+    <div class="marka">
+      <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="#181d27"/>
+        <path d="M8 14h28a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6H18l-8 6v-6a6 6 0 0 1-6-6V20a6 6 0 0 1 4-6z" fill="var(--red)"/>
+        <text x="21" y="31" font-family="Segoe UI" font-weight="700" font-size="13" fill="#fff" text-anchor="middle">TR</text>
+        <path d="M28 30h28a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6v6l-8-6H28a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6z" fill="var(--blue)" stroke="#181d27" stroke-width="2.5"/>
+        <text x="42" y="47" font-family="Segoe UI" font-weight="700" font-size="13" fill="#fff" text-anchor="middle">EN</text>
+      </svg>
+      <div><b>tr2en</b><small>Türkçe → İngilizce</small></div>
+    </div>
+    <button class="oge" data-bolum="genel" aria-current="page">
+      <span class="simge s-gri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>Genel
+    </button>
+    <button class="oge" data-bolum="ceviri">
+      <span class="simge s-mavi"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg></span>Çeviri
+    </button>
+    <button class="oge" data-bolum="kisayol">
+      <span class="simge s-mor"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>Kısayol
+    </button>
+    <button class="oge" data-bolum="hakkinda">
+      <span class="simge s-yesil"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>Hakkında
+    </button>
+    <button class="oge" data-bolum="rehber">
+      <span class="simge" style="background:#ff9f0a"><svg viewBox="0 0 24 24"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg></span>Rehber
+    </button>
+    <div class="alt"><span class="durum"><span class="nokta"></span>Çalışıyor</span><br>Pencereyi kapatınca tr2en tepside çalışmaya devam eder.</div>
+  </aside>
+
+  <main>
+    <!-- GENEL -->
+    <section class="bolum acik" id="genel">
+      <h1>Genel</h1>
+      <div class="kart">
+        <div class="satir"><div class="etiket">Pencereyi kapatınca sor<small>Kapatırken tr2en'in tamamen kapanıp kapanmayacağını sorar.</small></div>
+          <label class="anahtar"><input type="checkbox" checked id="kapatincaSor" aria-label="Pencereyi kapatınca sor"><span></span></label></div>
+      </div>
+      <div class="baslik">Çeviri sonrası</div>
+      <div class="kart">
+        <div class="satir onemli"><div class="etiket">Sona boşluk ekle<span class="oneri">Önerilir</span><small>Yapıştırılan çevirinin ardından yazmaya devam etmek için.</small>
+          <span class="kapali-uyari">Kapalıyken çeviri bir sonraki kelimeye yapışık kalabilir.</span></div>
+          <label class="anahtar"><input type="checkbox" checked id="sonaBosluk" aria-label="Sona boşluk ekle"><span></span></label></div>
+        <div class="satir onemli"><div class="etiket">Son işlemleri tut<span class="oneri">Önerilir</span><small>Yalnızca saat, süre ve karakter sayısı; metnin kendisi asla.</small>
+          <span class="kapali-uyari">Kapalıyken "Son çeviriyi göster" çalışmaz ve sorun bildirirken gereken bilgiler olmaz.</span></div>
+          <label class="anahtar"><input type="checkbox" checked id="ozetKaydi" aria-label="Son işlemleri tut"><span></span></label></div>
+      </div>
+      <div class="baslik">Görünüm</div>
+      <div class="kart">
+        <div class="satir"><div class="etiket">Tema</div>
+          <div class="segment" role="group" aria-label="Tema" id="tema">
+            <button aria-pressed="true" data-t="">Sistem</button><button aria-pressed="false" data-t="acik">Açık</button><button aria-pressed="false" data-t="koyu">Koyu</button>
+          </div></div>
+      </div>
+    </section>
+
+    <!-- ÇEVİRİ -->
+    <section class="bolum" id="ceviri">
+      <h1>Çeviri</h1>
+      <div class="secenek-buyuk" role="group" aria-label="Çeviri yeri">
+        <button class="kutu" data-yer="yerel" aria-pressed="false">
+          <b>Yerel</b><small>Bu bilgisayarda çalışır. İnternet gerekmez, metin bilgisayardan çıkmaz. Uzun metinde daha zayıf.</small>
+        </button>
+        <button class="kutu" data-yer="bulut" aria-pressed="true">
+          <b>Bulut <span class="rozet">Önerilen</span></b><small>Daha iyi çeviri. Metin seçtiğiniz servise gönderilir.</small>
+        </button>
+      </div>
+
+      <div id="yerelAyar" class="gizli">
+        <div class="baslik">Yerel modeller <button class="yardim" data-rehber="yerel-bulut" aria-label="Yardım: Yerel mi bulut mu">?</button></div>
+        <div class="kart" id="yerelKart">
+          <div class="satir" id="modelEkleSatir"><div class="etiket"><b style="font-weight:600">Model ekle</b> <button class="yardim" data-rehber="model-ekle" aria-label="Yardım: Model ekleme">?</button><small>Bilgisayarınızda çalışan başka bir çeviri modeli.</small></div></div>
+          <div class="ekle-menu">
+            <button class="kutu" data-ekle="ollama"><b>Ollama</b><small>Ücretsiz; en kolay yol.</small></button>
+            <button class="kutu" data-ekle="lmstudio"><b>LM Studio</b><small>Pencereli; model indirmesi kolay.</small></button>
+            <button class="kutu" data-ekle="klasor"><b>Model klasörü</b><small>İleri düzey: CTranslate2 modeli.</small></button>
+          </div>
+        </div>
+        <div class="kart gizli" id="modelForm" style="margin-top:12px">
+          <div class="satir"><div class="etiket">Adres</div>
+            <input type="text" id="mfAdres" aria-label="Model adresi" placeholder="http://localhost:11434/v1"></div>
+          <div class="satir"><div class="etiket">Model</div>
+            <div class="alan"><input type="text" id="mfModel" aria-label="Model adı" placeholder="model adı">
+              <button class="dugme" id="mfListele">Listele</button></div></div>
+          <div class="satir gizli" id="mfListeSatir"><div class="etiket">Modeller</div>
+            <select id="mfListe" aria-label="Model listesi"></select></div>
+          <div class="satir"><div class="etiket"><small id="mfNot">Yerel sunucu modeli ekleyin.</small></div>
+            <button class="dugme" id="mfVazgec">Vazgeç</button>
+            <button class="dugme ana" id="mfKaydet">Ekle</button></div>
+        </div>
+        <p class="not">Yerel modellerde metin bilgisayarınızdan çıkmaz. Ollama ve LM Studio modelleri bilgisayarın gücüne göre yavaş olabilir.</p>
+      </div>
+
+      <div id="bulutAyar">
+        <div class="baslik">Bulut servisi <button class="yardim" data-rehber="yerel-bulut" aria-label="Yardım: Yerel mi bulut mu">?</button></div>
+        <div class="kart">
+          <div class="satir"><div class="etiket">Servis</div>
+            <select id="servis" aria-label="Servis">
+              <option value="gemini">Google Gemini (önerilen, ücretsiz katman)</option>
+              <option value="openai">OpenAI</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="diger">Diğer (OpenAI uyumlu adres)</option>
+            </select></div>
+          <div class="satir" id="adresSatir"><div class="etiket">Adres</div>
+            <input type="text" id="adres" aria-label="Adres" placeholder="https://…/v1"></div>
+          <div class="satir" id="anahtarSatir"><div class="etiket">API anahtarı <button class="yardim" id="anahtarRehber" data-rehber="gemini" aria-label="Yardım: API anahtarı">?</button><small>Windows Kimlik Yöneticisi'nde şifreli saklanır.</small></div>
+            <div class="alan"><input type="password" id="anahtar" aria-label="API anahtarı" placeholder="Anahtarı yapıştırın">
+              <button class="dugme ikon-dugme" id="goster" aria-label="Anahtarı göster"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <button class="dugme gizli" id="anahtarSil">Sil</button></div></div>
+          <div class="satir"><div class="etiket">Model <button class="yardim" data-rehber="model-adi" aria-label="Yardım: Model adı">?</button></div>
+            <input type="text" id="model" aria-label="Model" value="gemini-3.5-flash-lite"></div>
+          <div class="satir"><div class="etiket"><span id="anahtarYardim"><a href="#" data-rehber="gemini">Ücretsiz Gemini anahtarı nasıl alınır?</a></span></div>
+            <span class="sonuc" id="sonuc" aria-live="polite"></span>
+            <button class="dugme" id="dene">Bağlantıyı dene</button></div>
+        </div>
+        <div class="kart" style="margin-top:12px">
+          <div class="satir onemli"><div class="etiket">Bulut çalışmazsa yerel modele geç<span class="oneri">Önerilir</span>
+            <span class="kapali-uyari">Kapalıyken internet ya da servis gidince çeviri yapılmaz.</span><small>İnternet yoksa ya da servis cevap vermezse çeviri yine yapılır.</small></div>
+            <label class="anahtar"><input type="checkbox" checked id="yedekYerel" aria-label="Yedek olarak yerel model"><span></span></label></div>
+        </div>
+        <p class="not" id="gizlilikNotu">Gemini'nin ücretsiz katmanında Google gönderilen metinleri ürünlerini geliştirmek için kullanabilir. Hassas metinlerde Yerel'i seçin.</p>
+      </div>
+    </section>
+
+    <!-- KISAYOL -->
+    <section class="bolum" id="kisayol">
+      <h1>Kısayol</h1>
+      <div class="kart">
+        <div class="satir"><div class="etiket">Şu anki kısayol<small>Metni seçip bu tuşlara basın.</small></div>
+          <span class="tus" id="simdiki"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Space</kbd></span></div>
+      </div>
+      <div class="baslik">Seç <button class="yardim" data-rehber="kisayol" aria-label="Yardım: Kısayol">?</button></div>
+      <div class="kart">
+        <div class="satir"><label class="radyo"><input type="radio" name="k" data-kisayol="<ctrl>+<shift>+<space>" checked> <span class="etiket">Ctrl + Shift + Space <span class="rozet">Önerilen</span></span></label></div>
+        <div class="satir"><label class="radyo"><input type="radio" name="k" data-kisayol="<ctrl>+<shift>+y"> <span class="etiket">Ctrl + Shift + Y</span></label></div>
+        <div class="satir"><label class="radyo"><input type="radio" name="k" id="kendiRadyo"> <span class="etiket">Kendi kısayolum<small id="kendiAciklama">Kaydet'e basıp istediğiniz birleşime basın.</small></span></label>
+          <button class="dugme" id="kaydet">Kaydet</button></div>
+      </div>
+      <p class="not uyari" id="kisayolUyari">Kendi kısayolunuz başka bir programınkiyle çakışırsa tr2en metin seçiliyken çevirir, seçim yokken tuşu o programa geri gönderir.</p>
+    </section>
+
+    <!-- HAKKINDA -->
+    <section class="bolum" id="hakkinda">
+      <h1>Hakkında</h1>
+      <div class="kart"><div class="hakkinda">
+        <svg width="72" height="72" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14" fill="#181d27"/>
+          <path d="M8 14h28a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6H18l-8 6v-6a6 6 0 0 1-6-6V20a6 6 0 0 1 4-6z" fill="var(--red)"/>
+          <text x="21" y="31" font-family="Segoe UI" font-weight="700" font-size="13" fill="#fff" text-anchor="middle">TR</text>
+          <path d="M28 30h28a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6v6l-8-6H28a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6z" fill="var(--blue)" stroke="#181d27" stroke-width="2.5"/>
+          <text x="42" y="47" font-family="Segoe UI" font-weight="700" font-size="13" fill="#fff" text-anchor="middle">EN</text>
+        </svg>
+        <h2>tr2en</h2>
+        <p id="surum">Sürüm 0.2.0 (Beta)</p>
+        <p style="margin-top:10px"><a href="#" data-ac="github">GitHub</a> · <a href="#" data-ac="sorun">Sorun bildir</a> · <a href="#" data-ac="gizlilik">Gizlilik</a></p>
+        <p style="margin-top:12px;font-size:11.5px">Kod MIT lisanslı. Yerel model CC-BY-4.0 (Helsinki-NLP OPUS-MT).</p>
+      </div></div>
+    </section>
+    <section class="bolum" id="rehber">
+      <h1>Rehber</h1>
+      <div class="rehber-icerik">
+        <nav class="rehber-liste" aria-label="Rehber konuları">
+          <button data-konu="baslarken">Başlarken</button>
+          <button data-konu="yerel-bulut">Yerel mi, bulut mu?</button>
+          <button data-konu="gemini">Gemini anahtarı</button>
+          <button data-konu="diger-anahtar">OpenAI · DeepSeek · OpenRouter</button>
+          <button data-konu="model-adi">Model adı nedir?</button>
+          <button data-konu="model-ekle">Yerel model ekleme</button>
+          <button data-konu="kisayol">Kısayol ve çakışmalar</button>
+          <button data-konu="smartscreen">"Bilgisayarınızı korudu" uyarısı</button>
+          <button data-konu="gizlilik">Gizlilik</button>
+        </nav>
+        <div>
+          <article id="r-baslarken"><h2>Başlarken</h2><ol><li>Herhangi bir programda Türkçe metni seçin.</li><li><b>Ctrl+Shift+Space</b>'e basın.</li><li>Seçili metin İngilizcesiyle değişir.</li></ol>Simge saatin yanındaki <b>^</b> menüsünde olabilir; görev çubuğuna sürükleyebilirsiniz.</article>
+          <article id="r-yerel-bulut"><h2>Yerel mi, bulut mu?</h2><ul><li><b>Yerel:</b> internetsiz çalışır, metin bilgisayardan çıkmaz. Kısa cümlelerde iyi, uzun ve dağınık metinde zayıf.</li><li><b>Bulut:</b> çeviri kalitesi daha yüksek; metin seçtiğiniz servise gider. Gemini'nin ücretsiz katmanı çoğu kişiye yeter.</li></ul>Kararsızsanız: <b>Bulut + "çalışmazsa yerele geç"</b>.</article>
+          <article id="r-gemini"><h2>Ücretsiz Gemini anahtarı</h2><ol><li>Google AI Studio'yu açın: <a href="#" data-ac="gemini_anahtar">aistudio.google.com/apikey</a></li><li>Google hesabınızla girin, <b>Create API key</b>'e basın.</li><li>Anahtarı kopyalayın, tr2en'de <b>Çeviri → API anahtarı</b> alanına yapıştırın.</li><li><b>Bağlantıyı dene</b>'ye basın; "Çalışıyor" görmelisiniz.</li></ol>Anahtar Windows Kimlik Yöneticisi'nde şifreli saklanır.</article>
+          <article id="r-diger-anahtar"><h2>OpenAI · DeepSeek · OpenRouter</h2>Bunlar ücretli servislerdir (kullandıkça ödenir). Servisin sitesinde hesap açın, "API keys" bölümünden anahtar oluşturun ve tr2en'e yapıştırın. Model adını servisin model listesinden kopyalayın.</article>
+          <article id="r-model-adi"><h2>Model adı nedir?</h2>Servislerin birden çok yapay zekâ modeli vardır; çeviriyi hangisinin yapacağını model adı belirler. Gemini'de hazır gelir. Diğerlerinde servisin "Models" sayfasındaki adı (ör. <code>gpt-4o-mini</code>) aynen yazın. Küçük ve hızlı modeller çeviri için yeterlidir.</article>
+          <article id="r-model-ekle"><h2>Yerel model ekleme</h2><b>Ollama (en kolay):</b><ol><li><a href="#" data-ac="ollama">ollama.com</a>'dan Ollama'yı kurun.</li><li>Bir model indirin, ör. <code>ollama pull qwen3:1.7b</code>.</li><li>tr2en'de <b>Çeviri → Yerel → Model ekle → Ollama</b>; listeden modeli seçin.</li></ol><b>LM Studio:</b> programı kurun, içinden bir model indirip "Local Server"ı başlatın, sonra tr2en'de <a href="#" data-ac="lmstudio">LM Studio</a>'yu seçin.<br><b>Model klasörü:</b> CTranslate2 biçiminde bir çeviri modeliniz varsa klasörünü seçin (ileri düzey).<br>Büyük modeller daha çok bellek ister ve yavaş olabilir.</article>
+          <article id="r-kisayol"><h2>Kısayol ve çakışmalar</h2>Önerilen kısayol <b>Ctrl+Shift+Space</b>'tir; başka programlarla çakışmaz. Kendi kısayolunuzu seçerseniz: metin seçiliyken tr2en çevirir, seçim yokken tuşu programa geri gönderir. Ctrl+C/V/X/Z/Y/A/S, Alt+F4 ve Ctrl+Alt kullanılamaz.</article>
+          <article id="r-smartscreen"><h2>"Bilgisayarınızı korudu" uyarısı</h2>tr2en henüz dijital imzalı olmadığı için Windows bu uyarıyı gösterebilir. <b>Ek bilgi → Yine de çalıştır</b>'a basın. Dosyanın doğruluğunu sürüm sayfasındaki <code>.sha256</code> ile kontrol edebilirsiniz.</article>
+          <article id="r-gizlilik"><h2>Gizlilik</h2>Çevrilen metin hiçbir yere kaydedilmez. Metin yalnızca seçtiğiniz servise gider; yerel modelde bilgisayardan çıkmaz. tr2en'in kendiliğinden yaptığı tek bağlantı dahili modelin ilk indirilmesidir. Telemetri yoktur.</article>
+          <button class="dugme geri gizli" id="geriDon">← Ayara geri dön</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="not uyari gizli" id="not" role="status" style="position:fixed;bottom:12px;left:240px;right:16px;background:var(--panel);border-radius:8px;box-shadow:var(--shadow);padding:8px 12px;z-index:40"></div>
+
+<div class="gizli" id="kapatModal" role="dialog" aria-modal="true" aria-label="tr2en kapatılsın mı?" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:grid;place-items:center;z-index:50">
+  <div class="kart" style="width:440px;padding:22px">
+    <h2 style="margin:0 0 14px;font-size:16px">tr2en kapatılsın mı?</h2>
+    <button class="kutu" id="kapatKucult" style="width:100%">
+      <b>Tepsiye küçült</b><small>tr2en arka planda çalışmaya devam eder</small>
+    </button>
+    <label class="radyo" style="margin:8px 2px 14px"><input type="checkbox" id="kapatHatirla"><span class="etiket">Bir daha sorma</span></label>
+    <button class="kutu" id="kapatTamamen" style="width:100%">
+      <b>Tamamen kapat</b><small>Kısayol çalışmayı durdurur</small>
+    </button>
+    <div style="text-align:right;margin-top:16px"><button class="dugme" id="kapatVazgec">Vazgeç</button></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+function sahteApi() {
+  const ornek = {
+    kisayol: "<ctrl>+<shift>+<space>",
+    cevirmen: "bulut", bulut_servis: "gemini", bulut_adres: "", bulut_model: "",
+    bulut_yedek_yerel: true, yerel_secili: "dahili",
+    ollama_adres: "http://localhost:11434/v1", ollama_model: "",
+    lmstudio_adres: "http://localhost:1234/v1", lmstudio_model: "", klasor_yolu: "",
+    kapatinca_sor: true, tema: "sistem", sona_bosluk: true, ozet_kaydi: true,
+    gemini_model: "gemini-3.5-flash-lite"
+  };
+  return {
+    ayarlari_al: () => Promise.resolve({ok: true, ayarlar: Object.assign({}, ornek),
+      anahtarlar: {gemini: false, openai: false, deepseek: false, openrouter: false, diger: false},
+      surum: "0.2.0"}),
+    ayar_kaydet: d => { console.log("ayar_kaydet", d); return Promise.resolve({ok: true, uyarilar: []}); },
+    anahtar_kaydet: (s, d) => { console.log("anahtar_kaydet", s, "(değer gizli)"); return Promise.resolve({ok: true}); },
+    anahtar_sil: s => { console.log("anahtar_sil", s); return Promise.resolve({ok: true}); },
+    baglanti_dene: (p, a) => { console.log("baglanti_dene", p, a ? "(anahtar girildi)" : ""); return Promise.resolve({ok: true, sure_sn: 0.6, ceviri: "Hello world", hata: ""}); },
+    ollama_modelleri: a => Promise.resolve({ok: true, modeller: ["qwen3:1.7b", "llama3.2"]}),
+    klasor_sec: () => Promise.resolve({ok: false, yol: "", hata: "klasör seçilmedi"}),
+    baglanti_ac: k => { console.log("baglanti_ac", k); return Promise.resolve({ok: true}); },
+    kisayol_kaydet: (m, t) => Promise.resolve({ok: true, kisayol: "<ctrl>+<shift>+" + t, uyari: "", hata: ""}),
+    kapat_secimi: (s, h) => { console.log("kapat_secimi", s, h); return Promise.resolve({ok: true}); },
+    pencereyi_kapat: () => { console.log("pencereyi_kapat"); }
+  };
+}
+function apiAl() {
+  return new Promise(coz => {
+    if (window.pywebview && window.pywebview.api) return coz(window.pywebview.api);
+    let bitti = false;
+    const zaman = setTimeout(() => { if (!bitti) { bitti = true; coz(sahteApi()); } }, 1000);
+    window.addEventListener("pywebviewready", () => {
+      if (bitti) return;
+      bitti = true; clearTimeout(zaman); coz(window.pywebview.api);
+    }, {once: true});
+  });
+}
+
+apiAl().then(api => {
+  const $ = id => document.getElementById(id);
+  let ayarlar = {};
+  let anahtarlar = {};
+  let mfTur = null;
+  let kayitModu = false;
+
+  function notGoster(metin) {
+    const n = $("not");
+    n.textContent = metin;
+    n.classList.remove("gizli");
+    clearTimeout(n._zaman);
+    n._zaman = setTimeout(() => n.classList.add("gizli"), 6000);
+  }
+  function ayarKaydet(deg) {
+    return Promise.resolve(api.ayar_kaydet(deg)).then(sonuc => {
+      if (!sonuc) return sonuc;
+      if (sonuc.hata) notGoster(sonuc.hata);
+      else if (sonuc.uyarilar && sonuc.uyarilar.length) notGoster(sonuc.uyarilar.join(" "));
+      return sonuc;
+    });
+  }
+  function esc(metin) {
+    return String(metin == null ? "" : metin)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // Gezinme
+  document.querySelectorAll(".oge").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".oge").forEach(x => x.removeAttribute("aria-current"));
+    b.setAttribute("aria-current", "page");
+    document.querySelectorAll(".bolum").forEach(s => s.classList.toggle("acik", s.id === b.dataset.bolum));
+  }));
+
+  // Tema
+  function temaUygula(t) {
+    if (t) document.documentElement.dataset.tema = t; else delete document.documentElement.dataset.tema;
+    document.querySelectorAll("#tema button").forEach(x =>
+      x.setAttribute("aria-pressed", String((x.dataset.t || "sistem") === (t || "sistem"))));
+  }
+  document.querySelectorAll("#tema button").forEach(b => b.addEventListener("click", () => {
+    const t = b.dataset.t || "sistem";
+    temaUygula(b.dataset.t);
+    ayarlar.tema = t;
+    ayarKaydet({tema: t});
+  }));
+
+  // Yerel / Bulut
+  function kutuSec(yer) {
+    document.querySelectorAll(".secenek-buyuk .kutu").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.yer === yer)));
+    const bulut = yer === "bulut";
+    $("bulutAyar").classList.toggle("gizli", !bulut);
+    $("yerelAyar").classList.toggle("gizli", bulut);
+  }
+  function aktifYer() {
+    return document.querySelector('.secenek-buyuk .kutu[data-yer="yerel"]').getAttribute("aria-pressed") === "true"
+      ? "yerel" : "bulut";
+  }
+  document.querySelectorAll(".secenek-buyuk .kutu").forEach(b => b.addEventListener("click", () => {
+    kutuSec(b.dataset.yer);
+    ayarlar.cevirmen = b.dataset.yer;
+    ayarKaydet({cevirmen: b.dataset.yer});
+  }));
+
+  // Servise göre alanlar
+  const SERVIS = {
+    gemini:    {adres: null, anahtar: true,  model: "gemini-3.5-flash-lite", yardim: "Ücretsiz Gemini anahtarı nasıl alınır?"},
+    openai:    {adres: "https://api.openai.com/v1", anahtar: true, model: "", yardim: "OpenAI anahtarı nereden alınır?"},
+    deepseek:  {adres: "https://api.deepseek.com/v1", anahtar: true, model: "", yardim: "DeepSeek anahtarı nereden alınır?"},
+    openrouter:{adres: "https://openrouter.ai/api/v1", anahtar: true, model: "", yardim: "OpenRouter anahtarı nereden alınır?"},
+    diger:     {adres: "", anahtar: true, model: "", yardim: "OpenAI uyumlu servis nedir?"},
+  };
+  const servis = $("servis");
+  function anahtarGorunumu() {
+    const kayitli = !!anahtarlar[servis.value];
+    $("anahtar").placeholder = kayitli ? "•••••• kayıtlı" : "Anahtarı yapıştırın";
+    $("anahtarSil").classList.toggle("gizli", !kayitli);
+  }
+  function servisDegisti() {
+    const s = SERVIS[servis.value];
+    $("adresSatir").classList.toggle("gizli", s.adres === null);
+    $("adres").value = servis.value === "diger" ? (ayarlar.bulut_adres || "") : (s.adres || "");
+    $("anahtarSatir").classList.toggle("gizli", !s.anahtar);
+    $("model").value = ayarlar.bulut_model
+      || (servis.value === "gemini" ? (ayarlar.gemini_model || s.model) : s.model);
+    $("model").placeholder = "model adı";
+    document.querySelector("#anahtarYardim a").textContent = s.yardim;
+    const konu = servis.value === "gemini" ? "gemini" : "diger-anahtar";
+    document.querySelector("#anahtarYardim a").dataset.rehber = konu;
+    $("anahtarRehber").dataset.rehber = konu;
+    $("gizlilikNotu").classList.toggle("gizli", servis.value !== "gemini");
+    $("sonuc").textContent = "";
+    $("sonuc").style.color = "";
+    anahtarGorunumu();
+  }
+  servis.addEventListener("change", () => {
+    servisDegisti();
+    ayarlar.bulut_servis = servis.value;
+    ayarKaydet({bulut_servis: servis.value});
+  });
+  $("adres").addEventListener("change", () => {
+    ayarlar.bulut_adres = $("adres").value;
+    ayarKaydet({bulut_adres: $("adres").value});
+  });
+  $("model").addEventListener("change", () => {
+    ayarlar.bulut_model = $("model").value;
+    ayarKaydet({bulut_model: $("model").value});
+  });
+
+  // API anahtarı
+  $("goster").addEventListener("click", () => {
+    const a = $("anahtar"); a.type = a.type === "password" ? "text" : "password";
+  });
+  function anahtarKaydet() {
+    const deger = $("anahtar").value;
+    if (!deger) return;
+    Promise.resolve(api.anahtar_kaydet(servis.value, deger)).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        anahtarlar[servis.value] = true;
+        $("anahtar").value = "";
+        $("anahtar").type = "password";
+        anahtarGorunumu();
+      } else {
+        notGoster((sonuc && sonuc.hata) || "Anahtar kaydedilemedi");
+      }
+    });
+  }
+  $("anahtar").addEventListener("change", anahtarKaydet);
+  $("anahtar").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); anahtarKaydet(); }
+  });
+  $("anahtarSil").addEventListener("click", () => {
+    Promise.resolve(api.anahtar_sil(servis.value)).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        anahtarlar[servis.value] = false;
+        $("anahtar").value = "";
+        anahtarGorunumu();
+      } else {
+        notGoster((sonuc && sonuc.hata) || "Anahtar silinemedi");
+      }
+    });
+  });
+
+  // Bağlantıyı dene
+  function formDegerleri() {
+    return {
+      cevirmen: aktifYer(),
+      bulut_servis: servis.value,
+      bulut_adres: $("adres").value,
+      bulut_model: $("model").value,
+      bulut_yedek_yerel: $("yedekYerel").checked,
+      yerel_secili: ayarlar.yerel_secili || "dahili",
+      ollama_adres: ayarlar.ollama_adres || "", ollama_model: ayarlar.ollama_model || "",
+      lmstudio_adres: ayarlar.lmstudio_adres || "", lmstudio_model: ayarlar.lmstudio_model || "",
+      klasor_yolu: ayarlar.klasor_yolu || ""
+    };
+  }
+  $("dene").addEventListener("click", () => {
+    const s = $("sonuc");
+    s.className = "sonuc"; s.style.color = ""; s.textContent = "Deneniyor…";
+    const ham = $("anahtar").value;
+    Promise.resolve(api.baglanti_dene(formDegerleri(), ham || null)).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        const sn = String(Math.round(sonuc.sure_sn * 10) / 10).replace(".", ",");
+        s.className = "sonuc ok"; s.style.color = "";
+        s.textContent = "✓ Çalışıyor (" + sn + " sn)";
+      } else {
+        s.className = "sonuc"; s.style.color = "var(--danger)";
+        s.textContent = (sonuc && sonuc.hata) || "Bağlantı kurulamadı";
+      }
+    });
+  });
+
+  // Yerel model listesi
+  function yerelListesiniYaz() {
+    const kart = $("yerelKart");
+    kart.querySelectorAll(".yerel-satir").forEach(x => x.remove());
+    const satirlar = [{
+      deger: "dahili", ad: "Dahili model", etiket: "OPUS-MT · TR→EN",
+      aciklama: "Hazır gelir, ek kurulum gerekmez. Hugging Face: PolatOz/tr2en-model · CC-BY-4.0",
+      sag: '<span class="sonuc ok">İndirildi</span>'
+    }];
+    if (ayarlar.ollama_model) satirlar.push({
+      deger: "ollama", ad: "Ollama", etiket: ayarlar.ollama_model,
+      aciklama: (ayarlar.ollama_adres || "") + " · Bu bilgisayarda çalışır", duzenle: "ollama"
+    });
+    if (ayarlar.lmstudio_model) satirlar.push({
+      deger: "lmstudio", ad: "LM Studio", etiket: ayarlar.lmstudio_model,
+      aciklama: (ayarlar.lmstudio_adres || "") + " · Bu bilgisayarda çalışır", duzenle: "lmstudio"
+    });
+    if (ayarlar.klasor_yolu) satirlar.push({
+      deger: "klasor", ad: "Model klasörü", etiket: "CTranslate2",
+      aciklama: ayarlar.klasor_yolu, duzenle: "klasor"
+    });
+    const hedef = $("modelEkleSatir");
+    for (const s of satirlar) {
+      const div = document.createElement("div");
+      div.className = "satir yerel-satir";
+      const secili = s.deger === (ayarlar.yerel_secili || "dahili");
+      div.innerHTML =
+        '<label class="radyo"><input type="radio" name="ym" value="' + esc(s.deger) + '"' + (secili ? " checked" : "") + '>' +
+        '<span class="etiket"><span class="model"><span class="ad">' + esc(s.ad) + '</span>' +
+        '<span class="etiketcik">' + esc(s.etiket) + '</span></span>' +
+        '<small>' + esc(s.aciklama) + '</small></span></label>' +
+        (s.sag ? s.sag : '<button class="dugme" data-duzenle="' + esc(s.duzenle) + '">Düzenle</button>');
+      kart.insertBefore(div, hedef);
+    }
+    kart.querySelectorAll('input[name="ym"]').forEach(r => r.addEventListener("change", () => {
+      ayarlar.yerel_secili = r.value;
+      ayarKaydet({yerel_secili: r.value});
+    }));
+    kart.querySelectorAll("[data-duzenle]").forEach(d => d.addEventListener("click", () => {
+      const tur = d.dataset.duzenle;
+      if (tur === "klasor") { klasorSec(); return; }
+      modelFormAc(tur);
+    }));
+  }
+  function klasorSec() {
+    Promise.resolve(api.klasor_sec()).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        ayarKaydet({klasor_yolu: sonuc.yol, yerel_secili: "klasor"}).then(() => {
+          ayarlar.klasor_yolu = sonuc.yol;
+          ayarlar.yerel_secili = "klasor";
+          yerelListesiniYaz();
+        });
+      } else if (sonuc && sonuc.hata && sonuc.hata !== "klasör seçilmedi") {
+        notGoster(sonuc.hata);
+      }
+    });
+  }
+  function modelFormAc(tur) {
+    mfTur = tur;
+    $("modelForm").classList.remove("gizli");
+    $("mfAdres").value = ayarlar[tur + "_adres"]
+      || (tur === "ollama" ? "http://localhost:11434/v1" : "http://localhost:1234/v1");
+    $("mfModel").value = ayarlar[tur + "_model"] || "";
+    $("mfListeSatir").classList.add("gizli");
+    $("mfListe").innerHTML = "";
+    $("mfNot").textContent = tur === "ollama" ? "Ollama" : "LM Studio";
+  }
+  document.querySelectorAll(".ekle-menu .kutu").forEach(b => b.addEventListener("click", () => {
+    const tur = b.dataset.ekle;
+    if (tur === "klasor") { klasorSec(); return; }
+    modelFormAc(tur);
+    $("modelForm").scrollIntoView({block: "nearest"});
+  }));
+  $("mfListele").addEventListener("click", () => {
+    Promise.resolve(api.ollama_modelleri($("mfAdres").value.trim())).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        const liste = $("mfListe");
+        liste.innerHTML = "";
+        for (const m of sonuc.modeller) {
+          const o = document.createElement("option");
+          o.value = m; o.textContent = m;
+          liste.appendChild(o);
+        }
+        $("mfListeSatir").classList.toggle("gizli", !sonuc.modeller.length);
+        if (sonuc.modeller.length) $("mfModel").value = sonuc.modeller[0];
+      } else {
+        notGoster((sonuc && sonuc.hata) || "Model listesi alınamadı");
+      }
+    });
+  });
+  $("mfListe").addEventListener("change", () => { $("mfModel").value = $("mfListe").value; });
+  $("mfVazgec").addEventListener("click", () => $("modelForm").classList.add("gizli"));
+  $("mfKaydet").addEventListener("click", () => {
+    const adres = $("mfAdres").value.trim();
+    const model = $("mfModel").value.trim();
+    if (!adres || !model) { notGoster("Adres ve model alanlarını doldurun."); return; }
+    const deg = {yerel_secili: mfTur};
+    deg[mfTur + "_adres"] = adres;
+    deg[mfTur + "_model"] = model;
+    ayarKaydet(deg).then(() => {
+      ayarlar[mfTur + "_adres"] = adres;
+      ayarlar[mfTur + "_model"] = model;
+      ayarlar.yerel_secili = mfTur;
+      yerelListesiniYaz();
+      $("modelForm").classList.add("gizli");
+    });
+  });
+
+  // Kısayol
+  function kisayolGoster(kisayol) {
+    const parcalar = String(kisayol || "").split("+").map(p => {
+      p = p.trim().replace(/^<|>$/g, "");
+      return "<kbd>" + esc(p.length === 1 ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1)) + "</kbd>";
+    });
+    $("simdiki").innerHTML = parcalar.join("");
+  }
+  function kisayolIsaretle(kisayol) {
+    let eslesen = false;
+    document.querySelectorAll('input[name="k"][data-kisayol]').forEach(r => {
+      const esit = r.dataset.kisayol === kisayol;
+      r.checked = esit;
+      if (esit) eslesen = true;
+    });
+    $("kendiRadyo").checked = !eslesen;
+  }
+  document.querySelectorAll('input[name="k"][data-kisayol]').forEach(r => r.addEventListener("change", () => {
+    if (!r.checked) return;
+    kisayolGoster(r.dataset.kisayol);
+    ayarlar.kisayol = r.dataset.kisayol;
+    ayarKaydet({kisayol: r.dataset.kisayol});
+  }));
+  function tusAdi(e) {
+    if (/^F([1-9]|1[0-9]|2[0-4])$/.test(e.key)) return e.key.toLowerCase();
+    if (e.key === " ") return "space";
+    if (e.key === "Enter") return "enter";
+    if (/^[a-z0-9]$/i.test(e.key)) return e.key.toLowerCase();
+    if (/^Key[A-Z]$/.test(e.code)) return e.code.slice(3).toLowerCase();
+    if (/^Digit[0-9]$/.test(e.code)) return e.code.slice(5);
+    if (/^F([1-9]|1[0-9]|2[0-4])$/.test(e.code)) return e.code.toLowerCase();
+    if (e.code === "Space") return "space";
+    if (e.code === "Enter") return "enter";
+    return null;
+  }
+  $("kaydet").addEventListener("click", () => {
+    kayitModu = true;
+    $("kendiRadyo").checked = true;
+    $("kendiAciklama").innerHTML = '<span class="kayit">Tuşlara basın… (Esc: vazgeç)</span>';
+  });
+  window.addEventListener("keydown", e => {
+    if (!kayitModu) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "Escape") {
+      kayitModu = false;
+      $("kendiAciklama").textContent = "Kaydet'e basıp istediğiniz birleşime basın.";
+      return;
+    }
+    if (e.key === "Control" || e.key === "Shift" || e.key === "Alt") return;
+    const tus = tusAdi(e);
+    if (!tus) return;
+    const degistiriciler = [];
+    if (e.ctrlKey) degistiriciler.push("ctrl");
+    if (e.shiftKey) degistiriciler.push("shift");
+    if (e.altKey) degistiriciler.push("alt");
+    kayitModu = false;
+    Promise.resolve(api.kisayol_kaydet(degistiriciler, tus)).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        $("kendiRadyo").checked = true;
+        kisayolGoster(sonuc.kisayol);
+        $("kendiAciklama").textContent = "Kaydedildi.";
+        ayarlar.kisayol = sonuc.kisayol;
+        if (sonuc.uyari) notGoster(sonuc.uyari);
+      } else {
+        $("kendiAciklama").textContent = (sonuc && sonuc.hata) || "Kaydedilemedi.";
+        if (sonuc && sonuc.hata && sonuc.hata !== "vazgeçildi") notGoster(sonuc.hata);
+      }
+    });
+  }, true);
+
+  // Rehber
+  let donulecek = null;
+  function bolumAc(id){ document.querySelector('.oge[data-bolum="'+id+'"]').click(); }
+  function konuAc(konu){
+    document.querySelectorAll(".rehber-liste button").forEach(b => b.setAttribute("aria-current", String(b.dataset.konu === konu)));
+    document.querySelectorAll("article").forEach(a => a.classList.toggle("acik", a.id === "r-" + konu));
+    const a = document.getElementById("r-" + konu); a.classList.remove("vurgu"); void a.offsetWidth; a.classList.add("vurgu");
+  }
+  document.querySelectorAll(".rehber-liste button").forEach(b => b.addEventListener("click", () => konuAc(b.dataset.konu)));
+  document.addEventListener("click", e => {
+    const y = e.target.closest("[data-rehber]");
+    if (!y) return;
+    e.preventDefault();
+    donulecek = document.querySelector('.oge[aria-current="page"]').dataset.bolum;
+    bolumAc("rehber"); konuAc(y.dataset.rehber);
+    $("geriDon").classList.remove("gizli");
+  });
+  $("geriDon").addEventListener("click", () => {
+    if (donulecek) bolumAc(donulecek);
+    $("geriDon").classList.add("gizli");
+  });
+  konuAc("baslarken");
+  document.addEventListener("click", e => {
+    const y = e.target.closest("[data-ac]");
+    if (!y) return;
+    e.preventDefault();
+    Promise.resolve(api.baglanti_ac(y.dataset.ac)).then(sonuc => {
+      if (sonuc && sonuc.ok === false && sonuc.hata) notGoster(sonuc.hata);
+    });
+  });
+  document.querySelectorAll(".satir.onemli input[type=checkbox]").forEach(c => c.addEventListener("change", () => {
+    c.closest(".satir").classList.toggle("uyar", !c.checked);
+  }));
+
+  // Genel anahtarları
+  function anahtarBagla(id, alan) {
+    $(id).addEventListener("change", () => {
+      ayarlar[alan] = $(id).checked;
+      const deg = {};
+      deg[alan] = $(id).checked;
+      ayarKaydet(deg);
+    });
+  }
+  anahtarBagla("kapatincaSor", "kapatinca_sor");
+  anahtarBagla("sonaBosluk", "sona_bosluk");
+  anahtarBagla("ozetKaydi", "ozet_kaydi");
+  anahtarBagla("yedekYerel", "bulut_yedek_yerel");
+
+  // Kapatma sorusu
+  window.kapatmaSor = function() {
+    $("kapatModal").classList.remove("gizli");
+  };
+  function kapatSec(secim) {
+    const hatirla = $("kapatHatirla").checked;
+    Promise.resolve(api.kapat_secimi(secim, hatirla)).then(() => {
+      try { api.pencereyi_kapat(); } catch (hata) { console.log("pencereyi_kapat", hata); }
+    });
+  }
+  $("kapatKucult").addEventListener("click", () => kapatSec("kucult"));
+  $("kapatTamamen").addEventListener("click", () => kapatSec("tamamen"));
+  $("kapatVazgec").addEventListener("click", () => $("kapatModal").classList.add("gizli"));
+
+  // Açılışta ayarları doldur
+  Promise.resolve(api.ayarlari_al()).then(sonuc => {
+    if (!sonuc || !sonuc.ok) {
+      notGoster((sonuc && sonuc.hata) || "Ayarlar okunamadı");
+      return;
+    }
+    ayarlar = sonuc.ayarlar || {};
+    anahtarlar = sonuc.anahtarlar || {};
+    $("surum").textContent = "Sürüm " + (sonuc.surum || "");
+    $("kapatincaSor").checked = !!ayarlar.kapatinca_sor;
+    $("sonaBosluk").checked = !!ayarlar.sona_bosluk;
+    $("ozetKaydi").checked = !!ayarlar.ozet_kaydi;
+    $("yedekYerel").checked = !!ayarlar.bulut_yedek_yerel;
+    document.querySelectorAll(".satir.onemli input[type=checkbox]").forEach(c =>
+      c.closest(".satir").classList.toggle("uyar", !c.checked));
+    temaUygula(ayarlar.tema === "sistem" ? "" : (ayarlar.tema || ""));
+    kutuSec(ayarlar.cevirmen === "yerel" ? "yerel" : "bulut");
+    servis.value = ayarlar.bulut_servis || "gemini";
+    servisDegisti();
+    yerelListesiniYaz();
+    kisayolGoster(ayarlar.kisayol);
+    kisayolIsaretle(ayarlar.kisayol);
+  });
+});
+</script>
+</body>
+</html>
