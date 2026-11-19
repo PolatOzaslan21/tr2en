@@ -1,6 +1,6 @@
 [project]
 name = "tr2en"
-version = "0.1.1"
+version = "0.1.2"
 readme = "README.md"
 description = "Local Turkish to English translation for Windows: select text, press a hotkey. Gemini, any OpenAI-compatible API, or an offline model. Yerel Türkçe → İngilizce çeviri."
 license = "MIT"
