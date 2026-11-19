@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # GitHub Actions sürümleri (ör. checkout, setup-uv)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Python bağımlılıkları (uv.lock)
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      python:
+        patterns: ["*"]
