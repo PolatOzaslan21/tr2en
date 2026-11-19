@@ -17,6 +17,7 @@ uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
 |---|---|---|---|
 | `ayarlari_al()` | — | `{"ok", "ayarlar", "anahtarlar", "surum"}` | `ayarlar`: şema 2 sözlüğü (izinli/yasak/ek_terminaller dahil). `anahtarlar`: `{servis: bool}` — kasada/ortamda anahtar var mı; DEĞİL anahtarın kendisi. `surum`: uygulama sürümü. |
 | `ayar_kaydet(degisiklikler)` | `dict` | `{"ok", "uyarilar"}` | Yalnızca `VARSAYILAN`'daki anahtarlar güncellenir; bilinmeyenler atlanır ve uyarıya eklenir. Doğrula → kaydet; başarılıysa sinyal `yenile`. |
+| `ilk_kurulum_tamamla(cevirmen)` | `str` | `{"ok"}` | İlk açılış sihirbazını kapatır. `cevirmen` "bulut" ya da "yerel" olmalı; başka değer → `ok: False`. Geçerliyse `cevirmen` ve `gizlilik_onayi = True` kaydedilir (sinyal `yenile`). |
 | `anahtar_kaydet(servis, deger)` | `str, str` | `{"ok"}` | Servisler: `gemini, openai, deepseek, openrouter, diger`. Değer hiçbir yere loglanmaz/dönmez. Başarılıysa sinyal `yenile`. |
 | `anahtar_sil(servis)` | `str` | `{"ok"}` | Başarılıysa sinyal `yenile`. |
 | `baglanti_dene(ayar_parcasi, anahtar=None)` | `dict, str\|None` | `{"ok", "sure_sn", "ceviri", "hata"}` | Ayarların **geçici** kopyasıyla zincir kurulur (`bulut_yedek_yerel` False zorlanır), `"Merhaba dünya, bu bir denemedir."` çevrilir. Dosyaya YAZMAZ. `anahtar` verilmişse (kaydedilmemiş) o kullanılır. |

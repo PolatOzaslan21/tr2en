@@ -7,6 +7,8 @@ src/href içermemeli (dış bağlantılar yalnızca baglanti_ac ile) ve
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -187,6 +189,31 @@ def test_html_kopruye_bagli():
     assert "pywebviewready" in metin
 
 
+def test_html_sihirbaz_ve_dene_kutusu():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "sihirbaz" in metin
+    assert "ilk_kurulum_tamamla" in metin
+    assert "cevir_dene" in metin
+    assert 'id="sihirbaz"' in metin
+    assert "#sihirbaz" in metin
+    assert 'id="deneKart"' in metin
+    assert 'maxlength="2000"' in metin
+
+
+def test_html_js_sozdizimi_gecerli(tmp_path):
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node kurulu değil")
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    bloklar = re.findall(r"<script\b[^>]*>(.*?)</script>", metin, re.S | re.I)
+    assert bloklar
+    for i, blok in enumerate(bloklar):
+        dosya = tmp_path / f"blok{i}.js"
+        dosya.write_text(blok, encoding="utf-8")
+        sonuc = subprocess.run([node, "--check", str(dosya)], capture_output=True, text=True)
+        assert sonuc.returncode == 0, sonuc.stderr
+
+
 # ---- _one_getir ----
 
 def test_one_getir_kuculmuse_geri_acar_one_getirir():
@@ -224,6 +251,41 @@ def test_pencere_parametreleri_dogru(tmp_path, monkeypatch, kilit_kayit):
     assert webview.argumanlar["js_api"] is api
     assert webview.argumanlar["url"].endswith("ayarlar.html")
     assert webview.start_gui == "edgechromium"
+
+
+def test_sihirbaz_bayragi_url_e_ekler(tmp_path, monkeypatch, kilit_kayit):
+    webview = SahteWebview()
+    kod = pencere_sureci.calistir(
+        ["--ayarlar", "--sihirbaz"],
+        webview_modulu=webview,
+        api=api_yap(tmp_path),
+        kilit=object(),
+    )
+    assert kod == 0
+    url = webview.argumanlar["url"]
+    assert url.endswith("#sihirbaz")
+    assert url.startswith("file://")
+    assert "ayarlar.html" in url
+
+
+def test_sihirbaz_bayragi_yoksa_url_degismez(tmp_path, monkeypatch, kilit_kayit):
+    webview = SahteWebview()
+    kod = pencere_sureci.calistir(
+        ["--ayarlar"],
+        webview_modulu=webview,
+        api=api_yap(tmp_path),
+        kilit=object(),
+    )
+    assert kod == 0
+    url = webview.argumanlar["url"]
+    assert url.endswith("ayarlar.html")
+    assert "#sihirbaz" not in url
+
+
+def test_ayarlar_html_sihirbaz_parametresi():
+    temel = pencere_sureci._ayarlar_html()
+    assert temel.endswith("ayarlar.html")
+    assert pencere_sureci._ayarlar_html(True) == temel + "#sihirbaz"
 
 
 def test_pencereyi_kapat_destroy_cagirir(tmp_path, monkeypatch, kilit_kayit):

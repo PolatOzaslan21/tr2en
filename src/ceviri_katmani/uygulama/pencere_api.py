@@ -146,6 +146,18 @@ class PencereApi:
             uyarilar.append(self._hata(e))
             return {"ok": False, "uyarilar": uyarilar, "hata": self._hata(e)}
 
+    def ilk_kurulum_tamamla(self, cevirmen: str) -> dict:
+        """İlk açılış sihirbazını kapatır: çevirmen seçimini ve gizlilik onayını kaydeder."""
+        try:
+            if cevirmen not in ("bulut", "yerel"):
+                return {"ok": False, "hata": "geçersiz çevirmen"}
+            sonuc = self.ayar_kaydet({"cevirmen": cevirmen, "gizlilik_onayi": True})
+            if not sonuc.get("ok"):
+                return {"ok": False, "hata": sonuc.get("hata") or "ayar kaydedilemedi"}
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "hata": self._hata(e)}
+
     def anahtar_kaydet(self, servis: str, deger: str) -> dict:
         try:
             if servis not in GECERLI_BULUT_SERVISLERI:

@@ -132,6 +132,35 @@ article code{background:var(--field);border-radius:4px;padding:1px 5px;font-fami
 .vurgu{animation:vurgu 1.4s ease}
 @keyframes vurgu{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:var(--shadow)}}
 .geri{margin-top:12px}
+.dugme:disabled{opacity:.5;cursor:default}
+
+/* metin alanı */
+textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid var(--line);border-radius:7px;
+  padding:7px 9px;width:100%;resize:vertical;user-select:text;line-height:1.5}
+.satir.sutun{flex-direction:column;align-items:stretch;gap:10px}
+.kucuk{color:var(--muted);font-size:11.5px}
+
+/* ilk açılış sihirbazı */
+#sihirbaz{position:fixed;inset:0;background:var(--bg);z-index:45;display:none;flex-direction:column}
+#sihirbaz.acik{display:flex}
+.sihirbaz-ust{display:flex;align-items:center;justify-content:space-between;padding:16px 26px}
+.sihirbaz-ust .marka{padding:0}
+.sihirbaz-orta{flex:1;overflow:auto;display:flex;justify-content:center;padding:0 26px 20px}
+.sihirbaz-kart{width:100%;max-width:560px;align-self:flex-start;background:var(--panel);border-radius:10px;
+  box-shadow:var(--shadow);padding:22px 24px}
+.sihirbaz-kart h2{margin:0 0 8px;font-size:18px}
+.sihirbaz-kart p{margin:0 0 12px;line-height:1.55}
+.sihirbaz-adim{display:none}
+.sihirbaz-adim.acik{display:block;animation:gel .2s ease}
+.sihirbaz-adim .secenek-buyuk{margin-top:14px}
+.sihirbaz-mesaj{min-height:18px;margin-top:12px}
+.sihirbaz-alt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 26px 18px}
+.sihirbaz-alt .sihirbaz-dugmeler{margin-top:0}
+.sihirbaz-dugmeler{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.adim-noktalar{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11.5px}
+.adim-nokta{width:8px;height:8px;border-radius:50%;background:rgba(120,120,128,.32)}
+.adim-nokta.aktif{background:var(--accent)}
+.maddeler{margin:0 0 14px;padding-left:20px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -196,7 +225,7 @@ article code{background:var(--field);border-radius:4px;padding:1px 5px;font-fami
     <!-- ÇEVİRİ -->
     <section class="bolum" id="ceviri">
       <h1>Çeviri</h1>
-      <div class="secenek-buyuk" role="group" aria-label="Çeviri yeri">
+      <div class="secenek-buyuk" role="group" aria-label="Çeviri yeri" id="ceviriYer">
         <button class="kutu" data-yer="yerel" aria-pressed="false">
           <b>Yerel</b><small>Bu bilgisayarda çalışır. İnternet gerekmez, metin bilgisayardan çıkmaz. Uzun metinde daha zayıf.</small>
         </button>
@@ -259,6 +288,16 @@ article code{background:var(--field);border-radius:4px;padding:1px 5px;font-fami
             <label class="anahtar"><input type="checkbox" checked id="yedekYerel" aria-label="Yedek olarak yerel model"><span></span></label></div>
         </div>
         <p class="not" id="gizlilikNotu">Gemini'nin ücretsiz katmanında Google gönderilen metinleri ürünlerini geliştirmek için kullanabilir. Hassas metinlerde Yerel'i seçin.</p>
+      </div>
+
+      <div class="kart" id="deneKart" style="margin-top:12px">
+        <div class="satir"><div class="etiket">Dene<small>Kaydedilmiş ayarlarla çevirir.</small></div></div>
+        <div class="satir sutun">
+          <textarea id="deneMetin" maxlength="2000" rows="3" placeholder="Türkçe bir şey yazın…" aria-label="Çevrilecek metin"></textarea>
+          <div class="alan"><button class="dugme ana" id="deneCevir">Çevir</button></div>
+          <textarea id="deneCeviri" rows="2" readonly placeholder="Çeviri burada görünür" aria-label="Çeviri sonucu"></textarea>
+          <span class="kucuk" id="deneBilgi" aria-live="polite"></span>
+        </div>
       </div>
     </section>
 
@@ -327,6 +366,95 @@ article code{background:var(--field);border-radius:4px;padding:1px 5px;font-fami
   </main>
 </div>
 
+<div id="sihirbaz" role="dialog" aria-modal="true" aria-label="İlk kurulum sihirbazı">
+  <div class="sihirbaz-ust">
+    <div class="marka">
+      <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="#181d27"/>
+        <path d="M8 14h28a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6H18l-8 6v-6a6 6 0 0 1-6-6V20a6 6 0 0 1 4-6z" fill="var(--red)"/>
+        <text x="21" y="31" font-family="Segoe UI" font-weight="700" font-size="13" fill="#fff" text-anchor="middle">TR</text>
+        <path d="M28 30h28a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6v6l-8-6H28a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6z" fill="var(--blue)" stroke="#181d27" stroke-width="2.5"/>
+        <text x="42" y="47" font-family="Segoe UI" font-weight="700" font-size="13" fill="#fff" text-anchor="middle">EN</text>
+      </svg>
+      <div><b>tr2en</b><small>Türkçe → İngilizce</small></div>
+    </div>
+    <button class="dugme ikon-dugme" id="sihirbazKapat" aria-label="Sihirbazı kapat">✕</button>
+  </div>
+
+  <div class="sihirbaz-orta">
+    <div class="sihirbaz-kart">
+      <!-- ADIM 1 -->
+      <section class="sihirbaz-adim acik" id="sihirbazAdim1">
+        <h2>tr2en'e hoş geldiniz</h2>
+        <p>Herhangi bir programda Türkçe metni seçip kısayola basın; İngilizcesiyle değişir.</p>
+        <div class="secenek-buyuk" role="group" aria-label="Çeviri yeri" id="sihirbazYer">
+          <button class="kutu" data-yer="yerel" aria-pressed="false">
+            <b>Yerel</b><small>Bu bilgisayarda çalışır. İnternet gerekmez, metin bilgisayardan çıkmaz. Uzun metinde daha zayıf.</small>
+          </button>
+          <button class="kutu" data-yer="bulut" aria-pressed="true">
+            <b>Bulut <span class="rozet">Önerilen</span></b><small>Daha iyi çeviri. Metin seçtiğiniz servise gönderilir.</small>
+          </button>
+        </div>
+        <div class="kart" id="sihirbazGizlilik" style="margin-top:14px;padding:12px 14px">
+          <p style="margin:0">Bulutta metin seçtiğiniz servise (varsayılan Google Gemini) gönderilir; ücretsiz katmanda Google bu metinleri ürünlerini geliştirmek için kullanabilir. Hassas metinlerde Yerel'i seçin.</p>
+        </div>
+      </section>
+
+      <!-- ADIM 2 -->
+      <section class="sihirbaz-adim" id="sihirbazAdim2">
+        <div id="sihirbazAdim2Bulut">
+          <h2>Ücretsiz Gemini anahtarı</h2>
+          <ul class="maddeler">
+            <li>Google AI Studio'da "Create API key" ile ücretsiz bir anahtar oluşturun.</li>
+            <li>Anahtarı aşağıya yapıştırıp "Kaydet" ile saklayın.</li>
+            <li>"Bağlantıyı dene" ile çeviriyi doğrulayın.</li>
+          </ul>
+          <div class="alan"><button class="dugme" id="sihirbazAnahtarSayfa">Anahtar sayfasını aç</button></div>
+          <div class="alan" style="margin-top:10px">
+            <input type="password" id="sihirbazAnahtar" aria-label="API anahtarı" placeholder="Anahtarı yapıştırın">
+            <button class="dugme" id="sihirbazAnahtarKaydet">Kaydet</button>
+            <button class="dugme" id="sihirbazDene">Bağlantıyı dene</button>
+          </div>
+        </div>
+        <div id="sihirbazAdim2Yerel" class="gizli">
+          <h2>Yerel model</h2>
+          <p>Dahili model ilk kullanımda bir kez indirilir; sonra internetsiz çalışır.</p>
+          <p class="not">Ollama / LM Studio eklemek için Ayarlar → Çeviri → Yerel.</p>
+        </div>
+        <div class="sihirbaz-dugmeler">
+          <button class="dugme gizli" id="sihirbazAtla">Şimdilik atla — internet yokken yerel model kullanılır</button>
+        </div>
+      </section>
+
+      <!-- ADIM 3 -->
+      <section class="sihirbaz-adim" id="sihirbazAdim3">
+        <h2>Deneyin</h2>
+        <p>Kısayolun tuşları:</p>
+        <span class="tus" id="sihirbazTus"></span>
+        <p style="margin-top:12px">Aşağıdaki kutodaki metni seçip kısayola basın.</p>
+        <textarea id="sihirbazMetin" rows="3" aria-label="Deneme metni">Merhaba, bugün hava çok güzel.</textarea>
+        <div class="sihirbaz-dugmeler">
+          <button class="dugme" id="sihirbazKisayol">Kısayolu değiştir</button>
+          <button class="dugme ana" id="sihirbazBitir">Bitir</button>
+        </div>
+      </section>
+
+      <div class="sonuc sihirbaz-mesaj" id="sihirbazMesaj" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="sihirbaz-alt">
+    <div class="adim-noktalar" id="sihirbazNoktalar">
+      <span class="adim-nokta"></span><span class="adim-nokta"></span><span class="adim-nokta"></span>
+      <span id="sihirbazAdimYazi">Adım 1/3</span>
+    </div>
+    <div class="sihirbaz-dugmeler">
+      <button class="dugme" id="sihirbazGeri" disabled>Geri</button>
+      <button class="dugme ana" id="sihirbazIleri">İleri</button>
+    </div>
+  </div>
+</div>
+
 <div class="not uyari gizli" id="not" role="status" style="position:fixed;bottom:12px;left:240px;right:16px;background:var(--panel);border-radius:8px;box-shadow:var(--shadow);padding:8px 12px;z-index:40"></div>
 
 <div class="gizli" id="kapatModal" role="dialog" aria-modal="true" aria-label="tr2en kapatılsın mı?" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:grid;place-items:center;z-index:50">
@@ -345,6 +473,8 @@ article code{background:var(--field);border-radius:4px;padding:1px 5px;font-fami
 
 <script>
 'use strict';
+const sihirbazAcik = location.hash === "#sihirbaz";
+if (sihirbazAcik) document.getElementById("sihirbaz").classList.add("acik");
 function sahteApi() {
   const ornek = {
     kisayol: "<ctrl>+<shift>+<space>",
@@ -363,11 +493,15 @@ function sahteApi() {
     anahtar_kaydet: (s, d) => { console.log("anahtar_kaydet", s, "(değer gizli)"); return Promise.resolve({ok: true}); },
     anahtar_sil: s => { console.log("anahtar_sil", s); return Promise.resolve({ok: true}); },
     baglanti_dene: (p, a) => { console.log("baglanti_dene", p, a ? "(anahtar girildi)" : ""); return Promise.resolve({ok: true, sure_sn: 0.6, ceviri: "Hello world", hata: ""}); },
+    cevir_dene: m => { console.log("cevir_dene", m); return Promise.resolve({ok: true, ceviri: "Hello, the weather is very nice today.", cevirmen: "sahte:1", sure_sn: 0.6, hata: ""}); },
+    ilk_kurulum_tamamla: c => { console.log("ilk_kurulum_tamamla", c); return Promise.resolve({ok: true}); },
     ollama_modelleri: a => Promise.resolve({ok: true, modeller: ["qwen3:1.7b", "llama3.2"]}),
     klasor_sec: () => Promise.resolve({ok: false, yol: "", hata: "klasör seçilmedi"}),
     baglanti_ac: k => { console.log("baglanti_ac", k); return Promise.resolve({ok: true}); },
     kisayol_kaydet: (m, t) => Promise.resolve({ok: true, kisayol: "<ctrl>+<shift>+" + t, uyari: "", hata: ""}),
     kapat_secimi: (s, h) => { console.log("kapat_secimi", s, h); return Promise.resolve({ok: true}); },
+    otomatik_baslat_durum: () => Promise.resolve({ok: true, acik: false}),
+    otomatik_baslat_ayarla: a => { console.log("otomatik_baslat_ayarla", a); return Promise.resolve({ok: true}); },
     pencereyi_kapat: () => { console.log("pencereyi_kapat"); }
   };
 }
@@ -432,17 +566,17 @@ apiAl().then(api => {
 
   // Yerel / Bulut
   function kutuSec(yer) {
-    document.querySelectorAll(".secenek-buyuk .kutu").forEach(x =>
+    document.querySelectorAll("#ceviriYer .kutu").forEach(x =>
       x.setAttribute("aria-pressed", String(x.dataset.yer === yer)));
     const bulut = yer === "bulut";
     $("bulutAyar").classList.toggle("gizli", !bulut);
     $("yerelAyar").classList.toggle("gizli", bulut);
   }
   function aktifYer() {
-    return document.querySelector('.secenek-buyuk .kutu[data-yer="yerel"]').getAttribute("aria-pressed") === "true"
+    return document.querySelector('#ceviriYer .kutu[data-yer="yerel"]').getAttribute("aria-pressed") === "true"
       ? "yerel" : "bulut";
   }
-  document.querySelectorAll(".secenek-buyuk .kutu").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#ceviriYer .kutu").forEach(b => b.addEventListener("click", () => {
     kutuSec(b.dataset.yer);
     ayarlar.cevirmen = b.dataset.yer;
     ayarKaydet({cevirmen: b.dataset.yer});
@@ -557,6 +691,36 @@ apiAl().then(api => {
     });
   });
 
+  // Dene kutusu (Çeviri sayfasının altı)
+  $("deneCevir").addEventListener("click", () => {
+    const dugme = $("deneCevir");
+    const bilgi = $("deneBilgi");
+    const metin = $("deneMetin").value.trim();
+    if (!metin) {
+      bilgi.style.color = "var(--danger)";
+      bilgi.textContent = "Önce bir metin yazın.";
+      return;
+    }
+    dugme.disabled = true;
+    dugme.textContent = "Çevriliyor…";
+    bilgi.style.color = "";
+    bilgi.textContent = "";
+    $("deneCeviri").value = "";
+    Promise.resolve(api.cevir_dene(metin)).then(sonuc => {
+      dugme.disabled = false;
+      dugme.textContent = "Çevir";
+      if (sonuc && sonuc.ok) {
+        $("deneCeviri").value = sonuc.ceviri || "";
+        const sn = String(Math.round((sonuc.sure_sn || 0) * 10) / 10).replace(".", ",");
+        bilgi.style.color = "";
+        bilgi.textContent = (sonuc.cevirmen ? sonuc.cevirmen + " · " : "") + sn + " sn";
+      } else {
+        bilgi.style.color = "var(--danger)";
+        bilgi.textContent = (sonuc && sonuc.hata) || "Çeviri yapılamadı";
+      }
+    });
+  });
+
   // Yerel model listesi
   function yerelListesiniYaz() {
     const kart = $("yerelKart");
@@ -666,12 +830,15 @@ apiAl().then(api => {
   });
 
   // Kısayol
-  function kisayolGoster(kisayol) {
+  function kisayolTusHtml(kisayol) {
     const parcalar = String(kisayol || "").split("+").map(p => {
       p = p.trim().replace(/^<|>$/g, "");
       return "<kbd>" + esc(p.length === 1 ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1)) + "</kbd>";
     });
-    $("simdiki").innerHTML = parcalar.join("");
+    return parcalar.join("");
+  }
+  function kisayolGoster(kisayol) {
+    $("simdiki").innerHTML = kisayolTusHtml(kisayol);
   }
   function kisayolIsaretle(kisayol) {
     let eslesen = false;
@@ -735,6 +902,118 @@ apiAl().then(api => {
       }
     });
   }, true);
+
+  // İlk açılış sihirbazı
+  const sihirbazDuzen = {adim: 1, yer: "bulut", baglanti: false};
+  function sihirbazMesaj(metin, hataMi) {
+    const s = $("sihirbazMesaj");
+    s.className = "sonuc sihirbaz-mesaj" + (hataMi ? "" : " ok");
+    s.style.color = hataMi ? "var(--danger)" : "";
+    s.textContent = metin;
+  }
+  function sihirbazYerSec(yer) {
+    sihirbazDuzen.yer = yer;
+    document.querySelectorAll("#sihirbazYer .kutu").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.yer === yer)));
+    $("sihirbazGizlilik").classList.toggle("gizli", yer !== "bulut");
+  }
+  function sihirbazAdimGoster(adim) {
+    sihirbazDuzen.adim = adim;
+    document.querySelectorAll(".sihirbaz-adim").forEach(s =>
+      s.classList.toggle("acik", s.id === "sihirbazAdim" + adim));
+    document.querySelectorAll("#sihirbazNoktalar .adim-nokta").forEach((n, i) =>
+      n.classList.toggle("aktif", i < adim));
+    $("sihirbazAdimYazi").textContent = "Adım " + adim + "/3";
+    $("sihirbazGeri").disabled = adim === 1;
+    $("sihirbazIleri").disabled = false;
+    $("sihirbazIleri").classList.toggle("gizli", adim === 3);
+    $("sihirbazAtla").classList.add("gizli");
+    if (adim === 2) {
+      const bulut = sihirbazDuzen.yer === "bulut";
+      $("sihirbazAdim2Bulut").classList.toggle("gizli", !bulut);
+      $("sihirbazAdim2Yerel").classList.toggle("gizli", bulut);
+      $("sihirbazAtla").classList.toggle("gizli", !bulut);
+      $("sihirbazIleri").disabled = bulut && !sihirbazDuzen.baglanti;
+    }
+  }
+  function sihirbazKapat() {
+    $("sihirbaz").classList.remove("acik");
+    try { history.replaceState(null, "", location.pathname); } catch (hata) { console.log("hash temizlenemedi", hata); }
+  }
+  document.querySelectorAll("#sihirbazYer .kutu").forEach(b => b.addEventListener("click", () => {
+    sihirbazYerSec(b.dataset.yer);
+  }));
+  $("sihirbazIleri").addEventListener("click", () => {
+    if (sihirbazDuzen.adim === 1) {
+      ayarlar.cevirmen = sihirbazDuzen.yer;
+      kutuSec(sihirbazDuzen.yer);
+      ayarKaydet({cevirmen: sihirbazDuzen.yer});
+      sihirbazAdimGoster(2);
+    } else if (sihirbazDuzen.adim === 2) {
+      sihirbazAdimGoster(3);
+    }
+  });
+  $("sihirbazGeri").addEventListener("click", () => {
+    if (sihirbazDuzen.adim > 1) sihirbazAdimGoster(sihirbazDuzen.adim - 1);
+  });
+  $("sihirbazAtla").addEventListener("click", () => sihirbazAdimGoster(3));
+  $("sihirbazAnahtarSayfa").addEventListener("click", () => {
+    Promise.resolve(api.baglanti_ac("gemini_anahtar")).then(sonuc => {
+      if (sonuc && sonuc.ok === false && sonuc.hata) sihirbazMesaj(sonuc.hata, true);
+    });
+  });
+  $("sihirbazAnahtarKaydet").addEventListener("click", () => {
+    const deger = $("sihirbazAnahtar").value.trim();
+    if (!deger) { sihirbazMesaj("Önce anahtarı yapıştırın.", true); return; }
+    Promise.resolve(api.anahtar_kaydet("gemini", deger)).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        anahtarlar.gemini = true;
+        $("sihirbazAnahtar").value = "";
+        sihirbazMesaj("Anahtar kaydedildi. Şimdi bağlantıyı deneyin.");
+      } else {
+        sihirbazMesaj((sonuc && sonuc.hata) || "Anahtar kaydedilemedi", true);
+      }
+    });
+  });
+  $("sihirbazDene").addEventListener("click", () => {
+    sihirbazMesaj("Deneniyor…");
+    const ham = $("sihirbazAnahtar").value.trim();
+    const parca = {
+      cevirmen: "bulut", bulut_servis: "gemini", bulut_adres: "", bulut_model: "",
+      bulut_yedek_yerel: true, yerel_secili: ayarlar.yerel_secili || "dahili",
+      ollama_adres: ayarlar.ollama_adres || "", ollama_model: ayarlar.ollama_model || "",
+      lmstudio_adres: ayarlar.lmstudio_adres || "", lmstudio_model: ayarlar.lmstudio_model || "",
+      klasor_yolu: ayarlar.klasor_yolu || ""
+    };
+    Promise.resolve(api.baglanti_dene(parca, ham || null)).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        const sn = String(Math.round(sonuc.sure_sn * 10) / 10).replace(".", ",");
+        sihirbazMesaj("Bağlantı çalışıyor (" + sn + " sn).");
+        sihirbazDuzen.baglanti = true;
+        $("sihirbazIleri").disabled = false;
+      } else {
+        sihirbazMesaj((sonuc && sonuc.hata) || "Bağlantı kurulamadı", true);
+      }
+    });
+  });
+  $("sihirbazKisayol").addEventListener("click", () => {
+    sihirbazKapat();
+    bolumAc("kisayol");
+  });
+  $("sihirbazBitir").addEventListener("click", () => {
+    Promise.resolve(api.ilk_kurulum_tamamla(sihirbazDuzen.yer)).then(sonuc => {
+      if (!sonuc || !sonuc.ok) {
+        sihirbazMesaj((sonuc && sonuc.hata) || "Kurulum tamamlanamadı", true);
+        return;
+      }
+      sihirbazKapat();
+      bolumAc("genel");
+    });
+  });
+  $("sihirbazKapat").addEventListener("click", () => {
+    if (typeof window.kapatmaSor === "function") window.kapatmaSor();
+  });
+  if (sihirbazAcik) sihirbazAdimGoster(1);
 
   // Rehber
   let donulecek = null;
@@ -831,6 +1110,12 @@ apiAl().then(api => {
     yerelListesiniYaz();
     kisayolGoster(ayarlar.kisayol);
     kisayolIsaretle(ayarlar.kisayol);
+    if (sihirbazAcik) {
+      sihirbazYerSec(ayarlar.cevirmen === "yerel" ? "yerel" : "bulut");
+      $("sihirbazTus").innerHTML = kisayolTusHtml(ayarlar.kisayol);
+      if (anahtarlar.gemini) sihirbazDuzen.baglanti = true;
+      if (sihirbazDuzen.adim === 2) sihirbazAdimGoster(2);
+    }
     Promise.resolve(api.otomatik_baslat_durum()).then(durum => {
       if (durum && durum.ok) $("otomatikBaslat").checked = !!durum.acik;
     });

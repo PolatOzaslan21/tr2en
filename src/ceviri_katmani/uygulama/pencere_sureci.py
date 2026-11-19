@@ -58,8 +58,12 @@ def _one_getir(baslik: str, *, gui=None) -> None:
         pass
 
 
-def _ayarlar_html() -> str:
-    return (Path(__file__).resolve().parent / "arayuz" / "ayarlar.html").as_uri()
+def _ayarlar_html(sihirbaz: bool = False) -> str:
+    """Ayar penceresinin URL'si; ``sihirbaz`` ise ilk açılış sihirbazını açar."""
+    url = (Path(__file__).resolve().parent / "arayuz" / "ayarlar.html").as_uri()
+    if sihirbaz:
+        url += "#sihirbaz"
+    return url
 
 
 def calistir(
@@ -76,8 +80,9 @@ def calistir(
     ``pencereyi_kapat`` eklenir. ``kilit``: zaten alınmış mutex handle'ı
     (testler için); None ise named mutex alınır. Zaten açık pencere varsa
     öne getirilir ve 0 döner; WebView2/pencere hatasında 2 döner.
+    ``argv`` içinde ``--sihirbaz`` varsa pencere ilk açılış sihirbazıyla açılır.
     """
-    del argv
+    sihirbaz = "--sihirbaz" in (argv or [])
     kilit_nesnesi = tek_ornek.kilit_al(MUTEX_ADI) if kilit is None else kilit
     if kilit_nesnesi is None:
         _one_getir(PENCERE_BASLIGI)
@@ -125,7 +130,7 @@ def calistir(
         try:
             pencere = webview.create_window(
                 PENCERE_BASLIGI,
-                url=_ayarlar_html(),
+                url=_ayarlar_html(sihirbaz),
                 js_api=api,
                 width=GENISLIK,
                 height=YUKSEKLIK,

@@ -200,6 +200,55 @@ def test_ayar_kaydet_sozluk_disi_reddedilir(yol):
     assert isinstance(sonuc["hata"], str) and sonuc["hata"]
 
 
+# ---- ilk_kurulum_tamamla ----
+
+
+def test_ilk_kurulum_tamamla_bulut(yol):
+    sinyaller: list[str] = []
+    api = PencereApi(ayar_yolu=yol, sinyal_gonder=sinyaller.append)
+    sonuc = api.ilk_kurulum_tamamla("bulut")
+    assert sonuc == {"ok": True}
+    yuklenen, _ = ayar_modulu.yukle(yol)
+    assert yuklenen["gizlilik_onayi"] is True
+    assert yuklenen["cevirmen"] == "bulut"
+    assert sinyaller == ["yenile"]
+
+
+def test_ilk_kurulum_tamamla_yerel(yol):
+    api = PencereApi(ayar_yolu=yol)
+    assert api.ilk_kurulum_tamamla("yerel") == {"ok": True}
+    yuklenen, _ = ayar_modulu.yukle(yol)
+    assert yuklenen["cevirmen"] == "yerel"
+    assert yuklenen["gizlilik_onayi"] is True
+
+
+def test_ilk_kurulum_tamamla_gizlilik_onayi_dosyaya_yazilir(yol):
+    api = PencereApi(ayar_yolu=yol)
+    api.ilk_kurulum_tamamla("bulut")
+    icerik = yol.read_text(encoding="utf-8")
+    assert "gizlilik_onayi = true" in icerik
+
+
+def test_ilk_kurulum_tamamla_gecersiz_cevirmen(yol):
+    sinyaller: list[str] = []
+    api = PencereApi(ayar_yolu=yol, sinyal_gonder=sinyaller.append)
+    for gecersiz in ("", "gemini", "BULUT", "yerel ", None, 3):
+        sonuc = api.ilk_kurulum_tamamla(gecersiz)
+        assert sonuc["ok"] is False
+        assert isinstance(sonuc.get("hata"), str) and sonuc["hata"]
+    yuklenen, _ = ayar_modulu.yukle(yol)
+    assert yuklenen["gizlilik_onayi"] is False
+    assert sinyaller == []
+
+
+def test_ilk_kurulum_tamamla_yazma_hatasi(yol, monkeypatch):
+    monkeypatch.setattr(ayar_modulu, "kaydet", lambda *a, **k: False)
+    api = PencereApi(ayar_yolu=yol)
+    sonuc = api.ilk_kurulum_tamamla("bulut")
+    assert sonuc["ok"] is False
+    assert isinstance(sonuc.get("hata"), str) and sonuc["hata"]
+
+
 # ---- anahtar_kaydet / anahtar_sil ----
 
 
@@ -587,6 +636,7 @@ def test_anahtar_degeri_hicbir_donusmede_yok(yol, kasa):
         api.baglanti_ac("github"),
         api.kisayol_kaydet(["ctrl", "shift"], "k"),
         api.kapat_secimi("tamamen", True),
+        api.ilk_kurulum_tamamla("bulut"),
     ]
     for donus in donusler:
         assert gizli not in json.dumps(donus, ensure_ascii=False)
