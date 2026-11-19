@@ -1,6 +1,6 @@
 # AGENTS.md — rules for AI coding agents
 
-tr2en is a Windows tray app that replaces selected Turkish text with its English translation (hotkey Ctrl+Shift+Space). Read [README.md](README.md) for what users see. This file is for agents changing the code.
+tr2en is a Windows tray app that replaces selected Turkish text with its English translation (hotkey Ctrl+Shift+Space). Read [README.en.md](README.en.md) (English) or [README.md](README.md) (Turkish, default) for what users see. This file is for agents changing the code.
 
 ## Setup and tests
 
