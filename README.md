@@ -39,14 +39,23 @@
 
 ## Kurulum
 
-Gereken: Windows 10/11 ve [uv](https://docs.astral.sh/uv/).
+### Kolay yol: indir ve çalıştır (Windows 10/11)
+
+1. [Son sürüm](https://github.com/PolatOzaslan21/tr2en/releases/latest) sayfasından `tr2en-…-windows-x64.zip` dosyasını indirin (~58 MB).
+2. Zip'i kalıcı bir klasöre çıkarın (ör. `Belgeler\tr2en`) ve içindeki **`tr2en.exe`**'yi çalıştırın. Python gerekmez.
+3. Saatin yanında mavi **EN** simgesi çıkar. Tepsiden "Windows açılışında başlat"ı açabilirsiniz (klasörü sonradan taşırsanız bu ayarı kapatıp yeniden açın).
+
+- .exe henüz dijital imzalı değil; Windows "bilgisayarınızı korudu" (SmartScreen) uyarısı verirse **Ek bilgi → Yine de çalıştır**'a tıklayın. İndirdiğiniz dosyanın doğruluğunu sürümdeki `.sha256` dosyasıyla kontrol edebilirsiniz.
+- Güncellemek için: tepsiden **Çıkış**, yeni zip'i aynı klasöre çıkarın (ayarlarınız ve model `%APPDATA%` / `%LOCALAPPDATA%` altında kalır).
+
+### Geliştiriciler için: uv ile
+
+Gereken: [uv](https://docs.astral.sh/uv/).
 
 ```powershell
 uv tool install "tr2en[uygulama,yerel] @ git+https://github.com/PolatOzaslan21/tr2en"
 tr2en
 ```
-
-Saatin yanında mavi **EN** simgesi çıkar. Tepsiden "Windows açılışında başlat"ı açabilirsiniz.
 
 Kaynaktan çalıştırmak için: depoyu klonlayın, `baslat-arkaplan.cmd` (konsolsuz) ya da `baslat.cmd` (konsollu, hata ayıklama) dosyasını çalıştırın.
 

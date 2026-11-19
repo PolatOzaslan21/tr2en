@@ -41,14 +41,23 @@ On first start the app asks which one you want to use.
 
 ## Install
 
-Requirements: Windows 10/11 and [uv](https://docs.astral.sh/uv/).
+### Easy way: download and run (Windows 10/11)
+
+1. Download `tr2en-…-windows-x64.zip` (~58 MB) from the [latest release](https://github.com/PolatOzaslan21/tr2en/releases/latest).
+2. Extract it to a permanent folder (e.g. `Documents\tr2en`) and run **`tr2en.exe`**. No Python needed.
+3. A blue **EN** icon appears next to the clock. You can enable "Windows açılışında başlat" (start with Windows) from the tray (if you move the folder later, turn it off and on again).
+
+- The .exe is not code-signed yet; if Windows shows "Windows protected your PC" (SmartScreen), click **More info → Run anyway**. You can verify the download with the `.sha256` file in the release.
+- To update: quit from the tray (**Çıkış**), extract the new zip into the same folder (your settings and the model stay in `%APPDATA%` / `%LOCALAPPDATA%`).
+
+### For developers: with uv
+
+Requirements: [uv](https://docs.astral.sh/uv/).
 
 ```powershell
 uv tool install "tr2en[uygulama,yerel] @ git+https://github.com/PolatOzaslan21/tr2en"
 tr2en
 ```
-
-A blue **EN** icon appears next to the clock. You can enable "Windows açılışında başlat" (start with Windows) from the tray.
 
 To run from source: clone the repo and run `baslat-arkaplan.cmd` (no console) or `baslat.cmd` (with console, for debugging).
 
