@@ -18,6 +18,15 @@ _IS_WIN = sys.platform == "win32"
 _DURDUR = object()
 
 _LLKHF_INJECTED = 0x10
+_TUS_BASILDI = (0x100, 0x104)  # WM_KEYDOWN, WM_SYSKEYDOWN
+_TUS_BIRAKILDI = (0x101, 0x105)  # WM_KEYUP, WM_SYSKEYUP
+_DEGISTIRICI_VK = {
+    0x10: "shift", 0xA0: "shift", 0xA1: "shift",
+    0x11: "ctrl", 0xA2: "ctrl", 0xA3: "ctrl",
+    0x12: "alt", 0xA4: "alt", 0xA5: "alt",
+    0x5B: "win", 0x5C: "win",
+}
+_BOS_VK = 0xE8  # atanmamış tuş: Alt'lı kısayol yutulunca menü çubuğu açılmasın diye
 
 
 class TusTamponu:
@@ -99,6 +108,7 @@ class Dinleyici:
         aktif_hwnd_cb: Callable[[], int | None] | None = None,
         tetik_etkin: bool = True,
         terminal_kisayol_cb: Callable[[], None] | None = None,
+        yut_cb: Callable[[], bool] | None = None,
     ):
         self.kisayol = kisayol
         self.tetik = tetik
@@ -109,6 +119,15 @@ class Dinleyici:
         self._aktif_hwnd_cb = aktif_hwnd_cb
         self._tetik_etkin = tetik_etkin
         self._terminal_kisayol_cb = terminal_kisayol_cb
+
+        # Tuş yutma: kısayolun ana tuşu programa gitmez; seçim yoksa geri gönderilir.
+        from .kisayol_kayit import kisayol_vk_coz
+
+        self._yut_cb = yut_cb
+        self._yut_hedef = kisayol_vk_coz(kisayol) if yut_cb is not None else None
+        self._filtre_mods: set[str] = set()
+        self._yutulan_vk: int | None = None
+        self._bekleyen_geri: tuple[frozenset, int, str] | None = None
 
         self._kuyruk: queue.Queue = queue.Queue()
         self._son_sebep: str | None = None
@@ -163,6 +182,7 @@ class Dinleyici:
         return self._hotkey
 
     def _kisayol_etkin(self):
+        self._bekleyen_geri = None  # yutulmadan gelen tetik: geri gönderilecek tuş yok
         terminal = self._terminal_mi_guvenli()
         if not terminal:
             self._kuyruk.put_nowait(("kisayol",))
@@ -403,6 +423,69 @@ class Dinleyici:
     def _win32_event_filter(self, msg, data):
         if data.flags & _LLKHF_INJECTED:
             return False
+        try:
+            yut = self._yutulmali_mi(msg, data.vkCode)
+        except Exception:
+            yut = False  # klavye kancasında hata asla klavyeyi bozmamalı
+        if yut and self._klavye_listener is not None:
+            self._klavye_listener.suppress_event()  # istisna fırlatır; olay programa gitmez
+        return True
+
+    def _yutulmali_mi(self, msg: int, vk: int) -> bool:
+        """Kanca thread'inde, her tuşta çağrılır: hızlı ve yan etkisi az olmalı."""
+        basildi = msg in _TUS_BASILDI
+        birakildi = msg in _TUS_BIRAKILDI
+        mod = _DEGISTIRICI_VK.get(vk)
+        if mod is not None:
+            if basildi:
+                self._filtre_mods.add(mod)
+            elif birakildi:
+                self._filtre_mods.discard(mod)
+            return False
+        if self._yutulan_vk is not None and vk == self._yutulan_vk:
+            if birakildi:
+                self._yutulan_vk = None
+            return True  # basılı tutma tekrarları ve bırakma da yutulur
+        if not basildi or self._yut_hedef is None or self.kayitta_mi():
+            return False
+        mods, hedef_vk, _ad = self._yut_hedef
+        if vk != hedef_vk or frozenset(self._filtre_mods) != mods:
+            return False
+        if not self._yut_cb():
+            return False
+        if self._terminal_mi_guvenli():
+            return False  # terminal: eski davranış (tuş yutulmaz)
+        self._yutulan_vk = vk
+        self._bekleyen_geri = self._yut_hedef
+        if "alt" in mods:
+            threading.Thread(target=self._bos_tus_gonder, daemon=True).start()
+        self._kuyruk.put_nowait(("kisayol",))
+        return True
+
+    def _bos_tus_gonder(self) -> None:
+        try:
+            from pynput.keyboard import Controller, KeyCode
+
+            k = Controller()
+            k.press(KeyCode.from_vk(_BOS_VK))
+            k.release(KeyCode.from_vk(_BOS_VK))
+        except Exception:
+            pass
+
+    def geri_gonder(self) -> bool:
+        """Yutulan kısayolu etkin programa geri gönderir (seçim yokken). Gönderdiyse True."""
+        bilgi, self._bekleyen_geri = self._bekleyen_geri, None
+        if bilgi is None:
+            return False
+        mods, _vk, ad = bilgi
+        from pynput.keyboard import Controller, Key, KeyCode
+
+        k = Controller()
+        degistiriciler = [{"ctrl": Key.ctrl, "shift": Key.shift, "alt": Key.alt}[m] for m in sorted(mods)]
+        tus = KeyCode.from_char(ad) if len(ad) == 1 else getattr(Key, ad)
+        with k.pressed(*degistiriciler):
+            k.press(tus)
+            k.release(tus)
         return True
 
     def durdur(self) -> None:

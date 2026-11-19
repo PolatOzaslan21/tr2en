@@ -84,3 +84,36 @@ def birlesim_olustur(degistiriciler: set[str], tus: str | None) -> tuple[str | N
     uyari = " ".join(uyarilar)
     tus_pynput = tus if len(tus) == 1 else f"<{tus}>"
     return "+".join([f"<{m}>" for m in sirali] + [tus_pynput]), uyari
+
+
+# ---- kısayolu Windows sanal tuş koduna çevirme (tuş yutma için) ----
+
+_ADLI_VK = {
+    "space": 0x20, "enter": 0x0D, "insert": 0x2D, "home": 0x24, "end": 0x23,
+    "page_up": 0x21, "page_down": 0x22, "pause": 0x13,
+}
+
+
+def kisayol_vk_coz(kisayol: str) -> tuple[frozenset, int, str] | None:
+    """"<ctrl>+<shift>+p" -> ({"ctrl","shift"}, 0x50, "p"). Çözülemezse None (yutma yapılmaz)."""
+    mods: set[str] = set()
+    ana: str | None = None
+    for parca in kisayol.lower().split("+"):
+        ad = parca.strip().strip("<>")
+        if ad in DEGISTIRICILER:
+            mods.add(ad)
+        elif ana is None and ad:
+            ana = ad
+        else:
+            return None
+    if not mods or ana is None:
+        return None
+    if re.fullmatch(r"[a-z0-9]", ana):
+        vk = ord(ana.upper())
+    elif re.fullmatch(r"f([1-9]|1[0-9]|2[0-4])", ana):
+        vk = 0x6F + int(ana[1:])
+    elif ana in _ADLI_VK:
+        vk = _ADLI_VK[ana]
+    else:
+        return None
+    return frozenset(mods), vk, ana

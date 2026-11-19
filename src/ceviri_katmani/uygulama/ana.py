@@ -58,6 +58,7 @@ class Uygulama:
         if not self._aktif:
             return
         if self._meşgul:
+            self._geri_gonder()
             self.bildir("Önceki çeviri sürüyor")
             return
         self._kuyruk.put(("kisayol", None))
@@ -244,6 +245,7 @@ class Uygulama:
         t0 = time.perf_counter()
         pencere = self.pencere.aktif_pencere()
         if pencere is None:
+            self._geri_gonder()
             self._kaydet("kisayol", "pencere-yok")
             return
         surec = getattr(pencere, "surec", None)
@@ -251,6 +253,7 @@ class Uygulama:
         if not izinli:
             izinli = None  # boş liste/küme "hepsine izin" demek
         if not self.pencere.izinli_mi(pencere, izinli, self.ayarlar["yasak"]):
+            self._geri_gonder()
             self._kaydet("kisayol", "izinsiz-pencere", surec=surec)
             return
 
@@ -260,7 +263,12 @@ class Uygulama:
             metin = self.pano.secimi_kopyala()
             if not metin:
                 self._kaydet("kisayol", "secim-yok", surec=surec, baslangic=t0)
-                self.bildir("Seçim yok")
+                # Yutulan kısayolu programa geri ver (ör. Ctrl+P: seçim yoksa programın kendi işi çalışsın).
+                # Kendi kısayolunda "Seçim yok" bildirimi gösterilmez; programın işi zaten çalıştı.
+                from .ayarlar import KISAYOL_SECENEKLERI
+
+                if not self._geri_gonder() or self.ayarlar.get("kisayol") in KISAYOL_SECENEKLERI:
+                    self.bildir("Seçim yok")
                 return
 
             try:
@@ -499,6 +507,18 @@ class Uygulama:
         if self.tepsi is not None:
             self.tepsi.guncelle()
 
+    def _geri_gonder(self) -> bool:
+        """Dinleyicinin yuttuğu kısayolu programa geri gönderir; gönderdiyse True."""
+        dinleyici = self._dinleyici
+        geri = getattr(dinleyici, "geri_gonder", None)
+        if geri is None:
+            return False
+        try:
+            return bool(geri())
+        except Exception:
+            traceback.print_exc()
+            return False
+
     KAYIT_SURESI = 10.0
 
     def kisayol_kaydet_baslat(self) -> None:
@@ -554,6 +574,7 @@ class Uygulama:
             kisayol=self.ayarlar["kisayol"],
             tetik=self.ayarlar["tetik"],
             kisayol_cb=self.kisayol,
+            yut_cb=lambda: self._aktif,
             tetik_cb=self.tetik,
             terminal_mi_cb=self._terminal_mi,
             guvensiz_cb=self.guvensiz,
