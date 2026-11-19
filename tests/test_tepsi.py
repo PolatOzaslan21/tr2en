@@ -6,6 +6,7 @@ import traceback
 import pystray
 import pytest
 
+from ceviri_katmani.uygulama import simge
 from ceviri_katmani.uygulama.tepsi import Tepsi, simge_uret
 
 
@@ -209,22 +210,21 @@ def test_geri_cagri_istisnasi_yutulur(tepsi, arayuz, monkeypatch):
     assert kayit
 
 
-def test_simge_uret_aktif_mavi():
+def test_simge_uret_tepside_sade_simge():
+    """Tepsi 16-24 px gösterir: yazısız, zeminsiz sade simge kullanılır."""
     img = simge_uret(True)
     assert img.size == (64, 64)
     assert img.mode == "RGBA"
-    assert img.getpixel((32, 2))[:3] == (37, 99, 235)
+    assert img.tobytes() == simge.sade_simge(True, 64).tobytes()
 
 
 def test_simge_uret_pasif_gri():
     img = simge_uret(False)
-    assert img.getpixel((32, 2))[:3] == (156, 163, 175)
+    assert img.tobytes() == simge.sade_simge(False, 64).tobytes()
 
 
 def test_simge_uret_boyut():
-    img = simge_uret(True, boyut=32)
-    assert img.size == (32, 32)
-    assert img.getpixel((16, 2))[:3] == (37, 99, 235)
+    assert simge_uret(True, boyut=32).size == (32, 32)
 
 
 def test_kisayol_alt_menusu_secenekler_ve_secim(tepsi):

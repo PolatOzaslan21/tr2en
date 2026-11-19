@@ -11,6 +11,9 @@ Set-Location $kok
 $is = Join-Path $env:TEMP "tr2en-derleme"
 $Cikti = [IO.Path]::GetFullPath((Join-Path $kok $Cikti))
 
+uv run --extra uygulama python (Join-Path $PSScriptRoot "simge_olustur.py")
+if ($LASTEXITCODE -ne 0) { throw "simge üretilemedi" }
+
 uv run --extra yerel --extra uygulama --with "pyinstaller==6.22.3" pyinstaller `
     (Join-Path $PSScriptRoot "giris.py") `
     --name tr2en --noconsole --onedir --noconfirm --clean `

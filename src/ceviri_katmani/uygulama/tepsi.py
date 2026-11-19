@@ -6,23 +6,10 @@ from typing import Any
 
 
 def simge_uret(aktif: bool, boyut: int = 64):
-    """Aktifken mavi, pasifken gri; ortasında beyaz "EN" olan yuvarlatılmış kare."""
-    from PIL import Image, ImageDraw, ImageFont
+    """Tepsi simgesi: aktifken kırmızı-mavi, pasifken gri iki balon (bkz. simge.py)."""
+    from .simge import sade_simge
 
-    renk = (37, 99, 235) if aktif else (156, 163, 175)  # #2563EB / #9CA3AF
-    gorsel = Image.new("RGBA", (boyut, boyut), (0, 0, 0, 0))
-    ciz = ImageDraw.Draw(gorsel)
-    ciz.rounded_rectangle((0, 0, boyut - 1, boyut - 1), radius=boyut // 6, fill=renk)
-
-    font = ImageFont.load_default()
-    metin = "EN"
-    sol, ust, sag, alt = ciz.textbbox((0, 0), metin, font=font)
-    genislik = sag - sol
-    yukseklik = alt - ust
-    x = (boyut - genislik) / 2 - sol
-    y = (boyut - yukseklik) / 2 - ust
-    ciz.text((x, y), metin, fill=(255, 255, 255), font=font)
-    return gorsel
+    return sade_simge(aktif, boyut)
 
 
 def _yut(fn) -> None:
