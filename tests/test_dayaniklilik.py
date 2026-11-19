@@ -539,7 +539,6 @@ def test_pano_yedek_kaydet_acilamazsa_oserror(monkeypatch):
         yedek.kaydet()
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU KRİTİK: işçi döngüsü istisnayı yutmuyor, thread ölüyor")
 def test_pano_kaydet_acilamazsa_isci_yasamali():
     """OpenClipboard sürekli başarısız → ilk işin yedek.kaydet() patlar.
     İşçi döngüsü istisnayı yutmalı ki İKİNCİ kısayol (pano düzeldi) çalışsın."""
@@ -586,7 +585,6 @@ def test_yalniz_resim_panoda_metin_none(monkeypatch):
     assert pano.metin_al() is None
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU KRİTİK: metin_koy istisnası işçiyi öldürüyor, sonraki kısayol çalışmıyor")
 def test_metin_koy_istisnasi_sonrasi_isci_calismali():
     """Çeviri başarılıyken metin_koy (ilk) patlar; işçi istisnayı yutup İKİNCİ
     kısayol işlemeye devam etmeli. Şu an işçi ölüyor (bulgu)."""
@@ -630,7 +628,6 @@ def test_ayar_eksik_klasor_yukle_olusturur(tmp_path):
     assert ayarlar == VARSAYILAN
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU ÖNEMLİ: salt okunur/kilitli hedefte kaydet() PermissionError'ü yutmuyor")
 def test_ayar_salt_okunur_klasore_kaydet_cokmemeli(tmp_path, monkeypatch):
     """Kilitli/salt okunur hedefe os.replace başarısız olursa kaydet() hatayı
     yutmalı ya da en azından çağıranı çökertmemeli. Şu an PermissionError sızıyor."""
@@ -649,7 +646,6 @@ def test_ayar_salt_okunur_klasore_kaydet_cokmemeli(tmp_path, monkeypatch):
     assert cokmedi, "salt okunur hedefte kaydet() çağıranı çökertiyor"
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU ÖNEMLİ: yazılamaz bozuk ayar dosyasında yukle() çöküyor, varsayılana düşmüyor")
 def test_ayar_salt_okunur_bozuk_dosya_uyarili_kurtarilsin(tmp_path, monkeypatch):
     """Bozuk + yazılamaz ayar dosyası: yedekleme başarısız olsa da varsayılanlarla
     dönülmeli; şu an os.replace hatası yayılıyor (başlangıç çökmesi riski)."""
@@ -706,7 +702,6 @@ def test_durdur_isci_mesgulken_tumlanmaz():
     assert time.perf_counter() - bas < 2.5  # join(timeout=2) ile en fazla ~2s bekler
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU ÖNEMLİ: kurulamayan kısayolda kisayol_sec istisna yayıyor (menü çöker)")
 def test_kisayol_degisiminde_dinleyici_kurulamassa_patlamamali():
     """Yeni kısayolla dinleyici kurulamazsa: kisayol_sec hata yutmalı, kullanıcıyı
     uyarmalı ve bozuk kısayola geçmemeli. Şu an istisna yayılıyor."""

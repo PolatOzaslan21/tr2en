@@ -71,6 +71,11 @@ class PanoYedegi:
         self._kaydedildi = True
 
     def geri_yukle(self) -> bool:
+        """Pano yedeğini geri yükler; herhangi bir biçim yazılamazsa False döner.
+
+        Kısmi başarısızlık da başarısızlıktır: çağıran (ana.py) kullanıcıyı
+        "Panonuz tam geri yüklenemedi" uyarısıyla bilgilendirir (INCELEME-1 bulgu 2).
+        """
         if not WIN32:
             raise NotImplementedError("Pano yardımcıları yalnızca Windows'ta çalışır")
         if not self._kaydedildi:
@@ -80,13 +85,20 @@ class PanoYedegi:
         except Exception:
             return False
         try:
-            win32clipboard.EmptyClipboard()
+            try:
+                win32clipboard.EmptyClipboard()
+            except Exception:
+                return False
+            basarili = True
             for bicim, veri in self._veriler.items():
                 try:
                     win32clipboard.SetClipboardData(bicim, veri)
                 except Exception:
+                    # Bu biçim geri yüklenemedi; diğerleri yine denenir,
+                    # ama sonuç başarısızdır (kullanıcı bilgilendirilir).
+                    basarili = False
                     continue
-            return True
+            return basarili
         except Exception:
             return False
         finally:
