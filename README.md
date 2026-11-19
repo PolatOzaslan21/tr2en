@@ -37,7 +37,7 @@
 - Gemini seçiliyse metin Google'a gönderilir; **ücretsiz katmanda Google bu metinleri ürünlerini geliştirmek için kullanabilir.** Hassas metinler için "Yalnızca yerel" seçin.
 - API anahtarları yalnızca istek başlığında gider, hiçbir dosyaya ya da log'a yazılmaz.
 - "Kendi modelim" seçiliyse metin yalnızca ayarlarda yazdığınız adrese gider.
-- tr2en'in kendiliğinden yaptığı tek ağ bağlantısı, yerel model yoksa ilk açılışta modelin Hugging Face'ten (huggingface.co) indirilmesidir. Telemetri, kullanım istatistiği ya da güncelleme denetimi yoktur.
+- tr2en'in kendiliğinden yaptığı tek ağ bağlantısı, yerel model yoksa ilk açılışta modelin Hugging Face'ten (huggingface.co) indirilmesidir. Telemetri ya da kullanım istatistiği yoktur. Güncelleme denetimi yalnızca siz "Güncellemeleri kontrol et"e bastığınızda yapılır (GitHub'a sorulur).
 
 ## Kurulum
 

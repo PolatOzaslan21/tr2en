@@ -9,6 +9,7 @@ uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
 - **Anahtar değeri asla JS'e dönmez**, loglanmaz, hata metinlerinde görünmez (dönüşler `***` ile temizlenir).
 - **Yalnızca beyaz liste URL** açılır (`baglanti_ac`); listede olmayan hiçbir adres tarayıcıya verilmez.
 - **`http://` yalnızca localhost** (Ollama model listesi yalnızca `localhost` / `127.0.0.1` / `[::1]` adreslerinden okunur).
+- **Güncelleme denetimi otomatik yapılmaz:** `guncelleme_denetle` yalnızca kullanıcı "Güncellemeleri kontrol et" dediğinde çağrılır; o zaman GitHub'a tek bir istek gider (kisisel bilgi yok, yalnızca `User-Agent: tr2en`).
 - **Çeviri pencerede yapılmaz:** `cevir` isteği adlandırılmış boru ile **ana sürece** gider
   (`uygulama/boru.py`); model yalnızca ana süreçte yüklenir. Boru yoksa
   `{"ok": False, "hata": "tr2en çalışmıyor"}` döner.
@@ -29,8 +30,10 @@ uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
 | `durum()` | — | `{"ok", "aktif", "cevirmen", "cevirmen_adi", "kisayol_adi", "surum", "hata"}` | Boru üzerinden gerçek durum. `cevirmen`: `"bulut"` / `"yerel"`. `cevirmen_adi`: ör. "Bulut — Google Gemini". `kisayol_adi`: ör. "Ctrl+Shift+Space". |
 | `aktif_degistir()` | — | `{"ok", "aktif", "cevirmen", "cevirmen_adi", "kisayol_adi", "surum", "hata"}` | tr2en'i duraklatır/etkinleştirir (tepsiyle aynı davranış); yeni durumu döner. |
 | `ollama_modelleri(adres)` | `str` | `{"ok", "modeller"}` | Yalnızca yerel adresler. `GET {adres}/models`, 3 sn zaman aşımı; `data[].id` listesi döner. |
+| `model_onerileri(tur, servis)` | `str, str` | `{"ok", "oneriler", "hiz_uyarisi"}` | `tur`: `"bulut"` ya da `"yerel"`; `servis`: bulut servisi ya da `"ollama"` / `"lmstudio"`. `oneriler`: `[{"ad", "aciklama"}]` (veri `uygulama/model_katalogu.py`'den; bilinmeyen servis → boş liste). `hiz_uyarisi`: model hızına dair sabit uyarı metni. Ağ yoktur. |
+| `guncelleme_denetle()` | — | `{"ok", "yeni_var", "son_surum", "hata"}` | **Yalnızca çağrıldığında** `GET https://api.github.com/repos/PolatOzaslan21/tr2en/releases/latest` (5 sn zaman aşımı, `User-Agent: tr2en`). `tag_name` başındaki "v" atılır ve `__version__` ile **sayısal** karşılaştırılır. Ağ hatası → `ok: False`. Otomatik denetim yapılmaz, kişisel bilgi gönderilmez. |
 | `klasor_sec()` | — | `{"ok", "yol"}` | `klasor_secici` ile klasör seçimi; `model.bin` yoksa `ok: False` ("Bu klasörde CTranslate2 modeli yok"). |
-| `baglanti_ac(anahtar_ad)` | `str` | `{"ok"}` | Yalnızca beyaz liste (`BEYAZ_LISTE`): `gemini_anahtar, openai_anahtar, deepseek_anahtar, openrouter_anahtar, ollama, lmstudio, github, sorun, gizlilik`. |
+| `baglanti_ac(anahtar_ad)` | `str` | `{"ok"}` | Yalnızca beyaz liste (`BEYAZ_LISTE`): `gemini_anahtar, openai_anahtar, deepseek_anahtar, openrouter_anahtar, ollama, lmstudio, github, sorun, gizlilik, surumler`. |
 | `kisayol_kaydet(degistiriciler, tus)` | `list[str], str` | `{"ok", "kisayol", "uyari", "hata"}` | `birlesim_olustur` ile doğrula → `ayar_kaydet`. Çakışma varsa `uyari` dolar. `tus == "esc"` → `{"ok": False, "hata": "vazgeçildi"}`. |
 | `kapat_secimi(secim, hatirla)` | `str, bool` | `{"ok"}` | `"kucult"` + `hatirla` → `kapatinca_sor` False kaydedilir. `"tamamen"` → sinyal `cikis` (`hatirla` yok sayılır). Pencereyi çağıran kapatır. |
 | `otomatik_baslat_durum()` | — | `{"ok", "acik"}` | HKCU Run anahtarında "tr2en" değeri var mı (Windows açılışında başlat). |

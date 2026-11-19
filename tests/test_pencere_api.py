@@ -15,6 +15,7 @@ import pytest
 from ceviri_katmani import __version__
 from ceviri_katmani.cekirdek.cevirmen import CeviriHatasi
 from ceviri_katmani.uygulama import ayarlar as ayar_modulu
+from ceviri_katmani.uygulama import model_katalogu
 from ceviri_katmani.uygulama.ayarlar import VARSAYILAN
 from ceviri_katmani.uygulama.pencere_api import BEYAZ_LISTE, DENEME_METNI, PencereApi
 
@@ -588,6 +589,195 @@ def test_ollama_modelleri_beklenmeyen_yanit():
     assert "500" in sonuc["hata"]
 
 
+# ---- model_onerileri ----
+
+
+def test_model_onerileri_bulut(yol):
+    api = PencereApi(ayar_yolu=yol)
+    sonuc = api.model_onerileri("bulut", "gemini")
+    assert sonuc["ok"] is True
+    assert sonuc["oneriler"]
+    for o in sonuc["oneriler"]:
+        assert set(o) == {"ad", "aciklama"}
+        assert o["ad"] and o["aciklama"]
+    assert sonuc["hiz_uyarisi"] == model_katalogu.HIZ_UYARISI
+    # Model adları yalnızca katalogdan gelir (uydurma yok).
+    assert [o["ad"] for o in sonuc["oneriler"]] == [ad for ad, _ in model_katalogu.BULUT["gemini"]]
+
+
+def test_model_onerileri_yerel(yol):
+    api = PencereApi(ayar_yolu=yol)
+    sonuc = api.model_onerileri("yerel", "ollama")
+    assert sonuc["ok"] is True
+    assert [o["ad"] for o in sonuc["oneriler"]] == [ad for ad, _ in model_katalogu.YEREL["ollama"]]
+    assert sonuc["hiz_uyarisi"]
+
+
+def test_model_onerileri_bilinmeyen_servis_bos_liste(yol):
+    api = PencereApi(ayar_yolu=yol)
+    for tur in ("bulut", "yerel"):
+        sonuc = api.model_onerileri(tur, "olmayan-servis")
+        assert sonuc["ok"] is True
+        assert sonuc["oneriler"] == []
+        assert sonuc["hiz_uyarisi"]
+
+
+def test_model_onerileri_gecersiz_tur(yol):
+    api = PencereApi(ayar_yolu=yol)
+    sonuc = api.model_onerileri("diger", "gemini")
+    assert sonuc["ok"] is False
+    assert sonuc["oneriler"] == []
+    assert isinstance(sonuc["hata"], str) and sonuc["hata"]
+
+
+def test_model_onerileri_ag_yapmaz(yol):
+    istekler: list[httpx.Request] = []
+
+    def handler(istek: httpx.Request) -> httpx.Response:
+        istekler.append(istek)
+        return httpx.Response(200, json={})
+
+    api = PencereApi(ayar_yolu=yol, http_istemci=httpx.Client(transport=httpx.MockTransport(handler)))
+    assert api.model_onerileri("bulut", "gemini")["ok"] is True
+    assert istekler == []
+
+
+# ---- guncelleme_denetle ----
+
+
+def surum_istemcisi(handler):
+    """Sürüm denetimi isteklerini sahte taşıyan httpx istemcisi."""
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_guncelleme_denetle_yeni_surum():
+    istekler: list[httpx.Request] = []
+
+    def handler(istek: httpx.Request) -> httpx.Response:
+        istekler.append(istek)
+        return httpx.Response(200, json={"tag_name": "v9.9.9"})
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is True
+    assert sonuc["yeni_var"] is True
+    assert sonuc["son_surum"] == "9.9.9"
+    assert sonuc["hata"] == ""
+    assert len(istekler) == 1
+    assert str(istekler[0].url) == "https://api.github.com/repos/PolatOzaslan21/tr2en/releases/latest"
+    assert istekler[0].headers["User-Agent"] == "tr2en"
+    assert istekler[0].extensions["timeout"]["connect"] == 5.0
+
+
+def test_guncelleme_denetle_ayni_surum():
+    def handler(istek: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"tag_name": "v" + __version__})
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is True
+    assert sonuc["yeni_var"] is False
+    assert sonuc["son_surum"] == __version__
+
+
+def test_guncelleme_denetle_eski_surum():
+    def handler(istek: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"tag_name": "v0.0.1"})
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is True
+    assert sonuc["yeni_var"] is False
+    assert sonuc["son_surum"] == "0.0.1"
+
+
+def test_guncelleme_denetle_sayisal_karsilastirma():
+    """Sürümler metin olarak değil, sayısal karşılaştırılır."""
+    from ceviri_katmani.uygulama.pencere_api import _surum_yeni_mi
+    assert _surum_yeni_mi("0.10.0", "0.9.0") is True
+    assert _surum_yeni_mi("v1.2.3", "1.2.3") is False
+    assert _surum_yeni_mi("1.2.4", "1.2.3") is True
+    assert _surum_yeni_mi("1.2", "1.2.0") is False
+    assert _surum_yeni_mi("", "1.2.3") is False
+
+
+def test_guncelleme_denetle_ag_hatasi():
+    def handler(istek: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("bağlanılamadı")
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is False
+    assert sonuc["yeni_var"] is False
+    assert sonuc["son_surum"] == ""
+    assert isinstance(sonuc["hata"], str) and sonuc["hata"]
+
+
+def test_guncelleme_denetle_bozuk_json():
+    def handler(istek: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="bozuk json {")
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is False
+    assert sonuc["yeni_var"] is False
+    assert isinstance(sonuc["hata"], str) and sonuc["hata"]
+
+
+def test_guncelleme_denetle_etiket_yok():
+    def handler(istek: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"name": "sürüm yok"})
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is False
+    assert isinstance(sonuc["hata"], str) and sonuc["hata"]
+
+
+def test_guncelleme_denetle_http_hatasi():
+    def handler(istek: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={})
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    sonuc = api.guncelleme_denetle()
+    assert sonuc["ok"] is False
+    assert "404" in sonuc["hata"]
+
+
+def test_guncelleme_denetle_yalnizca_github_a_gider():
+    istekler: list[httpx.Request] = []
+
+    def handler(istek: httpx.Request) -> httpx.Response:
+        istekler.append(istek)
+        return httpx.Response(200, json={"tag_name": "v9.9.9"})
+
+    api = PencereApi(http_istemci=surum_istemcisi(handler))
+    api.guncelleme_denetle()
+    assert len(istekler) == 1
+    assert istekler[0].url.host == "api.github.com"
+    assert istekler[0].url.path == "/repos/PolatOzaslan21/tr2en/releases/latest"
+
+
+def test_guncelleme_denetle_otomatik_cagrilmaz(yol):
+    """Denetim yalnızca çağrılınca yapılır; başka bir işlem ağa çıkmaz."""
+    istekler: list[httpx.Request] = []
+
+    def handler(istek: httpx.Request) -> httpx.Response:
+        istekler.append(istek)
+        return httpx.Response(200, json={"tag_name": "v9.9.9"})
+
+    api = PencereApi(ayar_yolu=yol, http_istemci=surum_istemcisi(handler))
+    api.ayarlari_al()
+    api.ayar_kaydet({"tema": "koyu"})
+    assert istekler == []
+    api.guncelleme_denetle()
+    assert len(istekler) == 1
+
+
+def test_beyaz_liste_surumler():
+    assert BEYAZ_LISTE["surumler"] == "https://github.com/PolatOzaslan21/tr2en/releases/latest"
+
+
 # ---- klasor_sec ----
 
 
@@ -735,6 +925,8 @@ def test_anahtar_degeri_hicbir_donusmede_yok(yol, kasa):
         boru_istemcisi=SahteBoru(cevap={"ok": True, "ceviri": "Hello world",
                                          "cevirmen": "Bulut — Google Gemini",
                                          "durum": "cevrildi", "sure_sn": 0.1}),
+        http_istemci=httpx.Client(transport=httpx.MockTransport(
+            lambda istek: httpx.Response(200, json={"tag_name": "v9.9.9"}))),
     )
     donusler = [
         api.ayarlari_al(),
@@ -751,6 +943,8 @@ def test_anahtar_degeri_hicbir_donusmede_yok(yol, kasa):
         api.kisayol_kaydet(["ctrl", "shift"], "k"),
         api.kapat_secimi("tamamen", True),
         api.ilk_kurulum_tamamla("bulut"),
+        api.model_onerileri("bulut", "gemini"),
+        api.guncelleme_denetle(),
     ]
     for donus in donusler:
         assert gizli not in json.dumps(donus, ensure_ascii=False)

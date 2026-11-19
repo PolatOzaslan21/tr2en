@@ -12,6 +12,7 @@ ANAHTAR DEĞERİ hiçbir dönüşte yer almaz, hiçbir yere loglanmaz.
 """
 from __future__ import annotations
 
+import re
 import time
 import webbrowser
 from collections.abc import Callable
@@ -27,12 +28,16 @@ from ..cekirdek.kurulum import akilli_cevir, zincir_kur_v2
 from . import anahtar_kasasi
 from . import ayarlar as ayar_modulu
 from . import boru as boru_modulu
+from . import model_katalogu
 from . import otomatik_baslat as otomatik_baslat_modulu
 from .ayarlar import BULUT_SERVIS_ANAHTARLARI, GECERLI_BULUT_SERVISLERI, VARSAYILAN
 from .kisayol_kayit import birlesim_olustur
 
 DENEME_METNI = "Merhaba dünya, bu bir denemedir."
 YEREL_KONAKLAR = ("localhost", "127.0.0.1", "::1")
+
+# Sürüm denetimi yalnızca kullanıcı "Güncellemeleri kontrol et" dediğinde yapılır.
+SURUM_ADRESI = "https://api.github.com/repos/PolatOzaslan21/tr2en/releases/latest"
 
 # baglanti_ac ile açılabilen TEK adresler; listede olmayan hiçbir URL açılmaz.
 BEYAZ_LISTE: dict[str, str] = {
@@ -45,7 +50,29 @@ BEYAZ_LISTE: dict[str, str] = {
     "github": "https://github.com/PolatOzaslan21/tr2en",
     "sorun": "https://github.com/PolatOzaslan21/tr2en/issues",
     "gizlilik": "https://github.com/PolatOzaslan21/tr2en#gizlilik",
+    "surumler": "https://github.com/PolatOzaslan21/tr2en/releases/latest",
 }
+
+
+def _surum_parcalari(surum: str) -> tuple[int, ...]:
+    """"v1.2.3" → (1, 2, 3); sayı olmayan parçada liste biter."""
+    parcalar: list[int] = []
+    for parca in str(surum).strip().lstrip("vV").split("."):
+        es = re.match(r"\d+", parca)
+        if not es:
+            break
+        parcalar.append(int(es.group()))
+    return tuple(parcalar)
+
+
+def _surum_yeni_mi(yeni: str, mevcut: str) -> bool:
+    """Sayısal karşılaştırma: yeni sürüm mevcuttan büyükse True."""
+    a = _surum_parcalari(yeni)
+    b = _surum_parcalari(mevcut)
+    if not a:
+        return False
+    uzunluk = max(len(a), len(b))
+    return a + (0,) * (uzunluk - len(a)) > b + (0,) * (uzunluk - len(b))
 
 
 class PencereApi:
@@ -300,6 +327,53 @@ class PencereApi:
     def cevir_dene(self, metin: str) -> dict:
         """Eski ad; artık ana süreçte çevirir (bkz. ``cevir``)."""
         return self.cevir(metin)
+
+    def model_onerileri(self, tur: str, servis: str) -> dict:
+        """Model adı önerileri ve hız uyarısı (arayüzdeki açılır liste için).
+
+        Dönüş: ``{"ok", "oneriler": [{"ad", "aciklama"}], "hiz_uyarisi"}``.
+        Bilinmeyen servis boş liste döner; ağ yoktur.
+        """
+        try:
+            if tur not in ("bulut", "yerel"):
+                return {"ok": False, "oneriler": [], "hiz_uyarisi": "", "hata": "geçersiz tür"}
+            oneriler = model_katalogu.oneriler(tur, str(servis or ""))
+            return {"ok": True, "oneriler": oneriler, "hiz_uyarisi": model_katalogu.HIZ_UYARISI}
+        except Exception as e:
+            return {"ok": False, "oneriler": [], "hiz_uyarisi": "", "hata": self._hata(e)}
+
+    def guncelleme_denetle(self) -> dict:
+        """GitHub'dan son sürümü sorar (YALNIZCA çağrıldığında).
+
+        Otomatik denetim yapılmaz; hiçbir kişisel bilgi gönderilmez (yalnızca
+        User-Agent: tr2en). Dönüş: ``{"ok", "yeni_var", "son_surum", "hata"}``.
+        """
+        try:
+            yanit = self.http_istemci.get(
+                SURUM_ADRESI,
+                timeout=5.0,
+                headers={"User-Agent": "tr2en", "Accept": "application/vnd.github+json"},
+            )
+            if yanit.status_code != 200:
+                return {"ok": False, "yeni_var": False, "son_surum": "",
+                        "hata": f"sunucu {yanit.status_code} yanıtı verdi"}
+            veri = yanit.json()
+            if not isinstance(veri, dict):
+                return {"ok": False, "yeni_var": False, "son_surum": "",
+                        "hata": "beklenmeyen yanıt biçimi"}
+            etiket = str(veri.get("tag_name") or "").strip()
+            if etiket[:1] in ("v", "V"):
+                etiket = etiket[1:]
+            if not etiket:
+                return {"ok": False, "yeni_var": False, "son_surum": "",
+                        "hata": "sürüm bilgisi okunamadı"}
+            return {"ok": True, "yeni_var": _surum_yeni_mi(etiket, __version__),
+                    "son_surum": etiket, "hata": ""}
+        except httpx.HTTPError:
+            return {"ok": False, "yeni_var": False, "son_surum": "",
+                    "hata": "güncelleme sunucusuna ulaşılamadı"}
+        except Exception as e:
+            return {"ok": False, "yeni_var": False, "son_surum": "", "hata": self._hata(e)}
 
     def ollama_modelleri(self, adres: str) -> dict:
         try:

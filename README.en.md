@@ -39,7 +39,7 @@ On first start the app asks which one you want to use.
 - With Gemini, text is sent to Google; **on the free tier Google may use it to improve its products.** Use "local only" for sensitive text.
 - API keys are only sent in the request header, never written to a file or log.
 - With "Kendi modelim" (your own model), text goes only to the address you set.
-- The only network connection tr2en makes on its own is downloading the local model from Hugging Face (huggingface.co) on first start if it is missing. No telemetry, usage statistics or update checks.
+- The only network connection tr2en makes on its own is downloading the local model from Hugging Face (huggingface.co) on first start if it is missing. No telemetry or usage statistics. The update check is only made when you press "Check for updates" (it asks GitHub).
 
 ## Install
 

@@ -22,6 +22,9 @@ HTML_YOLU = (
     Path(__file__).resolve().parents[1]
     / "src" / "ceviri_katmani" / "uygulama" / "arayuz" / "ayarlar.html"
 )
+KOK_YOLU = HTML_YOLU.parents[4]
+README_TR_YOLU = KOK_YOLU / "README.md"
+README_EN_YOLU = KOK_YOLU / "README.en.md"
 
 
 # ---- sahteler ----
@@ -249,6 +252,78 @@ def test_html_js_sozdizimi_gecerli(tmp_path):
         dosya.write_text(blok, encoding="utf-8")
         sonuc = subprocess.run([node, "--check", str(dosya)], capture_output=True, text=True)
         assert sonuc.returncode == 0, sonuc.stderr
+
+
+# ---- model açılır listesi (öneri + "Kendin ekle…") ----
+
+def test_html_model_secimi_kendi_ekle():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "Kendin ekle" in metin
+    assert '<select id="model"' in metin
+    assert '<select id="mfModelSecim"' in metin
+    assert 'id="modelKendi"' in metin and 'id="mfModel"' in metin
+    assert "model_onerileri" in metin
+
+
+def test_html_model_listesi_yuklu_grubu():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert 'Bilgisayarınızda yüklü' in metin
+    assert "optgroup" in metin
+    assert "ollama_modelleri" in metin
+
+
+def test_html_hiz_uyarisi():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "hiz_uyarisi" in metin
+    for kimlik in ("modelHizUyarisi", "yerelHizUyarisi", "mfHizUyarisi"):
+        assert f'id="{kimlik}"' in metin
+    assert "not uyari" in metin
+
+
+# ---- Rehber: sorun giderme grubu ----
+
+def test_html_sorun_giderme_grupu():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "Sorun giderme" in metin
+    assert 'class="rehber-baslik"' in metin
+    for konu in ("sg-kisayol", "sg-yapistirma", "sg-yonetici", "sg-terminal",
+                 "sg-api-anahtari", "sg-ollama", "sg-indirme", "sg-antivirus", "sg-yavas"):
+        assert f'data-konu="{konu}"' in metin
+        assert f'id="r-{konu}"' in metin
+
+
+def test_html_hata_mesajlari_sorun_gidermeye_bagli():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert 'data-rehber="sg-api-anahtari"' in metin
+    assert 'data-rehber="sg-ollama"' in metin
+    assert "Ne yapmalı?" in metin
+
+
+# ---- Hakkında: güncelleme denetimi ----
+
+def test_html_guncelleme_kontrolu():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "guncelleme_denetle" in metin
+    assert "Güncellemeleri kontrol et" in metin
+    assert 'id="guncellemeDene"' in metin
+    assert 'id="guncellemeIndir"' in metin
+    assert 'baglanti_ac("surumler")' in metin
+    # Denetim otomatik değil: yalnızca düğmeye basılınca çağrılır.
+    assert metin.count("api.guncelleme_denetle()") == 1
+
+
+def test_html_gizlilik_guncelleme_maddesi():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "Güncelleme denetimi yalnızca siz" in metin
+
+
+def test_readme_gizlilik_guncelleme_maddesi():
+    tr = README_TR_YOLU.read_text(encoding="utf-8")
+    en = README_EN_YOLU.read_text(encoding="utf-8")
+    assert "Güncelleme denetimi yalnızca siz" in tr
+    assert "update check is only made when you press" in en
+    assert "güncelleme denetimi yoktur" not in tr
+    assert "or update checks" not in en
 
 
 # ---- _one_getir ----

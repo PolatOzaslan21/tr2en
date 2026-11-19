@@ -124,6 +124,10 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .rehber-liste button{border:0;background:none;font:inherit;color:var(--text);text-align:left;padding:6px 9px;border-radius:6px;cursor:pointer}
 .rehber-liste button:hover{background:rgba(127,127,127,.12)}
 .rehber-liste button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.rehber-baslik{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+  margin:16px 9px 4px;padding-top:10px;border-top:1px solid var(--line)}
+.model-alan select{min-width:230px;max-width:330px}
+.model-alan input[type=text]{min-width:140px}
 article{display:none;background:var(--panel);border-radius:10px;box-shadow:var(--shadow);padding:16px 18px;line-height:1.6;user-select:text}
 article.acik{display:block}
 article h2{font-size:15px;margin:0 0 8px}
@@ -303,15 +307,17 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
             <button class="kutu" data-ekle="lmstudio"><b>LM Studio</b><small>Pencereli; model indirmesi kolay.</small></button>
             <button class="kutu" data-ekle="klasor"><b>Model klasörü</b><small>İleri düzey: CTranslate2 modeli.</small></button>
           </div>
+          <p class="not uyari gizli" id="yerelHizUyarisi" style="padding:0 14px 12px"></p>
         </div>
         <div class="kart gizli" id="modelForm" style="margin-top:12px">
           <div class="satir"><div class="etiket">Adres</div>
             <input type="text" id="mfAdres" aria-label="Model adresi" placeholder="http://localhost:11434/v1"></div>
           <div class="satir"><div class="etiket">Model</div>
-            <div class="alan"><input type="text" id="mfModel" aria-label="Model adı" placeholder="model adı">
+            <div class="alan model-alan"><select id="mfModelSecim" aria-label="Model"></select>
+              <input type="text" id="mfModel" class="gizli" aria-label="Model adı (elle)" placeholder="model adı">
               <button class="dugme" id="mfListele">Listele</button></div></div>
-          <div class="satir gizli" id="mfListeSatir"><div class="etiket">Modeller</div>
-            <select id="mfListe" aria-label="Model listesi"></select></div>
+          <p class="not uyari gizli" id="mfHata" style="padding:0 14px 10px"><span id="mfHataMetin"></span> <a href="#" data-rehber="sg-ollama">Ne yapmalı?</a></p>
+          <p class="not uyari gizli" id="mfHizUyarisi" style="padding:0 14px 10px"></p>
           <div class="satir"><div class="etiket"><small id="mfNot">Yerel sunucu modeli ekleyin.</small></div>
             <button class="dugme" id="mfVazgec">Vazgeç</button>
             <button class="dugme ana" id="mfKaydet">Ekle</button></div>
@@ -337,9 +343,12 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
               <button class="dugme ikon-dugme" id="goster" aria-label="Anahtarı göster"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
               <button class="dugme gizli" id="anahtarSil">Sil</button></div></div>
           <div class="satir"><div class="etiket">Model <button class="yardim" data-rehber="model-adi" aria-label="Yardım: Model adı">?</button></div>
-            <input type="text" id="model" aria-label="Model" value="gemini-3.5-flash-lite"></div>
+            <div class="alan model-alan"><select id="model" aria-label="Model"></select>
+              <input type="text" id="modelKendi" class="gizli" aria-label="Model adı (elle)" placeholder="model adı"></div></div>
+          <p class="not uyari gizli" id="modelHizUyarisi" style="padding:0 14px 10px"></p>
           <div class="satir"><div class="etiket"><span id="anahtarYardim"><a href="#" data-rehber="gemini">Ücretsiz Gemini anahtarı nasıl alınır?</a></span></div>
             <span class="sonuc" id="sonuc" aria-live="polite"></span>
+            <span class="kucuk gizli" id="deneYardim"><a href="#" data-rehber="sg-api-anahtari">Ne yapmalı?</a></span>
             <button class="dugme" id="dene">Bağlantıyı dene</button></div>
         </div>
         <div class="kart" style="margin-top:12px">
@@ -392,6 +401,11 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
         <h2>tr2en</h2>
         <p id="surum">Sürüm 0.2.0 (Beta)</p>
         <p style="margin-top:10px"><a href="#" data-ac="github">GitHub</a> · <a href="#" data-ac="sorun">Sorun bildir</a> · <a href="#" data-ac="gizlilik">Gizlilik</a></p>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:16px">
+          <button class="dugme" id="guncellemeDene">Güncellemeleri kontrol et</button>
+          <button class="dugme ana gizli" id="guncellemeIndir">İndir</button>
+          <span class="sonuc" id="guncellemeSonuc" aria-live="polite"></span>
+        </div>
         <p style="margin-top:12px;font-size:11.5px">Kod MIT lisanslı. Yerel model CC-BY-4.0 (Helsinki-NLP OPUS-MT).</p>
       </div></div>
     </section>
@@ -408,17 +422,36 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
           <button data-konu="kisayol">Kısayol ve çakışmalar</button>
           <button data-konu="smartscreen">"Bilgisayarınızı korudu" uyarısı</button>
           <button data-konu="gizlilik">Gizlilik</button>
+          <div class="rehber-baslik">Sorun giderme</div>
+          <button data-konu="sg-kisayol">Kısayola basınca bir şey olmuyor</button>
+          <button data-konu="sg-yapistirma">Çeviri yapıştırılmadı</button>
+          <button data-konu="sg-yonetici">Yönetici olarak çalışan programlar</button>
+          <button data-konu="sg-terminal">Terminalde çalışmıyor</button>
+          <button data-konu="sg-api-anahtari">API anahtarı / kota hatası</button>
+          <button data-konu="sg-ollama">Ollama'ya bağlanamıyor</button>
+          <button data-konu="sg-indirme">Dahili model inmedi</button>
+          <button data-konu="sg-antivirus">Antivirüs uyarı verdi</button>
+          <button data-konu="sg-yavas">Çeviri yavaş</button>
         </nav>
         <div>
           <article id="r-baslarken"><h2>Başlarken</h2><ol><li>Herhangi bir programda Türkçe metni seçin.</li><li><b>Ctrl+Shift+Space</b>'e basın.</li><li>Seçili metin İngilizcesiyle değişir.</li></ol>Simge saatin yanındaki <b>^</b> menüsünde olabilir; görev çubuğuna sürükleyebilirsiniz.</article>
-          <article id="r-yerel-bulut"><h2>Yerel mi, bulut mu?</h2><ul><li><b>Yerel:</b> internetsiz çalışır, metin bilgisayardan çıkmaz. Kısa cümlelerde iyi, uzun ve dağınık metinde zayıf.</li><li><b>Bulut:</b> çeviri kalitesi daha yüksek; metin seçtiğiniz servise gider. Gemini'nin ücretsiz katmanı çoğu kişiye yeter.</li></ul>Kararsızsanız: <b>Bulut + "çalışmazsa yerele geç"</b>.</article>
-          <article id="r-gemini"><h2>Ücretsiz Gemini anahtarı</h2><ol><li>Google AI Studio'yu açın: <a href="#" data-ac="gemini_anahtar">aistudio.google.com/apikey</a></li><li>Google hesabınızla girin, <b>Create API key</b>'e basın.</li><li>Anahtarı kopyalayın, tr2en'de <b>Çeviri → API anahtarı</b> alanına yapıştırın.</li><li><b>Bağlantıyı dene</b>'ye basın; "Çalışıyor" görmelisiniz.</li></ol>Anahtar Windows Kimlik Yöneticisi'nde şifreli saklanır.</article>
+          <article id="r-yerel-bulut"><h2>Yerel mi, bulut mu?</h2><ul><li><b>Yerel:</b> internetsiz çalışır, metin bilgisayardan çıkmaz. Kısa cümlelerde iyi, uzun ve dağınık metinde zayıf.</li><li><b>Bulut:</b> çeviri kalitesi daha yüksek; metin seçtiğiniz servise gider. Gemini'nin ücretsiz katmanı çoğu kişiye yeter.</li></ul>Kararsızsanız: <b>Bulut + "çalışmazsa yerele geç"</b>. Bulut bir sorun verirse bkz. <a href="#" data-rehber="sg-api-anahtari">API anahtarı hatası / kota doldu</a>.</article>
+          <article id="r-gemini"><h2>Ücretsiz Gemini anahtarı</h2><ol><li>Google AI Studio'yu açın: <a href="#" data-ac="gemini_anahtar">aistudio.google.com/apikey</a></li><li>Google hesabınızla girin, <b>Create API key</b>'e basın.</li><li>Anahtarı kopyalayın, tr2en'de <b>Çeviri → API anahtarı</b> alanına yapıştırın.</li><li><b>Bağlantıyı dene</b>'ye basın; "Çalışıyor" görmelisiniz.</li></ol>Anahtar Windows Kimlik Yöneticisi'nde şifreli saklanır. Hata alıyorsanız bkz. <a href="#" data-rehber="sg-api-anahtari">API anahtarı hatası / kota doldu</a>.</article>
           <article id="r-diger-anahtar"><h2>OpenAI · DeepSeek · OpenRouter</h2>Bunlar ücretli servislerdir (kullandıkça ödenir). Servisin sitesinde hesap açın, "API keys" bölümünden anahtar oluşturun ve tr2en'e yapıştırın. Model adını servisin model listesinden kopyalayın.</article>
-          <article id="r-model-adi"><h2>Model adı nedir?</h2>Servislerin birden çok yapay zekâ modeli vardır; çeviriyi hangisinin yapacağını model adı belirler. Gemini'de hazır gelir. Diğerlerinde servisin "Models" sayfasındaki adı (ör. <code>gpt-4o-mini</code>) aynen yazın. Küçük ve hızlı modeller çeviri için yeterlidir.</article>
-          <article id="r-model-ekle"><h2>Yerel model ekleme</h2><b>Ollama (en kolay):</b><ol><li><a href="#" data-ac="ollama">ollama.com</a>'dan Ollama'yı kurun.</li><li>Bir model indirin, ör. <code>ollama pull qwen3:1.7b</code>.</li><li>tr2en'de <b>Çeviri → Yerel → Model ekle → Ollama</b>; listeden modeli seçin.</li></ol><b>LM Studio:</b> programı kurun, içinden bir model indirip "Local Server"ı başlatın, sonra tr2en'de <a href="#" data-ac="lmstudio">LM Studio</a>'yu seçin.<br><b>Model klasörü:</b> CTranslate2 biçiminde bir çeviri modeliniz varsa klasörünü seçin (ileri düzey).<br>Büyük modeller daha çok bellek ister ve yavaş olabilir.</article>
-          <article id="r-kisayol"><h2>Kısayol ve çakışmalar</h2>Önerilen kısayol <b>Ctrl+Shift+Space</b>'tir; başka programlarla çakışmaz. Kendi kısayolunuzu seçerseniz: metin seçiliyken tr2en çevirir, seçim yokken tuşu programa geri gönderir. Ctrl+C/V/X/Z/Y/A/S, Alt+F4 ve Ctrl+Alt kullanılamaz.</article>
-          <article id="r-smartscreen"><h2>"Bilgisayarınızı korudu" uyarısı</h2>tr2en henüz dijital imzalı olmadığı için Windows bu uyarıyı gösterebilir. <b>Ek bilgi → Yine de çalıştır</b>'a basın. Dosyanın doğruluğunu sürüm sayfasındaki <code>.sha256</code> ile kontrol edebilirsiniz.</article>
-          <article id="r-gizlilik"><h2>Gizlilik</h2>Çevrilen metin hiçbir yere kaydedilmez. Metin yalnızca seçtiğiniz servise gider; yerel modelde bilgisayardan çıkmaz. tr2en'in kendiliğinden yaptığı tek bağlantı dahili modelin ilk indirilmesidir. Telemetri yoktur.</article>
+          <article id="r-model-adi"><h2>Model adı nedir?</h2>Servislerin birden çok yapay zekâ modeli vardır; çeviriyi hangisinin yapacağını model adı belirler. Model alanı bir açılır listedir: önerilen modeller listelenir; listede olmayan bir modeli kullanmak için "Kendin ekle…" seçip adı elle yazın (ör. <code>gpt-4o-mini</code>). Küçük ve hızlı modeller çeviri için yeterlidir. Yavaş kalıyorsa bkz. <a href="#" data-rehber="sg-yavas">Çeviri yavaş</a>.</article>
+          <article id="r-model-ekle"><h2>Yerel model ekleme</h2><b>Ollama (en kolay):</b><ol><li><a href="#" data-ac="ollama">ollama.com</a>'dan Ollama'yı kurun.</li><li>Bir model indirin, ör. <code>ollama pull qwen3:1.7b</code>.</li><li>tr2en'de <b>Çeviri → Yerel → Model ekle → Ollama</b>; listeden modeli seçin.</li></ol><b>LM Studio:</b> programı kurun, içinden bir model indirip "Local Server"ı başlatın, sonra tr2en'de <a href="#" data-ac="lmstudio">LM Studio</a>'yu seçin.<br><b>Model klasörü:</b> CTranslate2 biçiminde bir çeviri modeliniz varsa klasörünü seçin (ileri düzey).<br>Büyük modeller daha çok bellek ister ve yavaş olabilir. Bağlanamıyorsanız bkz. <a href="#" data-rehber="sg-ollama">Ollama'ya bağlanamıyor</a>; çeviri yavaşsa bkz. <a href="#" data-rehber="sg-yavas">Çeviri yavaş</a>.</article>
+          <article id="r-kisayol"><h2>Kısayol ve çakışmalar</h2>Önerilen kısayol <b>Ctrl+Shift+Space</b>'tir; başka programlarla çakışmaz. Kendi kısayolunuzu seçerseniz: metin seçiliyken tr2en çevirir, seçim yokken tuşu programa geri gönderir. Ctrl+C/V/X/Z/Y/A/S, Alt+F4 ve Ctrl+Alt kullanılamaz. Hiçbir şey olmuyorsa bkz. <a href="#" data-rehber="sg-kisayol">Kısayola basınca bir şey olmuyor</a>.</article>
+          <article id="r-smartscreen"><h2>"Bilgisayarınızı korudu" uyarısı</h2>tr2en henüz dijital imzalı olmadığı için Windows bu uyarıyı gösterebilir. <b>Ek bilgi → Yine de çalıştır</b>'a basın. Dosyanın doğruluğunu sürüm sayfasındaki <code>.sha256</code> ile kontrol edebilirsiniz. Antivirüs uyarısı alıyorsanız bkz. <a href="#" data-rehber="sg-antivirus">Antivirüs uyarı verdi</a>.</article>
+          <article id="r-gizlilik"><h2>Gizlilik</h2>Çevrilen metin hiçbir yere kaydedilmez. Metin yalnızca seçtiğiniz servise gider; yerel modelde bilgisayardan çıkmaz. tr2en'in kendiliğinden yaptığı tek bağlantı dahili modelin ilk indirilmesidir. Telemetri yoktur. Güncelleme denetimi yalnızca siz "Güncellemeleri kontrol et"e bastığınızda yapılır (GitHub'a sorulur).</article>
+          <article id="r-sg-kisayol"><h2>Kısayola basınca bir şey olmuyor</h2><ol><li><b>Çalışıyor mu:</b> <b>Çevir</b> sayfasının altındaki durum satırında "Çalışıyor" yazmalı; görev çubuğunda da tr2en simgesi görünmelidir.</li><li><b>Duraklatılmış mı:</b> durum satırına basın ya da tepsi menüsündeki <b>Etkin</b> işaretini açın.</li><li><b>Metin seçili mi:</b> kısayol yalnızca seçili metni çevirir; önce Türkçe metni seçin.</li><li><b>Çakışma var mı:</b> <b>Kısayol</b> sayfasından başka bir tuş birleşimi seçip "Kaydet" deyin.</li><li>Yönetici olarak çalışan bir programda deniyorsanız bkz. <a href="#" data-rehber="sg-yonetici">Yönetici olarak çalışan programlar</a>.</li></ol></article>
+          <article id="r-sg-yapistirma"><h2>Çeviri yapıştırılmadı</h2><ol><li>Bazı programlar dışarıdan yapıştırmayı engeller; bu programlarda çeviri metni yapıştırılamaz.</li><li>Çeviriyi tepsi menüsünden <b>Son çeviriyi göster</b> ile alın.</li><li>Pano, işlem bitince tr2en tarafından eski hâline geri yüklenir.</li></ol></article>
+          <article id="r-sg-yonetici"><h2>Yönetici olarak çalışan programlar</h2><p>Windows, normal yetkili bir programın yönetici yetkili bir pencereye tuş göndermesine izin vermez. Bu yüzden yönetici olarak çalışan programlarda tr2en çalışmaz.</p><ol><li>Yönetici olarak çalışan programı normal kullanıcıyla yeniden başlatıp tekrar deneyin.</li><li>Yönetici olmadan çalışan başka bir programda kısayola basmayı deneyin.</li></ol></article>
+          <article id="r-sg-terminal"><h2>Terminalde çalışmıyor</h2><p>Bu sürümde terminalde (PowerShell, cmd) seçili metin değiştirilemez.</p><ol><li>Çevirmek istediğiniz metni kopyalayın.</li><li><b>Çevir</b> sayfasındaki kutuya yapıştırın ve <b>Çevir</b> deyin.</li><li>Sonucu <b>Kopyala</b> ile alın.</li></ol></article>
+          <article id="r-sg-api-anahtari"><h2>API anahtarı hatası / kota doldu</h2><ol><li>Anahtarı yeniden kaydedin: <b>Çeviri → API anahtarı</b> alanına yapıştırıp <b>Bağlantıyı dene</b>'ye basın.</li><li>Ücretsiz katmanda geçici kullanım sınırları olabilir; biraz sonra yeniden deneyin.</li><li>"Bulut çalışmazsa yerele geç" açıkken çeviri yerel modelle devam eder.</li></ol></article>
+          <article id="r-sg-ollama"><h2>Ollama'ya bağlanamıyor</h2><ol><li><b>Ollama açık mı:</b> tepside Ollama simgesi görünmeli.</li><li><b>Adres doğru mu:</b> <code>http://localhost:11434/v1</code> olmalı.</li><li><b>Model indirildi mi:</b> <code>ollama pull &lt;model&gt;</code> ile indirin.</li><li><b>Model listesi:</b> <b>Listele</b> düğmesiyle kontrol edin.</li></ol></article>
+          <article id="r-sg-indirme"><h2>Dahili model inmedi</h2><ol><li>İlk açılışta internet gerekir; model indirilmeden çeviri yapılamaz.</li><li>Güvenlik duvarı <code>huggingface.co</code> adresini engelliyor olabilir.</li><li>tr2en'i yeniden başlatınca indirme yeniden denenir.</li></ol></article>
+          <article id="r-sg-antivirus"><h2>Antivirüs uyarı verdi</h2><p>tr2en kısayolu tanımak için klavye kancası kullanır; bazı antivirüsler bunu şüpheli bulabilir.</p><ol><li>Kod açıktır ve MIT lisanslıdır: <a href="#" data-ac="github">GitHub</a> deposundan inceleyebilirsiniz.</li><li>Dosyayı sürüm sayfasındaki <code>.sha256</code> dosyasıyla doğrulayın.</li></ol></article>
+          <article id="r-sg-yavas"><h2>Çeviri yavaş</h2><ol><li>Yerel büyük modeller yavaştır; daha küçük bir model seçin.</li><li>Bulut servisini deneyin; bulut modelleri genelde çok daha hızlıdır.</li></ol>Model hızına ilişkin uyarıyı <b>Çeviri → Yerel</b> sayfasında görebilirsiniz.</article>
           <button class="dugme geri gizli" id="geriDon">← Ayara geri dön</button>
         </div>
       </div>
@@ -559,6 +592,14 @@ function sahteApi() {
     aktif_degistir: () => Promise.resolve({ok: true, aktif: false, cevirmen: "bulut", cevirmen_adi: "Bulut — Google Gemini", kisayol_adi: "Ctrl+Shift+Space", surum: "0.2.0", hata: ""}),
     ilk_kurulum_tamamla: c => { console.log("ilk_kurulum_tamamla", c); return Promise.resolve({ok: true}); },
     ollama_modelleri: a => Promise.resolve({ok: true, modeller: ["qwen3:1.7b", "llama3.2"]}),
+    model_onerileri: (t, s) => {
+      const liste = t === "bulut"
+        ? [{ad: "gemini-3.5-flash-lite", aciklama: "Önerilen · hızlı, ücretsiz katmanda"}]
+        : [{ad: "translategemma:4b", aciklama: "Önerilen · çeviri için eğitilmiş, 3,3 GB"}];
+      return Promise.resolve({ok: true, oneriler: liste,
+        hiz_uyarisi: "Çeviri hızı seçtiğiniz modele ve bilgisayarınızın gücüne bağlıdır; büyük modeller yavaş olabilir ve daha çok bellek kullanır."});
+    },
+    guncelleme_denetle: () => { console.log("guncelleme_denetle"); return Promise.resolve({ok: true, yeni_var: false, son_surum: "0.2.0", hata: ""}); },
     klasor_sec: () => Promise.resolve({ok: false, yol: "", hata: "klasör seçilmedi"}),
     baglanti_ac: k => { console.log("baglanti_ac", k); return Promise.resolve({ok: true}); },
     kisayol_kaydet: (m, t) => Promise.resolve({ok: true, kisayol: "<ctrl>+<shift>+" + t, uyari: "", hata: ""}),
@@ -605,6 +646,49 @@ apiAl().then(api => {
   function esc(metin) {
     return String(metin == null ? "" : metin)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // ---- Model önerileri (bulut + yerel) ----
+  const KENDI = "__kendi__";
+  let hizUyarisiBulut = "";
+  function onerilerAl(tur, servis) {
+    if (typeof api.model_onerileri !== "function") return Promise.resolve({oneriler: [], hiz: ""});
+    return Promise.resolve(api.model_onerileri(tur, servis)).then(sonuc => {
+      if (!sonuc || !sonuc.ok) return {oneriler: [], hiz: ""};
+      return {oneriler: sonuc.oneriler || [], hiz: sonuc.hiz_uyarisi || ""};
+    }).catch(() => ({oneriler: [], hiz: ""}));
+  }
+  function modelSecimDoldur(secim, oneriler, kayitli, kutu) {
+    secim.innerHTML = "";
+    for (const o of oneriler) {
+      const opt = document.createElement("option");
+      opt.value = o.ad;
+      opt.textContent = o.ad + " — " + o.aciklama;
+      secim.appendChild(opt);
+    }
+    const kendi = document.createElement("option");
+    kendi.value = KENDI;
+    kendi.textContent = "Kendin ekle…";
+    secim.appendChild(kendi);
+    const ad = String(kayitli || "").trim();
+    const listede = oneriler.some(o => o.ad === ad);
+    if (ad && listede) {
+      secim.value = ad;
+      kutu.value = "";
+      kutu.classList.add("gizli");
+    } else if (ad) {
+      secim.value = KENDI;
+      kutu.value = ad;
+      kutu.classList.remove("gizli");
+    } else {
+      secim.value = secim.options.length ? secim.options[0].value : KENDI;
+      kutu.value = "";
+      kutu.classList.add("gizli");
+    }
+  }
+  function kendiKutuDurum(secim, kutu) {
+    if (secim.value === KENDI) kutu.classList.remove("gizli");
+    else kutu.classList.add("gizli");
   }
 
   // ---- Çevir sayfası (çeviri ana süreçte, boru üzerinden yapılır) ----
@@ -767,14 +851,38 @@ apiAl().then(api => {
     $("anahtar").placeholder = kayitli ? "•••••• kayıtlı" : "Anahtarı yapıştırın";
     $("anahtarSil").classList.toggle("gizli", !kayitli);
   }
+  function bulutModelKayitli() {
+    const s = SERVIS[servis.value];
+    return ayarlar.bulut_model
+      || (servis.value === "gemini" ? (ayarlar.gemini_model || s.model) : s.model);
+  }
+  function bulutModelDegeri() {
+    const sec = $("model");
+    if (sec.value === KENDI) return $("modelKendi").value.trim();
+    return sec.value;
+  }
+  function modelHizUyarisiGuncelle() {
+    const u = $("modelHizUyarisi");
+    if ($("model").value === KENDI) {
+      u.textContent = hizUyarisiBulut;
+      u.classList.remove("gizli");
+    } else {
+      u.classList.add("gizli");
+    }
+  }
+  function bulutModelYenile() {
+    return onerilerAl("bulut", servis.value).then(({oneriler, hiz}) => {
+      hizUyarisiBulut = hiz;
+      modelSecimDoldur($("model"), oneriler, bulutModelKayitli(), $("modelKendi"));
+      modelHizUyarisiGuncelle();
+    });
+  }
   function servisDegisti() {
     const s = SERVIS[servis.value];
     $("adresSatir").classList.toggle("gizli", s.adres === null);
     $("adres").value = servis.value === "diger" ? (ayarlar.bulut_adres || "") : (s.adres || "");
     $("anahtarSatir").classList.toggle("gizli", !s.anahtar);
-    $("model").value = ayarlar.bulut_model
-      || (servis.value === "gemini" ? (ayarlar.gemini_model || s.model) : s.model);
-    $("model").placeholder = "model adı";
+    bulutModelYenile();
     document.querySelector("#anahtarYardim a").textContent = s.yardim;
     const konu = servis.value === "gemini" ? "gemini" : "diger-anahtar";
     document.querySelector("#anahtarYardim a").dataset.rehber = konu;
@@ -782,6 +890,7 @@ apiAl().then(api => {
     $("gizlilikNotu").classList.toggle("gizli", servis.value !== "gemini");
     $("sonuc").textContent = "";
     $("sonuc").style.color = "";
+    $("deneYardim").classList.add("gizli");
     anahtarGorunumu();
   }
   servis.addEventListener("change", () => {
@@ -793,10 +902,18 @@ apiAl().then(api => {
     ayarlar.bulut_adres = $("adres").value;
     ayarKaydet({bulut_adres: $("adres").value});
   });
+  function bulutModelKaydet() {
+    const deger = bulutModelDegeri();
+    if (!deger) return;
+    ayarlar.bulut_model = deger;
+    ayarKaydet({bulut_model: deger});
+  }
   $("model").addEventListener("change", () => {
-    ayarlar.bulut_model = $("model").value;
-    ayarKaydet({bulut_model: $("model").value});
+    kendiKutuDurum($("model"), $("modelKendi"));
+    modelHizUyarisiGuncelle();
+    bulutModelKaydet();
   });
+  $("modelKendi").addEventListener("change", bulutModelKaydet);
 
   // API anahtarı
   $("goster").addEventListener("click", () => {
@@ -838,7 +955,7 @@ apiAl().then(api => {
       cevirmen: aktifYer(),
       bulut_servis: servis.value,
       bulut_adres: $("adres").value,
-      bulut_model: $("model").value,
+      bulut_model: bulutModelDegeri(),
       bulut_yedek_yerel: $("yedekYerel").checked,
       yerel_secili: ayarlar.yerel_secili || "dahili",
       ollama_adres: ayarlar.ollama_adres || "", ollama_model: ayarlar.ollama_model || "",
@@ -849,6 +966,7 @@ apiAl().then(api => {
   $("dene").addEventListener("click", () => {
     const s = $("sonuc");
     s.className = "sonuc"; s.style.color = ""; s.textContent = "Deneniyor…";
+    $("deneYardim").classList.add("gizli");
     const ham = $("anahtar").value;
     Promise.resolve(api.baglanti_dene(formDegerleri(), ham || null)).then(sonuc => {
       if (sonuc && sonuc.ok) {
@@ -858,6 +976,7 @@ apiAl().then(api => {
       } else {
         s.className = "sonuc"; s.style.color = "var(--danger)";
         s.textContent = (sonuc && sonuc.hata) || "Bağlantı kurulamadı";
+        $("deneYardim").classList.remove("gizli");
       }
     });
   });
@@ -949,15 +1068,48 @@ apiAl().then(api => {
       }
     });
   }
+  function mfHataGoster(metin) {
+    $("mfHataMetin").textContent = metin;
+    $("mfHata").classList.remove("gizli");
+  }
+  function mfHataGizle() {
+    $("mfHataMetin").textContent = "";
+    $("mfHata").classList.add("gizli");
+  }
+  function mfModelDegeri() {
+    const sec = $("mfModelSecim");
+    if (sec.value === KENDI) return $("mfModel").value.trim();
+    return sec.value;
+  }
+  function mfYukluGrupEkle(modeller) {
+    const sec = $("mfModelSecim");
+    const eski = sec.querySelector("optgroup[data-yuklu]");
+    if (eski) eski.remove();
+    if (!modeller || !modeller.length) return;
+    const grup = document.createElement("optgroup");
+    grup.label = "Bilgisayarınızda yüklü";
+    grup.setAttribute("data-yuklu", "1");
+    for (const m of modeller) {
+      const o = document.createElement("option");
+      o.value = m; o.textContent = m;
+      grup.appendChild(o);
+    }
+    const kendi = sec.querySelector('option[value="' + KENDI + '"]');
+    sec.insertBefore(grup, kendi);
+  }
   function modelFormAc(tur) {
     mfTur = tur;
     $("modelForm").classList.remove("gizli");
     $("mfAdres").value = ayarlar[tur + "_adres"]
       || (tur === "ollama" ? "http://localhost:11434/v1" : "http://localhost:1234/v1");
-    $("mfModel").value = ayarlar[tur + "_model"] || "";
-    $("mfListeSatir").classList.add("gizli");
-    $("mfListe").innerHTML = "";
     $("mfNot").textContent = tur === "ollama" ? "Ollama" : "LM Studio";
+    mfHataGizle();
+    onerilerAl("yerel", tur).then(({oneriler, hiz}) => {
+      modelSecimDoldur($("mfModelSecim"), oneriler, ayarlar[tur + "_model"] || "", $("mfModel"));
+      const u = $("mfHizUyarisi");
+      u.textContent = hiz;
+      u.classList.toggle("gizli", !hiz);
+    });
   }
   document.querySelectorAll(".ekle-menu .kutu").forEach(b => b.addEventListener("click", () => {
     const tur = b.dataset.ekle;
@@ -965,28 +1117,28 @@ apiAl().then(api => {
     modelFormAc(tur);
     $("modelForm").scrollIntoView({block: "nearest"});
   }));
+  $("mfModelSecim").addEventListener("change", () => {
+    kendiKutuDurum($("mfModelSecim"), $("mfModel"));
+  });
   $("mfListele").addEventListener("click", () => {
     Promise.resolve(api.ollama_modelleri($("mfAdres").value.trim())).then(sonuc => {
       if (sonuc && sonuc.ok) {
-        const liste = $("mfListe");
-        liste.innerHTML = "";
-        for (const m of sonuc.modeller) {
-          const o = document.createElement("option");
-          o.value = m; o.textContent = m;
-          liste.appendChild(o);
+        const modeller = sonuc.modeller || [];
+        mfYukluGrupEkle(modeller);
+        if (modeller.length) {
+          $("mfModelSecim").value = modeller[0];
+          $("mfModel").classList.add("gizli");
         }
-        $("mfListeSatir").classList.toggle("gizli", !sonuc.modeller.length);
-        if (sonuc.modeller.length) $("mfModel").value = sonuc.modeller[0];
+        mfHataGizle();
       } else {
-        notGoster((sonuc && sonuc.hata) || "Model listesi alınamadı");
+        mfHataGoster((sonuc && sonuc.hata) || "Model listesi alınamadı");
       }
     });
   });
-  $("mfListe").addEventListener("change", () => { $("mfModel").value = $("mfListe").value; });
   $("mfVazgec").addEventListener("click", () => $("modelForm").classList.add("gizli"));
   $("mfKaydet").addEventListener("click", () => {
     const adres = $("mfAdres").value.trim();
-    const model = $("mfModel").value.trim();
+    const model = mfModelDegeri();
     if (!adres || !model) { notGoster("Adres ve model alanlarını doldurun."); return; }
     const deg = {yerel_secili: mfTur};
     deg[mfTur + "_adres"] = adres;
@@ -1254,6 +1406,41 @@ apiAl().then(api => {
     });
   });
 
+  // Hakkında — güncelleme denetimi (yalnızca düğmeye basılınca yapılır)
+  $("guncellemeDene").addEventListener("click", () => {
+    const s = $("guncellemeSonuc");
+    s.className = "sonuc"; s.style.color = ""; s.textContent = "Kontrol ediliyor…";
+    $("guncellemeIndir").classList.add("gizli");
+    if (typeof api.guncelleme_denetle !== "function") {
+      s.className = "sonuc"; s.style.color = "var(--danger)";
+      s.textContent = "Güncelleme kontrol edilemedi";
+      return;
+    }
+    Promise.resolve(api.guncelleme_denetle()).then(sonuc => {
+      if (sonuc && sonuc.ok) {
+        if (sonuc.yeni_var) {
+          s.className = "sonuc"; s.style.color = "var(--warn)";
+          s.textContent = "Yeni sürüm var: " + sonuc.son_surum;
+          $("guncellemeIndir").classList.remove("gizli");
+        } else {
+          s.className = "sonuc ok"; s.style.color = "";
+          s.textContent = "En son sürümü kullanıyorsunuz (" + sonuc.son_surum + ")";
+        }
+      } else {
+        s.className = "sonuc"; s.style.color = "var(--danger)";
+        s.textContent = (sonuc && sonuc.hata) || "Güncelleme kontrol edilemedi";
+      }
+    }).catch(() => {
+      s.className = "sonuc"; s.style.color = "var(--danger)";
+      s.textContent = "Güncelleme kontrol edilemedi";
+    });
+  });
+  $("guncellemeIndir").addEventListener("click", () => {
+    Promise.resolve(api.baglanti_ac("surumler")).then(sonuc => {
+      if (sonuc && sonuc.ok === false && sonuc.hata) notGoster(sonuc.hata);
+    });
+  });
+
   // Kapatma sorusu
   window.kapatmaSor = function() {
     $("kapatModal").classList.remove("gizli");
@@ -1288,6 +1475,11 @@ apiAl().then(api => {
     servis.value = ayarlar.bulut_servis || "gemini";
     servisDegisti();
     yerelListesiniYaz();
+    onerilerAl("yerel", "ollama").then(({hiz}) => {
+      const u = $("yerelHizUyarisi");
+      u.textContent = hiz;
+      u.classList.toggle("gizli", !hiz);
+    });
     kisayolGoster(ayarlar.kisayol);
     kisayolIsaretle(ayarlar.kisayol);
     if (sihirbazAcik) {
