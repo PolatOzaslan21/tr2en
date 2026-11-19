@@ -122,7 +122,8 @@ _MA_ME_ISTISNA = frozenset({
 _NEG_EK = re.compile(
     rf"[{_HARF_KUCUK}]+(?:"
     # kişi/zaman ekleri gelebilir: istemiyorum, yapmadık, güncellemeyeceğiz, silmemişler
-    rf"(?:m[ıiuü]yor|m[ae]d[ıi]|m[ae]y[ae]c[ae][kğ]|m[ae]m[ıi]ş)[{_HARF_KUCUK}]*"
+    # -madı/-medi ardından "r" gelmez: "denemedir", "dramadır" isim + ek fiildir, olumsuz değil
+    rf"(?:m[ıiuü]yor|m[ae]d[ıi](?!r)|m[ae]y[ae]c[ae][kğ]|m[ae]m[ıi]ş)[{_HARF_KUCUK}]*"
     # -maz/-mez yalnızca sonda ya da s/l ile devam (amazon gibi yanlış eşleşmeyi önler)
     rf"|m[ae]z(?:[sl][{_HARF_KUCUK}]*)?"
     rf"|m[ae]d[ae]n|m[ae]m[ae]l[ıi]|m[ae]y[ıi]n|m[ae]s[ıi]n"
