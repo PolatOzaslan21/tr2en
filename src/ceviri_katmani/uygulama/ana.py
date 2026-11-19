@@ -260,7 +260,10 @@ class Uygulama:
         yedek = self.pano.PanoYedegi()
         yedek.kaydet()
         try:
-            metin = self.pano.secimi_kopyala()
+            t_kopya = time.perf_counter()
+            metin = self.pano.secimi_kopyala(bekle_ms=self._kopya_bekleme_ms(surec))
+            if metin:
+                self._kopya_suresi_kaydet(surec, (time.perf_counter() - t_kopya) * 1000)
             if not metin:
                 self._kaydet("kisayol", "secim-yok", surec=surec, baslangic=t0)
                 # Yutulan kısayolu programa geri ver (ör. Ctrl+P: seçim yoksa programın kendi işi çalışsın).
@@ -506,6 +509,23 @@ class Uygulama:
         self.bildir("Kısayol değişti", self.kisayol_adi())
         if self.tepsi is not None:
             self.tepsi.guncelle()
+
+    # Seçim yokken pano değişmez; o bekleme kısayolun geri gönderilmesini geciktirir.
+    # Program başına en yavaş başarılı kopyalamayı hatırlayıp beklemeyi ona göre kısaltırız.
+    KOPYA_BEKLEME_EN_AZ = 120
+    KOPYA_BEKLEME_EN_COK = 300
+
+    def _kopya_bekleme_ms(self, surec: str | None) -> int:
+        en_yavas = getattr(self, "_kopya_sureleri", {}).get(surec or "")
+        if en_yavas is None:
+            return self.KOPYA_BEKLEME_EN_COK
+        return int(min(self.KOPYA_BEKLEME_EN_COK, max(self.KOPYA_BEKLEME_EN_AZ, 3 * en_yavas + 40)))
+
+    def _kopya_suresi_kaydet(self, surec: str | None, ms: float) -> None:
+        if not hasattr(self, "_kopya_sureleri"):
+            self._kopya_sureleri = {}
+        anahtar = surec or ""
+        self._kopya_sureleri[anahtar] = max(ms, self._kopya_sureleri.get(anahtar, 0.0))
 
     def _geri_gonder(self) -> bool:
         """Dinleyicinin yuttuğu kısayolu programa geri gönderir; gönderdiyse True."""

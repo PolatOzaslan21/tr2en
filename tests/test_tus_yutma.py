@@ -187,3 +187,29 @@ def test_dinleyiciye_yut_cb_verilir():
     assert yut() is True
     uyg._aktif = False
     assert yut() is False
+
+
+# ---- uyarlanır pano beklemesi ----
+
+def test_kopya_beklemesi_programa_gore_kisalir():
+    from tests.test_denetim1_uygulama import _uygulama
+    uyg, *_ = _uygulama()
+    assert uyg._kopya_bekleme_ms("claude.exe") == 300          # ilk kez: tam bekleme
+    uyg._kopya_suresi_kaydet("claude.exe", 20)
+    assert uyg._kopya_bekleme_ms("claude.exe") == 120          # hızlı program: en az 120 ms
+    uyg._kopya_suresi_kaydet("claude.exe", 60)
+    assert uyg._kopya_bekleme_ms("claude.exe") == 220          # en yavaşın 3 katı + 40
+    uyg._kopya_suresi_kaydet("winword.exe", 250)
+    assert uyg._kopya_bekleme_ms("winword.exe") == 300         # üst sınır
+    assert uyg._kopya_bekleme_ms("notepad.exe") == 300         # diğer program etkilenmez
+
+
+def test_basarili_kopyalama_suresi_kaydedilir_ve_bekleme_iletilir():
+    from tests.test_denetim1_uygulama import _uygulama
+    uyg, pano, *_ = _uygulama(secim="merhaba dünya")
+    beklemeler = []
+    asil = pano.secimi_kopyala
+    pano.secimi_kopyala = lambda bekle_ms=300: (beklemeler.append(bekle_ms), asil(bekle_ms))[1]
+    uyg._kisayol_isle()
+    uyg._kisayol_isle()
+    assert beklemeler[0] == 300 and beklemeler[1] == 120
