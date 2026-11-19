@@ -2,3 +2,19 @@ __pycache__/
 .venv/
 *.egg-info/
 .pytest_cache/
+
+# Günlükler ve gizli anahtarlar
+*.log
+.env
+.env.*
+
+# Veritabanı / yerel ayar dosyaları
+*.db
+*.sqlite
+ayarlar.toml
+*.bozuk.toml
+
+# Derleme çıktıları
+dist/
+build/
+*.spec

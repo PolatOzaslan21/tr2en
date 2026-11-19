@@ -141,22 +141,40 @@ def dogrula(ham: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
 
 
 def yukle(yol: Path | None = None) -> tuple[dict[str, Any], list[str]]:
-    """Ayar dosyasını okur; yoksa varsayılanları yazar, bozuksa yedekleyip yeniden yazar."""
+    """Ayar dosyasını okur; yoksa varsayılanları yazar, bozuksa yedekleyip yeniden yazar.
+
+    Yazma/yedekleme başarısız olursa çökmez: varsayılanlar döner ve uyarı
+    listesine "ayar dosyası yazılamadı" eklenir (INCELEME-1 bulgu 7).
+    """
     dosya = Path(yol) if yol is not None else ayar_yolu()
     if not dosya.exists():
-        dosya.parent.mkdir(parents=True, exist_ok=True)
-        kaydet(VARSAYILAN, dosya)
+        try:
+            dosya.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return dogrula({})[0], ["ayar dosyası yazılamadı"]
+        if not kaydet(VARSAYILAN, dosya):
+            return dogrula({})[0], ["ayar dosyası yazılamadı"]
         return dogrula({})[0], []
 
     try:
         ham = tomllib.loads(dosya.read_bytes().decode("utf-8"))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError):
         yedek = dosya.parent / "ayarlar.bozuk.toml"
-        os.replace(dosya, yedek)
-        kaydet(VARSAYILAN, dosya)
-        return dogrula({})[0], [
-            f"ayar dosyası bozuktu, '{yedek.name}' olarak yedeklendi ve varsayılanlar yazıldı"
-        ]
+        uyarilar: list[str] = []
+        yazilamadi = False
+        try:
+            os.replace(dosya, yedek)
+            uyarilar.append(
+                f"ayar dosyası bozuktu, '{yedek.name}' olarak yedeklendi ve varsayılanlar yazıldı"
+            )
+        except OSError:
+            yazilamadi = True
+            uyarilar.append("ayar dosyası bozuktu")
+        if not kaydet(VARSAYILAN, dosya):
+            yazilamadi = True
+        if yazilamadi:
+            uyarilar.append("ayar dosyası yazılamadı")
+        return dogrula({})[0], uyarilar
 
     return dogrula(ham)
 
@@ -199,8 +217,12 @@ def _deger_yaz(deger: Any) -> str:
     raise TypeError(f"Yazılamayan ayar tipi: {type(deger).__name__}")
 
 
-def kaydet(ayarlar: dict[str, Any], yol: Path | None = None) -> None:
-    """Doğrulanmış ayarları yorumlu, atomik biçimde UTF-8 TOML olarak yazar."""
+def kaydet(ayarlar: dict[str, Any], yol: Path | None = None) -> bool:
+    """Doğrulanmış ayarları yorumlu, atomik biçimde UTF-8 TOML olarak yazar.
+
+    Yazma hatası (PermissionError/OSError) yutulur: başarılıysa True, aksi
+    hâlde False döner (çağıran kullanıcıyı uyarabilir) — INCELEME-1 bulgu 6.
+    """
     dosya = Path(yol) if yol is not None else ayar_yolu()
     dogrulanmis, _ = dogrula(ayarlar)
 
@@ -213,14 +235,20 @@ def kaydet(ayarlar: dict[str, Any], yol: Path | None = None) -> None:
         satirlar.append(f"{anahtar} = {_deger_yaz(dogrulanmis[anahtar])}")
     icerik = "\n".join(satirlar) + "\n"
 
-    dosya.parent.mkdir(parents=True, exist_ok=True)
     gecici = dosya.with_name(dosya.name + ".tmp")
     try:
+        dosya.parent.mkdir(parents=True, exist_ok=True)
         gecici.write_text(icerik, encoding="utf-8", newline="\n")
         os.replace(gecici, dosya)
+    except OSError:
+        return False
     finally:
-        if gecici.exists():
-            gecici.unlink()
+        try:
+            if gecici.exists():
+                gecici.unlink()
+        except OSError:
+            pass
+    return True
 
 
 KISAYOL_SECENEKLERI: tuple[str, ...] = (

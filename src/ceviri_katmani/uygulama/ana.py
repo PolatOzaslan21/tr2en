@@ -6,6 +6,7 @@ import queue
 import sys
 import threading
 import time
+import traceback
 from typing import Any
 
 from ..cekirdek.cevirmen import CeviriHatasi
@@ -95,14 +96,20 @@ class Uygulama:
             if not self._calis:
                 break
             self._meşgul = True
+            tur = "bilinmeyen"
             try:
-                tur, arg = is_
-                if tur == "kisayol":
-                    self._kisayol_isle()
-                elif tur == "tetik":
-                    self._tetik_isle(*arg)
-                elif tur == "guvensiz":
-                    self._guvensiz_isle(arg)
+                try:
+                    tur, arg = is_
+                    if tur == "kisayol":
+                        self._kisayol_isle()
+                    elif tur == "tetik":
+                        self._tetik_isle(*arg)
+                    elif tur == "guvensiz":
+                        self._guvensiz_isle(arg)
+                except Exception as e:
+                    # Beklenmedik hata işçiyi ÖLDÜRMEZ: kullanıcı bilgilendirilir,
+                    # döngü devam eder ve sonraki kısayol çalışır (INCELEME-1 bulgu 1).
+                    self._beklenmeyen_hata(tur, e)
             finally:
                 self._meşgul = False
                 # Tepsi menüsü Windows'ta önbellekli; her işten sonra tazelenmezse
@@ -112,6 +119,23 @@ class Uygulama:
                         self.tepsi.guncelle()
                     except Exception:
                         pass
+
+    def _beklenmeyen_hata(self, tur: str, hata: Exception) -> None:
+        """Beklenmedik hatayı yutar: yalnızca hata TÜRÜ kaydedilir, metin içeriği asla."""
+        try:
+            if sys.stderr is not None:
+                traceback.print_exc()
+        except Exception:
+            pass
+        tur_adi = type(hata).__name__
+        try:
+            self.bildir("Beklenmeyen hata", tur_adi, "hata")
+        except Exception:
+            pass
+        try:
+            self._kaydet(tur, "hata", ayrinti=tur_adi)
+        except Exception:
+            pass
 
     # ---- özet kaydı (metin İÇERİĞİ asla yazılmaz) ----
 
@@ -161,10 +185,48 @@ class Uygulama:
 
     def _bildir_hata(self, hata: CeviriHatasi) -> None:
         mesaj = str(hata)
+        yuzde = self._yerel_model_indiriliyor(mesaj)
+        if yuzde is not None:
+            # Yerel model henüz indiriliyor: genel hata yerine bilgilendirme.
+            self.bildir(
+                "Yerel model henüz indiriliyor",
+                f"%{yuzde} — bitince tekrar deneyin. Bu sırada Gemini kullanılabilir.",
+                "uyari",
+            )
+            return
         if "olumsuzluk" in mesaj.lower():
             self.bildir("Olumsuzluk şüphesi — çevrilmedi", mesaj, "uyari")
         else:
             self.bildir("Çevrilemedi", mesaj, "hata")
+
+    @staticmethod
+    def _yerel_model_indiriliyor(mesaj: str) -> str | None:
+        """Yerel model indiriliyorsa indirme yüzdesini döner; değilse None."""
+        if "model klasörü yok" not in mesaj:
+            return None
+        try:
+            from . import model_indirme
+
+            durum = model_indirme.durum()
+        except Exception:
+            return None
+        if not durum.startswith("indiriliyor"):
+            return None
+        yuzde = durum[len("indiriliyor"):].strip().lstrip("%").strip()
+        return yuzde or "0"
+
+    def _pano_geri_yukle(self, yedek: Any) -> None:
+        """Pano yedeğini geri yükler; geri yüklenemezse kullanıcıyı uyarır."""
+        try:
+            tamam = bool(yedek.geri_yukle())
+        except Exception:
+            tamam = False
+        if not tamam:
+            self.bildir(
+                "Panonuz tam geri yüklenemedi",
+                "Kopyaladığınız son içerik kaybolmuş olabilir.",
+                "uyari",
+            )
 
     def _kisayol_isle(self) -> None:
         t0 = time.perf_counter()
@@ -173,7 +235,10 @@ class Uygulama:
             self._kaydet("kisayol", "pencere-yok")
             return
         surec = getattr(pencere, "surec", None)
-        if not self.pencere.izinli_mi(pencere, self.ayarlar["izinli"], self.ayarlar["yasak"]):
+        izinli = self.ayarlar.get("izinli")
+        if not izinli:
+            izinli = None  # boş liste/küme "hepsine izin" demek
+        if not self.pencere.izinli_mi(pencere, izinli, self.ayarlar["yasak"]):
             self._kaydet("kisayol", "izinsiz-pencere", surec=surec)
             return
 
@@ -215,7 +280,7 @@ class Uygulama:
                 else:
                     self.bildir("Çevrildi (Gemini)")
         finally:
-            yedek.geri_yukle()
+            self._pano_geri_yukle(yedek)
 
     def _tetik_isle(self, metin: str, silinecek: int) -> None:
         t0 = time.perf_counter()
@@ -265,7 +330,7 @@ class Uygulama:
             else:
                 self.bildir("Çevrildi (Gemini)")
         finally:
-            yedek.geri_yukle()
+            self._pano_geri_yukle(yedek)
 
     def _guvensiz_isle(self, sebep: str | None = None) -> None:
         self._kaydet("tetik", "guvensiz", surec=self._surec_adi(), ayrinti=sebep)
@@ -295,12 +360,28 @@ class Uygulama:
         if zincir_uretici is not None:
             self.zincir = zincir_uretici(ad)
         self.ayarlar["cevirmen"] = ad
-        kaydet_cb = self.ayarlar.get("kaydet_cb")
-        if kaydet_cb is not None:
-            kaydet_cb()
+        self._ayarlari_kaydet()
         self.bildir("Çevirmen: Gemini" if ad == "gemini" else "Çevirmen: Yalnızca yerel")
         if self.tepsi is not None:
             self.tepsi.guncelle()
+
+    def _ayarlari_kaydet(self) -> bool:
+        """Ayar dosyasını yazar; yazılamazsa kullanıcıyı uyarır."""
+        kaydet_cb = self.ayarlar.get("kaydet_cb")
+        if kaydet_cb is None:
+            return True
+        try:
+            sonuc = kaydet_cb()
+        except Exception:
+            sonuc = False
+        if sonuc is False:
+            self.bildir(
+                "Ayar kaydedilemedi",
+                "Ayarlar dosyaya yazılamadı; dosya kilitli olabilir.",
+                "uyari",
+            )
+            return False
+        return True
 
     def son_ceviri_var_mi(self) -> bool:
         return self._son_ceviri is not None
@@ -374,19 +455,37 @@ class Uygulama:
         return kisayol_adi(self.ayarlar["kisayol"])
 
     def kisayol_sec(self, kisayol: str) -> None:
-        """Kısayolu değiştirir; dinleyiciyi yeni kısayolla yeniden başlatır ve ayar dosyasına yazar."""
+        """Kısayolu değiştirir; dinleyiciyi yeni kısayolla yeniden başlatır ve ayar dosyasına yazar.
+
+        Yeni kısayol kurulamazsa eski kısayola dönülür, eski dinleyici yeniden
+        kurulur ve ayar dosyasına yeni değer YAZILMAZ (INCELEME-1 bulgu 8).
+        """
         if self.ayarlar.get("kisayol") == kisayol:
             return
+        eski_kisayol = self.ayarlar.get("kisayol")
+        eski_dinleyici = self._dinleyici
         self.ayarlar["kisayol"] = kisayol
-        if self._dinleyici is not None:
+        if eski_dinleyici is not None:
             try:
-                self._dinleyici.durdur()
+                eski_dinleyici.durdur()
             except Exception:
                 pass
-            self._dinleyici_kur()
-        kaydet_cb = self.ayarlar.get("kaydet_cb")
-        if kaydet_cb is not None:
-            kaydet_cb()
+            try:
+                self._dinleyici_kur()
+            except Exception:
+                self.ayarlar["kisayol"] = eski_kisayol
+                self._dinleyici = eski_dinleyici
+                try:
+                    eski_dinleyici.baslat()
+                except Exception:
+                    pass
+                self.bildir(
+                    "Kısayol değiştirilemedi",
+                    "Yeni kısayol kurulamadı; eski kısayol korundu.",
+                    "uyari",
+                )
+                return
+        self._ayarlari_kaydet()
         self.bildir("Kısayol değişti", self.kisayol_adi())
         if self.tepsi is not None:
             self.tepsi.guncelle()
@@ -474,7 +573,12 @@ if sys.platform == "win32":
                 return 0
             dosya["cevirmen"] = secim
             dosya["gizlilik_onayi"] = True
-            ayarlar_mod.kaydet(dosya)
+            if not ayarlar_mod.kaydet(dosya):
+                bildir(
+                    "Ayar kaydedilemedi",
+                    "Ayarlar dosyaya yazılamadı; dosya kilitli olabilir.",
+                    "uyari",
+                )
 
         def zincir_uretici(ad: str):
             return zincir_kur(
@@ -483,10 +587,10 @@ if sys.platform == "win32":
                 zaman_asimi=dosya["zaman_asimi"],
             )
 
-        def kaydet_cb() -> None:
+        def kaydet_cb() -> bool:
             dosya["cevirmen"] = uygulama.cevirmen()
             dosya["kisayol"] = uygulama.kisayol_simdiki()
-            ayarlar_mod.kaydet(dosya)
+            return ayarlar_mod.kaydet(dosya)
 
         ayarlar = {
             "kisayol": dosya["kisayol"],
