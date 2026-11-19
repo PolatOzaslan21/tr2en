@@ -194,14 +194,15 @@ def test_dinleyiciye_yut_cb_verilir():
 def test_kopya_beklemesi_programa_gore_kisalir():
     from tests.test_denetim1_uygulama import _uygulama
     uyg, *_ = _uygulama()
-    assert uyg._kopya_bekleme_ms("claude.exe") == 300          # ilk kez: tam bekleme
+    assert uyg._kopya_bekleme_ms("claude.exe") == 150          # bilinen hızlı program: hazır değer
+    assert uyg._kopya_bekleme_ms("bilinmeyen.exe") == 300      # bilinmeyen: tam bekleme
     uyg._kopya_suresi_kaydet("claude.exe", 20)
     assert uyg._kopya_bekleme_ms("claude.exe") == 120          # hızlı program: en az 120 ms
     uyg._kopya_suresi_kaydet("claude.exe", 60)
     assert uyg._kopya_bekleme_ms("claude.exe") == 220          # en yavaşın 3 katı + 40
     uyg._kopya_suresi_kaydet("winword.exe", 250)
     assert uyg._kopya_bekleme_ms("winword.exe") == 300         # üst sınır
-    assert uyg._kopya_bekleme_ms("notepad.exe") == 300         # diğer program etkilenmez
+    assert uyg._kopya_bekleme_ms("excel.exe") == 300           # diğer program etkilenmez
 
 
 def test_basarili_kopyalama_suresi_kaydedilir_ve_bekleme_iletilir():
@@ -212,4 +213,26 @@ def test_basarili_kopyalama_suresi_kaydedilir_ve_bekleme_iletilir():
     pano.secimi_kopyala = lambda bekle_ms=300: (beklemeler.append(bekle_ms), asil(bekle_ms))[1]
     uyg._kisayol_isle()
     uyg._kisayol_isle()
-    assert beklemeler[0] == 300 and beklemeler[1] == 120
+    assert beklemeler[0] == 150 and beklemeler[1] == 120  # notepad: hazır değer, sonra öğrenilen
+
+
+def test_kopya_sureleri_diske_yazilir_ve_okunur(tmp_path):
+    from tests.test_denetim1_uygulama import _uygulama
+    yol = tmp_path / "kopya_sureleri.json"
+    uyg, *_ = _uygulama()
+    uyg.ayarlar["kopya_sureleri_yolu"] = str(yol)
+    uyg._kopya_suresi_kaydet("winword.exe", 80)
+    uyg._kopya_suresi_kaydet("winword.exe", 50)   # daha hızlı: en yavaş değişmez
+    yeni, *_ = _uygulama()
+    yeni.ayarlar["kopya_sureleri_yolu"] = str(yol)
+    assert yeni._kopya_bekleme_ms("winword.exe") == 280
+    assert "merhaba" not in yol.read_text(encoding="utf-8")
+
+
+def test_bozuk_kopya_dosyasi_yok_sayilir(tmp_path):
+    from tests.test_denetim1_uygulama import _uygulama
+    yol = tmp_path / "k.json"
+    yol.write_text("{bozuk", encoding="utf-8")
+    uyg, *_ = _uygulama()
+    uyg.ayarlar["kopya_sureleri_yolu"] = str(yol)
+    assert uyg._kopya_bekleme_ms("claude.exe") == 150

@@ -511,21 +511,58 @@ class Uygulama:
             self.tepsi.guncelle()
 
     # Seçim yokken pano değişmez; o bekleme kısayolun geri gönderilmesini geciktirir.
-    # Program başına en yavaş başarılı kopyalamayı hatırlayıp beklemeyi ona göre kısaltırız.
+    # Program başına en yavaş başarılı kopyalamayı hatırlayıp (diske de yazıp) beklemeyi kısaltırız.
+    # Dosyada yalnızca exe adı ve milisaniye durur; metin asla.
     KOPYA_BEKLEME_EN_AZ = 120
     KOPYA_BEKLEME_EN_COK = 300
+    HAZIR_KOPYA_BEKLEME = 150
+    HIZLI_PROGRAMLAR = frozenset({
+        "claude.exe", "chrome.exe", "msedge.exe", "firefox.exe", "opera.exe", "brave.exe",
+        "code.exe", "notepad.exe",
+    })
+
+    def _kopya_sureleri_al(self) -> dict[str, float]:
+        if getattr(self, "_kopya_sureleri", None) is None:
+            self._kopya_sureleri = {}
+            yol = self.ayarlar.get("kopya_sureleri_yolu")
+            if yol:
+                try:
+                    import json
+                    from pathlib import Path
+
+                    veri = json.loads(Path(yol).read_text(encoding="utf-8"))
+                    self._kopya_sureleri = {
+                        str(k): float(v) for k, v in veri.items()
+                        if isinstance(v, (int, float)) and 0 < v < 10_000
+                    }
+                except (OSError, ValueError, AttributeError):
+                    pass
+        return self._kopya_sureleri
 
     def _kopya_bekleme_ms(self, surec: str | None) -> int:
-        en_yavas = getattr(self, "_kopya_sureleri", {}).get(surec or "")
+        en_yavas = self._kopya_sureleri_al().get(surec or "")
         if en_yavas is None:
+            if (surec or "") in self.HIZLI_PROGRAMLAR:
+                return self.HAZIR_KOPYA_BEKLEME
             return self.KOPYA_BEKLEME_EN_COK
         return int(min(self.KOPYA_BEKLEME_EN_COK, max(self.KOPYA_BEKLEME_EN_AZ, 3 * en_yavas + 40)))
 
     def _kopya_suresi_kaydet(self, surec: str | None, ms: float) -> None:
-        if not hasattr(self, "_kopya_sureleri"):
-            self._kopya_sureleri = {}
+        sureler = self._kopya_sureleri_al()
         anahtar = surec or ""
-        self._kopya_sureleri[anahtar] = max(ms, self._kopya_sureleri.get(anahtar, 0.0))
+        if not anahtar or ms <= sureler.get(anahtar, 0.0):
+            return
+        sureler[anahtar] = round(ms, 1)
+        yol = self.ayarlar.get("kopya_sureleri_yolu")
+        if yol:
+            try:
+                import json
+                from pathlib import Path
+
+                Path(yol).parent.mkdir(parents=True, exist_ok=True)
+                Path(yol).write_text(json.dumps(sureler, ensure_ascii=False, indent=0), encoding="utf-8")
+            except OSError:
+                pass
 
     def _geri_gonder(self) -> bool:
         """Dinleyicinin yuttuğu kısayolu programa geri gönderir; gönderdiyse True."""
@@ -716,6 +753,7 @@ if sys.platform == "win32":
             "aktif_hwnd_cb": _aktif_hwnd,
             "zincir_uretici": zincir_uretici,
             "ayar_dosyasi": str(ayarlar_mod.ayar_yolu()),
+            "kopya_sureleri_yolu": str(ayarlar_mod.ayar_klasoru() / "kopya_sureleri.json"),
             "kaydet_cb": kaydet_cb,
         }
         uygulama = Uygulama(pano, pencere, zincir_uretici(dosya["cevirmen"]), bildir, ayarlar)
