@@ -17,17 +17,41 @@ def _reg_modulu():
 
 
 def komut() -> str:
-    """Run anahtarına yazılacak komut satırı."""
+    """Run anahtarına yazılacak komut satırı (``--arka``: açılışta ayar penceresi açılmasın)."""
     if getattr(sys, "frozen", False):
-        return f'"{sys.executable}"'
+        return f'"{sys.executable}" --arka'
     # uv ortamındaki pythonw.exe bir KONSOL başlatıcısı (boş pencere açıyor, 19.11.2026);
     # gui-scripts ile üretilen tr2en.exe gerçek GUI başlatıcısıdır.
     gui = Path(sys.executable).with_name("tr2en.exe")
     if gui.is_file():
-        return f'"{gui}"'
+        return f'"{gui}" --arka'
     pythonw = Path(sys.executable).with_name("pythonw.exe")
     exe = str(pythonw) if pythonw.is_file() else sys.executable
-    return f'"{exe}" -m ceviri_katmani.uygulama'
+    return f'"{exe}" -m ceviri_katmani.uygulama --arka'
+
+
+def goc_uygula(*, _reg=None) -> bool:
+    """Bayraksız Run değerini ``--arka`` içeren ``komut()`` ile yeniden yazar; yenilediyse True.
+
+    Eski sürümlerden ve eski kurulum dosyasından kalan değerlerde ``--arka`` yoksa
+    Windows açılışında ayar penceresi açılırdı. Değer yoksa hiçbir şey yazılmaz;
+    değer zaten ``--arka`` içeriyorsa dokunulmaz.
+    """
+    reg = _reg if _reg is not None else _reg_modulu()
+    try:
+        anahtar = reg.OpenKey(reg.HKEY_CURRENT_USER, _ANAHTAR, 0, reg.KEY_READ)
+    except OSError:
+        return False
+    try:
+        deger, _ = reg.QueryValueEx(anahtar, DEGER_ADI)
+    except OSError:
+        return False
+    finally:
+        reg.CloseKey(anahtar)
+    if "--arka" in str(deger):
+        return False
+    ac(_reg=reg)
+    return True
 
 
 def acik_mi(*, _reg=None) -> bool:

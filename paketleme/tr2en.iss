@@ -85,7 +85,7 @@ Name: "{autodesktop}\tr2en"; Filename: "{app}\tr2en.exe"; Tasks: masaustu
 
 [Registry]
 ; Uygulamanın kendi "Windows açılışında başlat" seçeneğiyle aynı değer (otomatik_baslat.py).
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "tr2en"; ValueData: """{app}\tr2en.exe"""; Tasks: otomatik
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "tr2en"; ValueData: """{app}\tr2en.exe"" --arka"; Tasks: otomatik
 
 [Run]
 Filename: "{app}\tr2en.exe"; Description: "{cm:SimdiBaslat}"; Flags: nowait postinstall skipifsilent

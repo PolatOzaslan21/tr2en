@@ -144,7 +144,11 @@ class Tepsi:
     def _son_orijinali_kopyala(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.son_orijinali_kopyala)
 
+    def _ayarlar_penceresi_ac(self, _icon=None, _item=None) -> None:
+        _yut(self.arayuz.pencere_ac)
+
     def _ayarlari_ac(self, _icon=None, _item=None) -> None:
+        # Menüden kaldırıldı; WebView2 yedek davranışı için korunur.
         _yut(self.arayuz.ayarlari_ac)
 
     def _cikis(self, _icon=None, _item=None) -> None:
@@ -168,10 +172,14 @@ class Tepsi:
         pystray = self._pystray_getir()
         return [
             pystray.MenuItem(
+                "Ayarları aç",
+                self._ayarlar_penceresi_ac,
+                default=True,
+            ),
+            pystray.MenuItem(
                 "Etkin",
                 self._etkin_tiklandi,
                 checked=self._aktif_durum,
-                default=True,
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
@@ -209,7 +217,6 @@ class Tepsi:
                 self._otomatik_baslat_tiklandi,
                 checked=self._otomatik_baslat_durum,
             ),
-            pystray.MenuItem("Ayarlar dosyasını aç", self._ayarlari_ac),
             pystray.MenuItem("Çıkış", self._cikis),
         ]
 

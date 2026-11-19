@@ -26,6 +26,8 @@ uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
 | `baglanti_ac(anahtar_ad)` | `str` | `{"ok"}` | Yalnızca beyaz liste (`BEYAZ_LISTE`): `gemini_anahtar, openai_anahtar, deepseek_anahtar, openrouter_anahtar, ollama, lmstudio, github, sorun, gizlilik`. |
 | `kisayol_kaydet(degistiriciler, tus)` | `list[str], str` | `{"ok", "kisayol", "uyari", "hata"}` | `birlesim_olustur` ile doğrula → `ayar_kaydet`. Çakışma varsa `uyari` dolar. `tus == "esc"` → `{"ok": False, "hata": "vazgeçildi"}`. |
 | `kapat_secimi(secim, hatirla)` | `str, bool` | `{"ok"}` | `"kucult"` + `hatirla` → `kapatinca_sor` False kaydedilir. `"tamamen"` → sinyal `cikis` (`hatirla` yok sayılır). Pencereyi çağıran kapatır. |
+| `otomatik_baslat_durum()` | — | `{"ok", "acik"}` | HKCU Run anahtarında "tr2en" değeri var mı (Windows açılışında başlat). |
+| `otomatik_baslat_ayarla(acik)` | `bool` | `{"ok"}` | `acik=True` → Run değerini `komut()` ile yazar (`--arka` dahil); `False` → değeri siler. |
 
 Başarısızlıkta dönüşler, yöntemdeki alanları nötr değerlerle (`"":`, `[]`, `None`, `0.0`) **artı** `hata` alanını içerir.
 
@@ -39,4 +41,5 @@ Başarısızlıkta dönüşler, yöntemdeki alanları nötr değerlerle (`"":`, 
 `ayar_yolu` (Path\|None), `kasa` (anahtar_kasasi arayüzü), `sinyal_gonder`,
 `tarayici_ac` (varsayılan `webbrowser.open`), `http_istemci` (httpx.Client benzeri),
 `zincir_kurucu` (varsayılan `zincir_kur_v2`), `klasor_secici` (varsayılan None → `ok: False`),
+`otomatik_baslat` (varsayılan `otomatik_baslat` modülü; testlerde sahte),
 `saat` (varsayılan `time.perf_counter`).

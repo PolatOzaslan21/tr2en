@@ -172,6 +172,8 @@ article code{background:var(--field);border-radius:4px;padding:1px 5px;font-fami
       <div class="kart">
         <div class="satir"><div class="etiket">Pencereyi kapatınca sor<small>Kapatırken tr2en'in tamamen kapanıp kapanmayacağını sorar.</small></div>
           <label class="anahtar"><input type="checkbox" checked id="kapatincaSor" aria-label="Pencereyi kapatınca sor"><span></span></label></div>
+        <div class="satir"><div class="etiket">Windows açılışında başlat<small>Windows açıldığında tr2en tepside sessizce başlar.</small></div>
+          <label class="anahtar"><input type="checkbox" id="otomatikBaslat" aria-label="Windows açılışında başlat"><span></span></label></div>
       </div>
       <div class="baslik">Çeviri sonrası</div>
       <div class="kart">
@@ -782,6 +784,17 @@ apiAl().then(api => {
   anahtarBagla("ozetKaydi", "ozet_kaydi");
   anahtarBagla("yedekYerel", "bulut_yedek_yerel");
 
+  // Windows açılışında başlat (kayıt defteri; ayar dosyasında tutulmaz)
+  $("otomatikBaslat").addEventListener("change", () => {
+    const acik = $("otomatikBaslat").checked;
+    Promise.resolve(api.otomatik_baslat_ayarla(acik)).then(sonuc => {
+      if (sonuc && sonuc.ok === false) {
+        $("otomatikBaslat").checked = !acik;
+        notGoster(sonuc.hata || "Ayar değiştirilemedi");
+      }
+    });
+  });
+
   // Kapatma sorusu
   window.kapatmaSor = function() {
     $("kapatModal").classList.remove("gizli");
@@ -818,6 +831,9 @@ apiAl().then(api => {
     yerelListesiniYaz();
     kisayolGoster(ayarlar.kisayol);
     kisayolIsaretle(ayarlar.kisayol);
+    Promise.resolve(api.otomatik_baslat_durum()).then(durum => {
+      if (durum && durum.ok) $("otomatikBaslat").checked = !!durum.acik;
+    });
   });
 });
 </script>

@@ -311,7 +311,7 @@ class _TepsiArayuz:
 
 def test_tepsi_cevirmen_iki_oge_ve_sira():
     tepsi = Tepsi(_TepsiArayuz())
-    ogeler = list(tepsi.menu_ogeleri()[2].submenu)
+    ogeler = list(tepsi.menu_ogeleri()[3].submenu)
     assert [o.text for o in ogeler] == ["Bulut", "Yerel"]
     assert all(o.radio is True for o in ogeler)
 
@@ -319,7 +319,7 @@ def test_tepsi_cevirmen_iki_oge_ve_sira():
 def test_tepsi_cevirmen_tiklama_secim():
     arayuz = _TepsiArayuz()
     tepsi = Tepsi(arayuz)
-    ogeler = list(tepsi.menu_ogeleri()[2].submenu)
+    ogeler = list(tepsi.menu_ogeleri()[3].submenu)
     ogeler[0](None)
     assert "bulut" in arayuz.cagrilar
     ogeler[1](None)

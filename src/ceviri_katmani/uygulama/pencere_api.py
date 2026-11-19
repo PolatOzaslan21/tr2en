@@ -23,6 +23,7 @@ from ..cekirdek.cevirmen import CeviriHatasi
 from ..cekirdek.kurulum import akilli_cevir, zincir_kur_v2
 from . import anahtar_kasasi
 from . import ayarlar as ayar_modulu
+from . import otomatik_baslat as otomatik_baslat_modulu
 from .ayarlar import BULUT_SERVIS_ANAHTARLARI, GECERLI_BULUT_SERVISLERI, VARSAYILAN
 from .kisayol_kayit import birlesim_olustur
 
@@ -56,6 +57,7 @@ class PencereApi:
         http_istemci: Any | None = None,
         zincir_kurucu: Callable[..., Any] | None = None,
         klasor_secici: Callable[[], str | None] | None = None,
+        otomatik_baslat: Any | None = None,
         saat: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.ayar_yolu = Path(ayar_yolu) if ayar_yolu is not None else None
@@ -65,6 +67,7 @@ class PencereApi:
         self.http_istemci = http_istemci if http_istemci is not None else httpx.Client(timeout=3.0)
         self.zincir_kurucu = zincir_kurucu if zincir_kurucu is not None else zincir_kur_v2
         self.klasor_secici = klasor_secici
+        self.otomatik_baslat = otomatik_baslat_modulu if otomatik_baslat is None else otomatik_baslat
         self.saat = saat
 
     # ---- iç yardımcılar (istisna yutarlar; dışarı sızdırmazlar) ----
@@ -289,5 +292,21 @@ class PencereApi:
                 self._sinyal("cikis")
                 return {"ok": True}
             return {"ok": False, "hata": "geçersiz seçim"}
+        except Exception as e:
+            return {"ok": False, "hata": self._hata(e)}
+
+    def otomatik_baslat_durum(self) -> dict:
+        try:
+            return {"ok": True, "acik": bool(self.otomatik_baslat.acik_mi())}
+        except Exception as e:
+            return {"ok": False, "acik": False, "hata": self._hata(e)}
+
+    def otomatik_baslat_ayarla(self, acik: bool) -> dict:
+        try:
+            if acik:
+                self.otomatik_baslat.ac()
+            else:
+                self.otomatik_baslat.kapat()
+            return {"ok": True}
         except Exception as e:
             return {"ok": False, "hata": self._hata(e)}
