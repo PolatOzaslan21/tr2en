@@ -2,11 +2,11 @@
 
 [Türkçe](https://github.com/PolatOzaslan21/tr2en/blob/main/README.md) | **English**
 
-**Local Turkish to English translation for Windows: select text, press a hotkey, the English replaces it.** A small tray app for writing English prompts to AI assistants (Claude, ChatGPT, Copilot…), offline translation, or quick prompt translation.
+**Local Turkish to English translation for Windows: select text, press a hotkey, the English replaces it.** A small tray and window app for writing English prompts to AI assistants (Claude, ChatGPT, Copilot…), offline translation, or quick prompt translation.
 
-> **Status: 0.1 beta.** An early release; expect rough edges. Please [open an issue](https://github.com/PolatOzaslan21/tr2en/issues) if something breaks.
+> **Status: 0.2 beta.** A new release; expect rough edges. Please [open an issue](https://github.com/PolatOzaslan21/tr2en/issues) if something breaks.
 >
-> The app is made for Turkish speakers, so its tray menu, notifications and settings keys are in Turkish.
+> The app is made for Turkish speakers, so its tray menu, notifications and window pages are in Turkish.
 
 ## What it does
 
@@ -14,43 +14,47 @@
 2. Press **Ctrl+Shift+Space**.
 3. The selection is replaced with its English translation. Your clipboard (text, image, files) is restored afterwards.
 
-Three translator options (switch from the tray icon):
+tr2en is now a windowed app: **"tr2en'i aç"** in the tray — or simply starting the program again — opens the window. The window opens on the **Çevir** (Translate) page, which works like Google Translate: what you type is translated by itself once you stop typing (or press **Ctrl+Enter**), up to 5000 characters; take the result with **Kopyala** (Copy) and clear it with **Temizle** (Clear). The status line at the bottom of the page shows the working state, the translator and the hotkey.
+
+On Windows start-up tr2en starts silently in the tray and works without the window. Closing the window with the X asks whether to **minimise to the tray** or **quit completely**; **"Bir daha sorma" (don't ask again) only applies to minimising** (General → "Pencereyi kapatınca sor").
+
+There are two translator options:
 
 | Translator | When | Privacy |
 |---|---|---|
-| **Gemini** (Google, your own free API key) | Recommended, best quality | Text is sent to Google |
-| **Your own model** (any OpenAI-compatible API, or Ollama / LM Studio) | Another provider, or a model on your own PC | Depends on the provider; with Ollama, text stays on your PC |
-| **Offline model** (~230 MB, downloaded once on first start) | Fallback when the others are missing or slow, or when "local only" is selected | Text never leaves your PC |
+| **Cloud** (Gemini recommended; OpenAI, DeepSeek, OpenRouter, or your own OpenAI-compatible address) | Best quality | Text is sent to the service you picked |
+| **Local** (built-in model, Ollama, LM Studio, model folder) | No internet, or you want the text to never leave your PC | Text never leaves your PC |
 
-On first start the app asks which one you want to use.
+On first start a wizard asks: local or cloud, requests a Gemini key and lets you try the hotkey once.
 
 ## Safety checks
 
 - **Code, URLs and file paths** are never translated (`src/main.py`, `https://…`, `` `command` ``).
 - **Negation check:** if a negation (such as "silme", "don't delete") is lost in translation, the result is not pasted and you get a warning. (Known limit: a negation that moves to another word — "new but not fast" instead of "not new but fast" — is not always caught.)
 - Text or sentences that are **already English** are left as they are.
-- Truncated, empty or chatty AI replies ("Sure, here is…") are rejected; the offline model takes over.
+- Truncated, empty or chatty AI replies ("Sure, here is…") are rejected; the local model takes over.
 - Disabled in password managers (KeePass, 1Password, Bitwarden).
 
 ## Privacy
 
 - Translated text is **never stored**. "Son işlemler" (recent jobs) in the tray only shows time, duration and character count.
 - The keyboard hook is only used to detect the hotkey; keystrokes are not recorded.
-- With Gemini, text is sent to Google; **on the free tier Google may use it to improve its products.** Use "local only" for sensitive text.
-- API keys are only sent in the request header, never written to a file or log.
-- With "Kendi modelim" (your own model), text goes only to the address you set.
-- The only network connection tr2en makes on its own is downloading the local model from Hugging Face (huggingface.co) on first start if it is missing. No telemetry or usage statistics. The update check is only made when you press "Check for updates" (it asks GitHub).
+- With the cloud translator, text is sent to the service you picked; **on Gemini's free tier Google may use it to improve its products.** Use "Yerel" (local) for sensitive text.
+- **API keys are stored encrypted in the Windows Credential Manager**; they are not written to the settings file or to an environment variable, never reach a log, and only travel in the request header.
+- With local models, text stays on your PC.
+- The only network connection tr2en makes on its own is downloading the local model from Hugging Face (huggingface.co) on first start if it is missing. No telemetry or usage statistics. The update check is only made when you press "Güncellemeleri kontrol et" (Check for updates) — it asks GitHub.
 
 ## Install
 
 ### Easy way: installer (Windows 10/11)
 
 1. Download and run `tr2en-…-windows-x64-kurulum.exe` (~38 MB) from the [latest release](https://github.com/PolatOzaslan21/tr2en/releases/latest) ("kurulum" means "setup"). No Python and no admin rights needed.
-2. The installer adds a **tr2en** Start menu shortcut; you can also tick a desktop shortcut and "start with Windows".
+2. The installer adds a **tr2en** Start menu shortcut; you can also tick a desktop shortcut and "start with Windows". Starting the program opens the window; closing it keeps tr2en running in the tray.
 3. A red/blue **TR → EN** speech-bubble icon appears next to the clock. Windows may first put it in the hidden icons menu (the **^** next to the clock); drag it to the taskbar to keep it visible. If you quit the app, type "tr2en" in the Start menu to open it again.
 
 - The .exe is not code-signed yet; if Windows shows "Windows protected your PC" (SmartScreen), click **More info → Run anyway**. You can verify the download with the `.sha256` file in the release.
 - **Every release's installer and zip are scanned on VirusTotal**; the result link is at the end of the release notes.
+- **To ask whether a newer version exists:** open **Hakkında → Güncellemeleri kontrol et** (About → Check for updates). tr2en does not ask GitHub on its own; it only queries when you press that button.
 - **To update:** just run the new installer; it closes a running tr2en itself and keeps your settings and the model.
 - **To uninstall:** Settings → Apps → tr2en → Uninstall. It asks whether to delete your settings and the downloaded model too.
 - **Portable (no install):** extract `tr2en-…-windows-x64.zip` to a permanent folder and run `tr2en.exe`. To update, quit from the tray (**Çıkış**) first and extract the new zip into the same folder.
@@ -71,44 +75,45 @@ To run from source: clone the repo and run `baslat-arkaplan.cmd` (no console) or
 ### Gemini key (free, recommended)
 
 1. Create a key with **Create API key** at https://aistudio.google.com/apikey and copy it.
-2. Run this in PowerShell (stores the key from your clipboard as a user environment variable without printing it):
+2. Open the **Çeviri motoru** (Translation engine) page in the tr2en window. With **Bulut** (Cloud) selected, paste the key into the **API anahtarı** (API key) box.
+3. Click **Bağlantıyı dene** (Test connection); you should see "Çalışıyor" (Working).
 
-```powershell
-[Environment]::SetEnvironmentVariable('GEMINI_API_KEY', (Get-Clipboard).Trim(), 'User')
-```
-
-3. Restart tr2en. Without a key, only the offline model is used.
+The key is stored encrypted in the Windows Credential Manager — not in the settings file and not in an environment variable. Use the **Sil** (Delete) button in the same box to remove it. On first start the wizard walks through all of this.
 
 Free tier (November 2026): 15 requests per minute and 500 per day for Gemini 3.5 Flash-Lite.
 
+> Advanced: the key is still read from the `GEMINI_API_KEY` environment variable when it is not in the Credential Manager. The window is the easier way.
+
 ### Use your own model (optional)
 
-Gemini is **recommended**, not required. You can connect any service with an OpenAI-compatible API, or a model running on your PC. Fill in four lines in `ayarlar.toml`, then choose **Çevirmen → Kendi modelim** (Translator → My own model) in the tray:
+Gemini is **recommended**, not required. On the **Çeviri motoru** page with **Bulut** (Cloud) selected:
 
-| Service | `uyumlu_adres` | `uyumlu_model` (example) | `uyumlu_anahtar_degiskeni` |
-|---|---|---|---|
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | `OPENAI_API_KEY` |
-| OpenRouter (hundreds of models) | `https://openrouter.ai/api/v1` | `google/gemini-2.5-flash` | `OPENROUTER_API_KEY` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` | `GROQ_API_KEY` |
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | `DEEPSEEK_API_KEY` |
-| **Ollama** (local, free) | `http://localhost:11434/v1` | `qwen3.5:0.8b`, `llama3.2` | *(leave empty)* |
-| LM Studio (local) | `http://localhost:1234/v1` | the model you loaded | *(leave empty)* |
+- **Servis** (service): Google Gemini (recommended) · OpenAI · DeepSeek · OpenRouter · Other (your own OpenAI-compatible address).
+- **Adres** (address): only needed for "Other" (e.g. `https://api.openai.com/v1`).
+- **API anahtarı** (API key): your service key; it is written to the Credential Manager.
+- **Model**: picked from a drop-down that lists the recommended models. For a model that is not listed, choose **"Kendin ekle…"** (add it yourself) and type the name.
 
-- In `uyumlu_anahtar_degiskeni`, put the **name** of the environment variable that holds your key, **not the key itself** (use the PowerShell command above with that name instead of `GEMINI_API_KEY`).
-- For thinking models in Ollama (qwen3 family), set `uyumlu_dusunmeyi_kapat = true`: with the 0.8B qwen3.5, translation drops from 22 s to ~1 s.
-- If your local LLM is slow, raise `uyumlu_zaman_asimi` (default 15 s).
+For local translation select **Yerel** (Local) and then **Model ekle** (Add model): **Ollama**, **LM Studio** or (advanced) a CTranslate2 model folder. The Ollama address must be `http://localhost:11434/v1` and LM Studio `http://localhost:1234/v1`; you can check the model list with **Listele** (List) and pick one.
+
+- Big local models are slow and use a lot of memory; the page shows a speed warning.
+- Thinking models in Ollama (qwen3 family) are slow; pick a smaller model.
 - For security, `http://` is only accepted for services on your own PC (localhost); remote services must use `https://`.
 - The safety checks (code/URL protection, negation check) apply here too. Small models often drop negations; tr2en then refuses to paste.
 
 ## Settings
 
-Tray menu: enable/pause, translator, hotkey (Ctrl+Shift+Space / Ctrl+Shift+Y or **Kendi kısayolum…** = your own), recent jobs, show last translation, copy last original, start with Windows.
+Settings are made in the window now. Pages: **Çevir** (Translate), **Genel** (General), **Çeviri motoru** (Translation engine), **Kısayol** (Hotkey), **Hakkında** (About), **Rehber** (Guide).
 
-**Your own hotkey (Kendi kısayolum…):** pick it, then press the combination within 10 seconds (e.g. Ctrl+Shift+K; Esc cancels). Ctrl or Alt is required. Rejected: Ctrl+C/V/X/Z/Y/A/S (tr2en itself copies and pastes), Alt+F4 and Ctrl+Alt (equals AltGr on many layouts). **Note:** if your own hotkey clashes with another program, that program or tr2en may not work properly; single-modifier hotkeys (e.g. Ctrl+Q) clash more often. tr2en warns about well-known conflicts. **Recommended: the default Ctrl+Shift+Space.**
+- **Genel:** ask when closing the window, start with Windows, add a trailing space after translation, keep recent jobs, theme (system / light / dark).
+- **Çeviri motoru:** cloud / local, service, address, API key, model, "fall back to the local model if the cloud fails".
+- **Kısayol:** Ctrl+Shift+Space (recommended), Ctrl+Shift+Y or **Kendi kısayolum…** (your own hotkey); pick it, then press the combination within 10 seconds (e.g. Ctrl+Shift+K; Esc cancels). Ctrl or Alt is required. Rejected: Ctrl+C/V/X/Z/Y/A/S (tr2en itself copies and pastes), Alt+F4 and Ctrl+Alt (equals AltGr on many layouts). **Note:** if your own hotkey clashes with another program, that program or tr2en may not work properly; single-modifier hotkeys (e.g. Ctrl+Q) clash more often. tr2en warns about well-known conflicts.
+- **Rehber:** getting started, local or cloud, getting a key, what a model name is, adding a local model and troubleshooting (hotkey does nothing, translation not pasted, programs running as administrator, terminal, API key / quota error, cannot reach Ollama, model not downloaded, antivirus warning, slow translation).
+
+Tray menu: Etkin (active / pause), translator (cloud / local), recent jobs, show last translation, copy last original, hotkey, start with Windows, quit.
 
 The hotkey does not reach the program: with text selected, tr2en translates it; with nothing selected, it sends the hotkey back to the program (e.g. with Ctrl+P as your hotkey, the program's own Ctrl+P still works when nothing is selected). When tr2en is paused, and in terminals, keys pass through unchanged.
 
-Everything else is in `%APPDATA%\tr2en\ayarlar.toml` (tray: "Ayarlar dosyasını aç"): timeout, Gemini model, your own model, blocked apps, trailing space. Restart the app after editing.
+> Advanced: all settings are kept in `%APPDATA%\tr2en\ayarlar.toml`. A few of them — blocked apps, timeouts, "turn thinking off" — are not in the window; you can edit the file by hand. Restart tr2en after editing.
 
 ## Measurements (2026-11-19, Windows 11)
 
@@ -122,7 +127,7 @@ Everything else is in `%APPDATA%\tr2en\ayarlar.toml` (tray: "Ayarlar dosyasını
 | Offline model, per sentence | 0.1–0.6 s |
 | Gemini | usually ~1 s; if it takes over 4 s at busy hours, the offline model takes over |
 
-The offline model is loaded only when needed; with Gemini only, the app stays around 50 MB.
+The offline model is loaded only when needed; with Gemini only, the app stays around 50 MB. The window runs as a separate process; closing it gives the memory back.
 
 ## A note on tokens (the honest version)
 
@@ -134,8 +139,8 @@ tr2en uses a keyboard hook to catch the hotkey. Some antivirus programs may flag
 
 ## Known limits
 
-- **Does not work in terminals** (Windows Terminal, cmd, PowerShell): selected text can't be replaced there. A hotkey-opened input box is planned for the next version.
-- The offline model is weak on long, messy text (e.g. "tablo" → "painting" instead of "table"); use Gemini for important text or check the result.
+- **The hotkey does not work in terminals** (Windows Terminal, cmd, PowerShell): selected text can't be replaced there. Copy the text, paste it into the **Çevir** (Translate) page of the window and translate it there.
+- The local model is weak on long, messy text (e.g. "tablo" → "painting" instead of "table"); use a cloud service for important text or check the result.
 - Turkish → English only for now.
 
 ## Development
