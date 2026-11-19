@@ -1,7 +1,7 @@
 # tr2en — VirusTotal taraması ve sürüm notuna sonuç ekleme.
 #
 # Kullanım (GitHub Actions, sürüm etiketi):
-#   ./paketleme/virustotal.ps1 -Dosyalar (dist/*-kurulum.exe, dist/*.zip) -Surum $env:SURUM [-Bekle 15]
+#   ./paketleme/virustotal.ps1 -Dosyalar "dist/*-kurulum.exe", "dist/*.zip" -Surum $env:SURUM [-Bekle 15]
 #
 # - API anahtarı YALNIZCA ortam değişkeninden okunur (VT_API_KEY). Anahtar hiçbir
 #   çıktıda, günlükte ya da hata mesajında görünmez.
