@@ -257,8 +257,8 @@ def test_zincir_kur_yalniz_yok_eskisi_gibi():
 
 
 def test_uyumlu_cevirmen_gecerli():
-    assert "uyumlu" in GECERLI_CEVIRMENLER
-    assert VARSAYILAN["cevirmen"] == "gemini"
+    assert GECERLI_CEVIRMENLER == ("bulut", "yerel")
+    assert VARSAYILAN["cevirmen"] == "bulut"
     assert VARSAYILAN["uyumlu_adres"] == ""
     assert VARSAYILAN["uyumlu_model"] == ""
     assert VARSAYILAN["uyumlu_anahtar_degiskeni"] == ""

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 
 import httpx
 
@@ -21,18 +22,25 @@ URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateC
 
 class GeminiCevirmen:
     def __init__(self, model: str = "gemini-3.5-flash-lite", anahtar_degiskeni: str = "GEMINI_API_KEY",
-                 zaman_asimi: float = 4.0, istemci: httpx.Client | None = None):
+                 zaman_asimi: float = 4.0, istemci: httpx.Client | None = None,
+                 anahtar_saglayici: Callable[[], str | None] | None = None):
         if not _MODEL_KALIBI.match(model):
             raise CeviriHatasi("geçersiz model adı")
         self.model = model
         self.ad = f"gemini:{model}"
         self.anahtar_degiskeni = anahtar_degiskeni
+        self.anahtar_saglayici = anahtar_saglayici
         self.istemci = istemci or httpx.Client(timeout=zaman_asimi)
 
     def cevir(self, metin: str, kaynak: str = "tr", hedef: str = "en") -> str:
-        anahtar = anahtar_oku(self.anahtar_degiskeni)
-        if not anahtar:
-            raise CeviriHatasi(f"{self.anahtar_degiskeni} tanımlı değil")
+        if self.anahtar_saglayici is not None:
+            anahtar = self.anahtar_saglayici()
+            if not anahtar:
+                raise CeviriHatasi("API anahtarı tanımlı değil")
+        else:
+            anahtar = anahtar_oku(self.anahtar_degiskeni)
+            if not anahtar:
+                raise CeviriHatasi(f"{self.anahtar_degiskeni} tanımlı değil")
         talimat = TALIMAT.format(kaynak=DILLER.get(kaynak, kaynak), hedef=DILLER.get(hedef, hedef))
         gemma = "gemma" in self.model  # Gemma sistem talimatını desteklemiyor
         govde: dict = {

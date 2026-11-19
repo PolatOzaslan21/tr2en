@@ -29,7 +29,7 @@ Model = "https://huggingface.co/PolatOz/tr2en-model"
 [project.optional-dependencies]
 yerel = ["ctranslate2>=4", "sentencepiece>=0.2"]
 test = ["pytest>=8"]
-uygulama = ["pynput>=1.7", "pywin32>=306; sys_platform == 'win32'", "winotify>=1.1; sys_platform == 'win32'", "pystray>=0.19", "pillow>=10"]
+uygulama = ["pynput>=1.7", "pywin32>=306; sys_platform == 'win32'", "winotify>=1.1; sys_platform == 'win32'", "pystray>=0.19", "pillow>=10", "keyring>=25"]
 
 [project.scripts]
 tr2en-cli = "ceviri_katmani.cli:main"

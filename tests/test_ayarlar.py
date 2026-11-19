@@ -70,7 +70,9 @@ def test_yaz_oku_gidis_donus(tmp_path: Path) -> None:
     kaydet(ozel, yol)
     okunan, uyarilar = yukle(yol)
 
-    beklenen = dict(ozel, zaman_asimi=7.0, uyumlu_zaman_asimi=30.0, izinli=["code.exe"], ek_terminaller=["wezterm.exe"])
+    beklenen = dict(VARSAYILAN, **ozel)
+    beklenen.update(zaman_asimi=7.0, uyumlu_zaman_asimi=30.0,
+                    izinli=["code.exe"], ek_terminaller=["wezterm.exe"])
     assert uyarilar == []
     assert okunan == beklenen
 
@@ -112,7 +114,7 @@ def test_bozuk_yedek_uzerine_yazilir(tmp_path: Path) -> None:
 
 def test_gecerli_dosya_yeniden_yazilmaz(tmp_path: Path) -> None:
     yol = tmp_path / "ayarlar.toml"
-    icerik = "# elle düzenlendi\nkisayol = '<ctrl>+q'\ncevirmen = 'yerel'\n"
+    icerik = "# elle düzenlendi\nayar_surumu = 2\nkisayol = '<ctrl>+q'\ncevirmen = 'yerel'\n"
     yol.write_text(icerik, encoding="utf-8")
 
     ayarlar, uyarilar = yukle(yol)
@@ -124,7 +126,7 @@ def test_gecerli_dosya_yeniden_yazilmaz(tmp_path: Path) -> None:
     assert yol.read_text(encoding="utf-8") == icerik
 
 
-@pytest.mark.parametrize("cevirmen", ["gemini", "uyumlu", "yerel"])
+@pytest.mark.parametrize("cevirmen", ["bulut", "yerel"])
 def test_gecerli_cevirmen_kabul(cevirmen: str) -> None:
     ayarlar, uyarilar = dogrula({"cevirmen": cevirmen})
     assert ayarlar["cevirmen"] == cevirmen
