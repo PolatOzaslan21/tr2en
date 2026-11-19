@@ -312,3 +312,14 @@ def test_uzun_metinde_bekleme_sureleri_uzar():
     assert _silme_bekle(303) > _silme_bekle(17) and _silme_bekle(303) >= 0.9
     assert _yapistirma_bekle(330) > _yapistirma_bekle(19) and _yapistirma_bekle(330) >= 0.7
     assert _silme_bekle(10_000) <= 1.5 and _yapistirma_bekle(10_000) <= 2.0
+
+
+def test_basari_bildir_uyumlu_model_adi_adsten():
+    """Şema 2'de UyumluCevirmen hem bulut hem yerel için; model adı çevirmenin adından gelir."""
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        secim="merhaba nasılsın",
+        sonuc=Sonuc(metin="hello", durum="cevrildi", cevirmen="uyumlu:llama3.2"),
+    )
+    uyg.ayarlar["uyumlu_model"] = "gpt-4o-mini"
+    uyg._kisayol_isle()
+    assert calls[0] == ("Çevrildi (llama3.2)", "", "bilgi")

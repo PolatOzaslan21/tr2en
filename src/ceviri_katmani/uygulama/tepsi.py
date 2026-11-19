@@ -52,9 +52,9 @@ class Tepsi:
             traceback.print_exc()
             return False
 
-    def _gemini_secili(self, _item=None) -> bool:
+    def _bulut_secili(self, _item=None) -> bool:
         try:
-            return self.arayuz.cevirmen() == "gemini"
+            return self.arayuz.cevirmen() == "bulut"
         except Exception:
             traceback.print_exc()
             return False
@@ -66,34 +66,34 @@ class Tepsi:
             traceback.print_exc()
             return False
 
-    def _uyumlu_secili(self, _item=None) -> bool:
+    def _bulut_etiketi(self) -> str:
         try:
-            return self.arayuz.cevirmen() == "uyumlu"
+            fn = getattr(self.arayuz, "bulut_adi", None)
+            ad = fn() if fn is not None else ""
         except Exception:
             traceback.print_exc()
-            return False
+            ad = ""
+        return f"Bulut — {ad}" if ad else "Bulut"
 
-    def _uyumlu_tanimli_mi(self) -> bool:
+    def _yerel_etiketi(self) -> str:
         try:
-            fn = getattr(self.arayuz, "uyumlu_tanimli_mi", None)
-            return bool(fn()) if fn is not None else False
+            fn = getattr(self.arayuz, "yerel_adi", None)
+            ad = fn() if fn is not None else ""
         except Exception:
             traceback.print_exc()
-            return False
+            ad = ""
+        return f"Yerel — {ad}" if ad else "Yerel"
 
     # ---- eylem geri çağrıları ----
 
     def _etkin_tiklandi(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.aktif_degistir)
 
-    def _gemini_sec(self, _icon=None, _item=None) -> None:
-        _yut(lambda: self.arayuz.cevirmen_sec("gemini"))
+    def _bulut_sec(self, _icon=None, _item=None) -> None:
+        _yut(lambda: self.arayuz.cevirmen_sec("bulut"))
 
     def _yerel_sec(self, _icon=None, _item=None) -> None:
         _yut(lambda: self.arayuz.cevirmen_sec("yerel"))
-
-    def _uyumlu_sec(self, _icon=None, _item=None) -> None:
-        _yut(lambda: self.arayuz.cevirmen_sec("uyumlu"))
 
     def _kisayol_simdiki(self) -> str | None:
         try:
@@ -178,19 +178,13 @@ class Tepsi:
                 "Çevirmen",
                 pystray.Menu(
                     pystray.MenuItem(
-                        "Gemini (önerilen, yedek: yerel model)",
-                        self._gemini_sec,
-                        checked=self._gemini_secili,
+                        self._bulut_etiketi(),
+                        self._bulut_sec,
+                        checked=self._bulut_secili,
                         radio=True,
                     ),
                     pystray.MenuItem(
-                        "Kendi modelim (OpenAI uyumlu)" if self._uyumlu_tanimli_mi() else "Kendi modelim — ayar dosyasında tanımlayın",
-                        self._uyumlu_sec,
-                        checked=self._uyumlu_secili,
-                        radio=True,
-                    ),
-                    pystray.MenuItem(
-                        "Yalnızca yerel (metin bilgisayardan çıkmaz)",
+                        self._yerel_etiketi(),
                         self._yerel_sec,
                         checked=self._yerel_secili,
                         radio=True,

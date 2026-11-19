@@ -282,9 +282,8 @@ def test_uyumlu_zaman_asimi_aralik_disi(deger):
 
 
 class _TepsiArayuz:
-    def __init__(self, cevirmen="gemini", uyumlu_tanimli=False):
+    def __init__(self, cevirmen="bulut"):
         self._cevirmen = cevirmen
-        self._uyumlu_tanimli = uyumlu_tanimli
         self.cagrilar: list[str] = []
 
     def cevirmen(self):
@@ -309,34 +308,28 @@ class _TepsiArayuz:
         self.cagrilar.append(ad)
         self._cevirmen = ad
 
-    def uyumlu_tanimli_mi(self):
-        return self._uyumlu_tanimli
 
-
-def test_tepsi_cevirmen_uc_oge_ve_sira():
-    tepsi = Tepsi(_TepsiArayuz(uyumlu_tanimli=True))
+def test_tepsi_cevirmen_iki_oge_ve_sira():
+    tepsi = Tepsi(_TepsiArayuz())
     ogeler = list(tepsi.menu_ogeleri()[2].submenu)
-    assert [o.text for o in ogeler] == [
-        "Gemini (önerilen, yedek: yerel model)",
-        "Kendi modelim (OpenAI uyumlu)",
-        "Yalnızca yerel (metin bilgisayardan çıkmaz)",
-    ]
+    assert [o.text for o in ogeler] == ["Bulut", "Yerel"]
     assert all(o.radio is True for o in ogeler)
 
 
-def test_tepsi_uyumlu_tanimsiz_metin_ve_tiklama():
-    arayuz = _TepsiArayuz(uyumlu_tanimli=False)
+def test_tepsi_cevirmen_tiklama_secim():
+    arayuz = _TepsiArayuz()
     tepsi = Tepsi(arayuz)
     ogeler = list(tepsi.menu_ogeleri()[2].submenu)
-    assert ogeler[1].text == "Kendi modelim — ayar dosyasında tanımlayın"
+    ogeler[0](None)
+    assert "bulut" in arayuz.cagrilar
     ogeler[1](None)
-    assert "uyumlu" in arayuz.cagrilar
+    assert "yerel" in arayuz.cagrilar
 
 
 # ---- cevirmen_sec ----
 
 
-def test_cevirmen_sec_uyumlu_tanimsiz_zincir_degismez():
+def test_cevirmen_sec_gecersiz_ad_yok_sayilir():
     calls: list[tuple[str, str, str]] = []
 
     def bildir(baslik, mesaj="", seviye="bilgi"):
@@ -350,9 +343,7 @@ def test_cevirmen_sec_uyumlu_tanimsiz_zincir_degismez():
 
     zincir = object()
     ayarlar = {
-        "cevirmen": "gemini",
-        "uyumlu_adres": "",
-        "uyumlu_model": "",
+        "cevirmen": "bulut",
         "zincir_uretici": zincir_uretici,
         "kaydet_cb": None,
     }
@@ -361,13 +352,11 @@ def test_cevirmen_sec_uyumlu_tanimsiz_zincir_degismez():
 
     assert uyg.zincir is zincir
     assert zincir_cagrilari == []
-    assert uyg.ayarlar["cevirmen"] == "gemini"
-    assert calls == [
-        ("Kendi modeliniz tanımlı değil", "Ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
-    ]
+    assert uyg.ayarlar["cevirmen"] == "bulut"
+    assert calls == []
 
 
-def test_cevirmen_sec_uyumlu_tanimli_zincir_kurulur():
+def test_cevirmen_sec_bulut_zincir_kurulur():
     calls: list[tuple[str, str, str]] = []
 
     def bildir(baslik, mesaj="", seviye="bilgi"):
@@ -381,18 +370,17 @@ def test_cevirmen_sec_uyumlu_tanimli_zincir_kurulur():
 
     zincir = object()
     ayarlar = {
-        "cevirmen": "gemini",
-        "uyumlu_adres": ADRES,
-        "uyumlu_model": "gpt-4o-mini",
+        "cevirmen": "yerel",
+        "bulut_servis": "gemini",
         "zincir_uretici": zincir_uretici,
         "kaydet_cb": None,
     }
     uyg = Uygulama(None, None, zincir, bildir, ayarlar)
-    uyg.cevirmen_sec("uyumlu")
+    uyg.cevirmen_sec("bulut")
 
-    assert zincir_cagrilari == ["uyumlu"]
-    assert uyg.ayarlar["cevirmen"] == "uyumlu"
-    assert calls == [("Çevirmen: Kendi modelim (gpt-4o-mini)", "", "bilgi")]
+    assert zincir_cagrilari == ["bulut"]
+    assert uyg.ayarlar["cevirmen"] == "bulut"
+    assert calls == [("Çevirmen: Bulut (Google Gemini)", "", "bilgi")]
 
 
 def test_dusunmeyi_kapat_istege_bagli():

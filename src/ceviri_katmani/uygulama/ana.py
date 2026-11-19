@@ -10,8 +10,27 @@ import traceback
 from typing import Any
 
 from ..cekirdek.cevirmen import CeviriHatasi
-from ..cekirdek.kurulum import akilli_cevir, zincir_kur
+from ..cekirdek.kurulum import akilli_cevir, zincir_kur_v2
 from .gecmis import Gecmis, Islem
+
+BULUT_GORUNEN_ADLARI = {
+    "gemini": "Google Gemini",
+    "openai": "OpenAI",
+    "deepseek": "DeepSeek",
+    "openrouter": "OpenRouter",
+    "diger": "Diğer servis",
+}
+YEREL_GORUNEN_ADLARI = {
+    "dahili": "dahili model",
+    "ollama": "Ollama",
+    "lmstudio": "LM Studio",
+    "klasor": "model klasörü",
+}
+
+
+def dahili_zincir_kur() -> Any:
+    """Zincir kurulamazsa kullanılan dahili yerel model zinciri (cevirmen "yerel", yerel_secili "dahili")."""
+    return zincir_kur_v2({"cevirmen": "yerel", "yerel_secili": "dahili"}, lambda _servis: None)
 
 
 def _silme_bekle(adet: int) -> float:
@@ -207,7 +226,7 @@ class Uygulama:
         if cevirmen and cevirmen.startswith("yerel:"):
             self.bildir("Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin", "", "uyari")
         elif cevirmen and cevirmen.startswith("uyumlu:"):
-            model = self.ayarlar.get("uyumlu_model") or cevirmen.partition(":")[2]
+            model = cevirmen.partition(":")[2] or self.ayarlar.get("uyumlu_model") or ""
             self.bildir(f"Çevrildi ({model})")
         else:
             self.bildir("Çevrildi (Gemini)")
@@ -360,28 +379,40 @@ class Uygulama:
             self.tepsi.guncelle()
 
     def cevirmen(self) -> str:
-        return self.ayarlar.get("cevirmen", "gemini")
+        return self.ayarlar.get("cevirmen", "bulut")
 
-    def uyumlu_tanimli_mi(self) -> bool:
-        return bool(self.ayarlar.get("uyumlu_adres") and self.ayarlar.get("uyumlu_model"))
+    def bulut_adi(self) -> str:
+        servis = self.ayarlar.get("bulut_servis") or "gemini"
+        return BULUT_GORUNEN_ADLARI.get(servis, servis)
+
+    def yerel_adi(self) -> str:
+        secili = self.ayarlar.get("yerel_secili") or "dahili"
+        return YEREL_GORUNEN_ADLARI.get(secili, secili)
 
     def cevirmen_sec(self, ad: str) -> None:
-        if self.cevirmen() == ad:
+        if ad not in ("bulut", "yerel"):
             return
-        if ad == "uyumlu" and not self.uyumlu_tanimli_mi():
-            self.bildir("Kendi modeliniz tanımlı değil", "Ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
+        if self.cevirmen() == ad:
             return
         zincir_uretici = self.ayarlar.get("zincir_uretici")
         if zincir_uretici is not None:
-            self.zincir = zincir_uretici(ad)
+            try:
+                self.zincir = zincir_uretici(ad)
+            except CeviriHatasi as e:
+                self.bildir("Çeviri ayarı eksik", str(e)[:160], "uyari")
+                self.ayarlar["cevirmen"] = "yerel"
+                self.ayarlar["yerel_secili"] = "dahili"
+                self.zincir = dahili_zincir_kur()
+                self._ayarlari_kaydet()
+                if self.tepsi is not None:
+                    self.tepsi.guncelle()
+                return
         self.ayarlar["cevirmen"] = ad
         self._ayarlari_kaydet()
-        if ad == "gemini":
-            self.bildir("Çevirmen: Gemini")
-        elif ad == "uyumlu":
-            self.bildir(f"Çevirmen: Kendi modelim ({self.ayarlar.get('uyumlu_model', '')})")
+        if ad == "bulut":
+            self.bildir(f"Çevirmen: Bulut ({self.bulut_adi()})")
         else:
-            self.bildir("Çevirmen: Yalnızca yerel")
+            self.bildir(f"Çevirmen: Yerel ({self.yerel_adi()})")
         if self.tepsi is not None:
             self.tepsi.guncelle()
 
@@ -680,7 +711,7 @@ if sys.platform == "win32":
 
     def main(argv: list[str] | None = None) -> int:
         """tr2en giriş noktası."""
-        from . import gizlilik, pano, pencere, tek_ornek, tepsi, tetik
+        from . import anahtar_kasasi, gizlilik, pano, pencere, tek_ornek, tepsi, tetik
         from . import ayarlar as ayarlar_mod
         from .bildirim import bildir
 
@@ -711,26 +742,17 @@ if sys.platform == "win32":
                     "uyari",
                 )
 
-        if dosya["cevirmen"] == "uyumlu" and not (dosya.get("uyumlu_adres") and dosya.get("uyumlu_model")):
-            dosya["cevirmen"] = "gemini"
-            bildir("Kendi modeliniz tanımlı değil", "Gemini'ye geçildi; ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
+        def anahtar_saglayici(servis: str) -> str | None:
+            if servis == "diger":
+                ortam = dosya.get("uyumlu_anahtar_degiskeni") or ""
+            else:
+                ortam = ayarlar_mod.BULUT_SERVIS_ANAHTARLARI.get(servis, "")
+            return anahtar_kasasi.anahtar_bul(servis, ortam)
 
         def zincir_uretici(ad: str):
-            yalniz = None
-            if ad == "yerel":
-                yalniz = "yerel"
-            elif ad == "uyumlu":
-                yalniz = "uyumlu"
-            return zincir_kur(
-                model=dosya["gemini_model"],
-                yalniz=yalniz,
-                zaman_asimi=dosya["zaman_asimi"],
-                uyumlu_adres=dosya["uyumlu_adres"],
-                uyumlu_model=dosya["uyumlu_model"],
-                uyumlu_anahtar=dosya["uyumlu_anahtar_degiskeni"],
-                uyumlu_zaman_asimi=dosya["uyumlu_zaman_asimi"],
-                uyumlu_dusunmeyi_kapat=dosya["uyumlu_dusunmeyi_kapat"],
-            )
+            gecici = dict(dosya)
+            gecici["cevirmen"] = ad
+            return zincir_kur_v2(gecici, anahtar_saglayici)
 
         def kaydet_cb() -> bool:
             dosya["cevirmen"] = uygulama.cevirmen()
@@ -747,6 +769,8 @@ if sys.platform == "win32":
             "sona_bosluk": dosya["sona_bosluk"],
             "ozet_kaydi": dosya["ozet_kaydi"],
             "cevirmen": dosya["cevirmen"],
+            "bulut_servis": dosya["bulut_servis"],
+            "yerel_secili": dosya["yerel_secili"],
             "uyumlu_adres": dosya["uyumlu_adres"],
             "uyumlu_model": dosya["uyumlu_model"],
             "dinleyici_sinifi": tetik.Dinleyici,
@@ -756,7 +780,16 @@ if sys.platform == "win32":
             "kopya_sureleri_yolu": str(ayarlar_mod.ayar_klasoru() / "kopya_sureleri.json"),
             "kaydet_cb": kaydet_cb,
         }
-        uygulama = Uygulama(pano, pencere, zincir_uretici(dosya["cevirmen"]), bildir, ayarlar)
+        try:
+            zincir = zincir_uretici(dosya["cevirmen"])
+        except CeviriHatasi as e:
+            bildir("Çeviri ayarı eksik", str(e)[:160], "uyari")
+            dosya["cevirmen"] = "yerel"
+            dosya["yerel_secili"] = "dahili"
+            ayarlar["cevirmen"] = "yerel"
+            ayarlar["yerel_secili"] = "dahili"
+            zincir = dahili_zincir_kur()
+        uygulama = Uygulama(pano, pencere, zincir, bildir, ayarlar)
         uygulama.baslat()
         # Yerel model yoksa arka planda indir (Hugging Face, SHA256 doğrulamalı); bu sırada Gemini çalışır.
         from .model_indirme import gerekirse_arkaplanda_indir

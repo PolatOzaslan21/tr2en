@@ -13,7 +13,7 @@ from ceviri_katmani.uygulama.tepsi import Tepsi, simge_uret
 class SahteArayuz:
     def __init__(self):
         self.aktif = True
-        self.cevirmen_ad = "gemini"
+        self.cevirmen_ad = "bulut"
         self.kisayol_deger = "<ctrl>+<shift>+<space>"
         self.islemler = []
         self.son_var = False
@@ -29,6 +29,12 @@ class SahteArayuz:
 
     def cevirmen(self):
         return self.cevirmen_ad
+
+    def bulut_adi(self):
+        return "Google Gemini"
+
+    def yerel_adi(self):
+        return "dahili model"
 
     def kisayol_simdiki(self):
         return self.kisayol_deger
@@ -108,21 +114,17 @@ def test_etkin_checked_ve_default(tepsi, arayuz):
 
 def test_cevirmen_radio_checked(tepsi, arayuz):
     cevirmen = tepsi.menu_ogeleri()[2]
-    gemini, uyumlu, yerel = list(cevirmen.submenu)
-    assert gemini.radio is True
-    assert uyumlu.radio is True
+    bulut, yerel = list(cevirmen.submenu)
+    assert bulut.radio is True
     assert yerel.radio is True
-    assert gemini.checked is True
-    assert uyumlu.checked is False
-    assert yerel.checked is False
-    arayuz.cevirmen_ad = "uyumlu"
-    assert gemini.checked is False
-    assert uyumlu.checked is True
+    assert bulut.checked is True
     assert yerel.checked is False
     arayuz.cevirmen_ad = "yerel"
-    assert gemini.checked is False
-    assert uyumlu.checked is False
+    assert bulut.checked is False
     assert yerel.checked is True
+    arayuz.cevirmen_ad = "bulut"
+    assert bulut.checked is True
+    assert yerel.checked is False
 
 
 def test_son_islemler_bos(tepsi, arayuz):
@@ -148,13 +150,32 @@ def test_etkin_tiklaninca_aktif_degistir(tepsi, arayuz):
 
 
 def test_cevirmen_tiklaninca_sec(tepsi, arayuz):
-    gemini, uyumlu, yerel = list(tepsi.menu_ogeleri()[2].submenu)
+    bulut, yerel = list(tepsi.menu_ogeleri()[2].submenu)
     yerel(None)
     assert ("cevirmen_sec", "yerel") in arayuz.cagrilar
-    gemini(None)
-    assert ("cevirmen_sec", "gemini") in arayuz.cagrilar
-    uyumlu(None)
-    assert ("cevirmen_sec", "uyumlu") in arayuz.cagrilar
+    bulut(None)
+    assert ("cevirmen_sec", "bulut") in arayuz.cagrilar
+
+
+def test_cevirmen_alt_menusu_iki_oge(tepsi, arayuz):
+    ogeler = list(tepsi.menu_ogeleri()[2].submenu)
+    assert [o.text for o in ogeler] == ["Bulut — Google Gemini", "Yerel — dahili model"]
+    assert all(o.radio is True for o in ogeler)
+    assert ogeler[0].checked is True
+    assert ogeler[1].checked is False
+    arayuz.cevirmen_ad = "yerel"
+    assert ogeler[0].checked is False
+    assert ogeler[1].checked is True
+
+
+def test_cevirmen_etiket_yoksa_kisa_ad():
+    class EtiketsizArayuz(SahteArayuz):
+        bulut_adi = None
+        yerel_adi = None
+
+    tepsi = Tepsi(EtiketsizArayuz())
+    ogeler = list(tepsi.menu_ogeleri()[2].submenu)
+    assert [o.text for o in ogeler] == ["Bulut", "Yerel"]
 
 
 def test_son_ceviri_eylemleri(tepsi, arayuz):

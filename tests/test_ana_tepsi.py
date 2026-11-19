@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ceviri_katmani.cekirdek.cevirmen import CeviriHatasi
 from ceviri_katmani.cekirdek.kurulum import Sonuc
 from ceviri_katmani.uygulama.ana import Uygulama
 
@@ -122,6 +123,9 @@ def make_uygulama(secim=None, sonuc=None, aktif_surec="notepad.exe", **ek_ayarla
         "yasak": {"keepass.exe"},
         "sona_bosluk": False,
         "ek_terminaller": [],
+        "cevirmen": "bulut",
+        "bulut_servis": "gemini",
+        "yerel_secili": "dahili",
     }
     ayarlar.update(ek_ayarlar)
     uyg = Uygulama(pano, pencere, zincir, bildir, ayarlar)
@@ -219,17 +223,64 @@ def test_cevirmen_sec_zincir_uretici_kaydet_cb():
         kaydet_cagrilari.append(1)
 
     uyg, pano, pencere, zincir, calls = make_uygulama(
-        cevirmen="gemini", zincir_uretici=zincir_uretici, kaydet_cb=kaydet_cb
+        cevirmen="bulut", zincir_uretici=zincir_uretici, kaydet_cb=kaydet_cb
     )
     uyg.cevirmen_sec("yerel")
     assert zincir_cagrilari == ["yerel"]
     assert kaydet_cagrilari == [1]
     assert uyg.ayarlar["cevirmen"] == "yerel"
     assert uyg.zincir is not zincir
-    assert ("Çevirmen: Yalnızca yerel", "", "bilgi") in calls
+    assert ("Çevirmen: Yerel (dahili model)", "", "bilgi") in calls
 
     uyg.cevirmen_sec("yerel")  # aynı seçim -> erken çıkış
     assert zincir_cagrilari == ["yerel"]
+    assert kaydet_cagrilari == [1]
+
+
+def test_cevirmen_sec_gecersiz_adlar_yok_sayilir():
+    zincir_cagrilari = []
+
+    def zincir_uretici(ad):
+        zincir_cagrilari.append(ad)
+        return FakeZincir()
+
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        cevirmen="bulut", zincir_uretici=zincir_uretici
+    )
+    for ad in ("gemini", "uyumlu", "openai", "", "yerel2"):
+        uyg.cevirmen_sec(ad)
+    assert uyg.ayarlar["cevirmen"] == "bulut"
+    assert uyg.zincir is zincir
+    assert zincir_cagrilari == []
+    assert calls == []
+
+
+def test_cevirmen_sec_bulut_bildirimde_servis_adi():
+    uyg, pano, pencere, zincir, calls = make_uygulama(cevirmen="yerel")
+    uyg.ayarlar["bulut_servis"] = "openai"
+    uyg.cevirmen_sec("bulut")
+    assert ("Çevirmen: Bulut (OpenAI)", "", "bilgi") in calls
+
+
+def test_zincir_kurulamayinca_dahiliye_duser(monkeypatch, tmp_path):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    kaydet_cagrilari = []
+
+    def bozuk_zincir_uretici(ad):
+        raise CeviriHatasi("model adı girilmedi")
+
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        cevirmen="bulut",
+        zincir_uretici=bozuk_zincir_uretici,
+        kaydet_cb=lambda: kaydet_cagrilari.append(1),
+    )
+    uyg.cevirmen_sec("yerel")
+    assert calls == [("Çeviri ayarı eksik", "model adı girilmedi", "uyari")]
+    assert uyg.ayarlar["cevirmen"] == "yerel"
+    assert uyg.ayarlar["yerel_secili"] == "dahili"
+    assert uyg.zincir is not zincir
+    assert all(c.ad.startswith("yerel:") for c in uyg.zincir.cevirmenler)
     assert kaydet_cagrilari == [1]
 
 
