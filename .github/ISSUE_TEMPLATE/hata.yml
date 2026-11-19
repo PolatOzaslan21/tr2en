@@ -1,0 +1,55 @@
+name: Hata bildirimi / Bug report
+description: Bir şey çalışmıyor / Something doesn't work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Gizlilik:** Çevirdiğiniz özel ya da hassas metni buraya yapıştırmayın; benzer, uydurma bir örnek yazın. API anahtarınızı asla paylaşmayın.
+        **Privacy:** Don't paste private text you translated; write a similar made-up example. Never share your API key.
+  - type: textarea
+    id: ne-oldu
+    attributes:
+      label: Ne oldu? / What happened?
+      description: Ne bekliyordunuz, ne oldu? / What did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: adimlar
+    attributes:
+      label: Adımlar / Steps to reproduce
+      placeholder: |
+        1. Not Defteri'nde şu metni seçtim: ...
+        2. Ctrl+Shift+Space'e bastım
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: cevirmen
+    attributes:
+      label: Çevirmen / Translator
+      options:
+        - Gemini
+        - Kendi modelim / Own model (OpenAI-compatible)
+        - Yalnızca yerel / Local only
+        - Bilmiyorum / Not sure
+    validations:
+      required: true
+  - type: input
+    id: uygulama
+    attributes:
+      label: Hangi uygulamada? / In which app?
+      placeholder: Chrome, VS Code, Word, Claude masaüstü...
+  - type: input
+    id: surum
+    attributes:
+      label: tr2en ve Windows sürümü / tr2en and Windows version
+      placeholder: 0.1.0b1, Windows 11 23H2
+    validations:
+      required: true
+  - type: textarea
+    id: kayit
+    attributes:
+      label: Konsol çıktısı (varsa) / Console output (if any)
+      description: "`tr2en-konsol` ile çalıştırıp hatayı kopyalayın. / Run `tr2en-konsol` and copy the error."
+      render: text
