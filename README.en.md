@@ -50,6 +50,7 @@ On first start the app asks which one you want to use.
 3. A red/blue **TR → EN** speech-bubble icon appears next to the clock. Windows may first put it in the hidden icons menu (the **^** next to the clock); drag it to the taskbar to keep it visible. If you quit the app, type "tr2en" in the Start menu to open it again.
 
 - The .exe is not code-signed yet; if Windows shows "Windows protected your PC" (SmartScreen), click **More info → Run anyway**. You can verify the download with the `.sha256` file in the release.
+- **Every release's installer and zip are scanned on VirusTotal**; the result link is at the end of the release notes.
 - **To update:** just run the new installer; it closes a running tr2en itself and keeps your settings and the model.
 - **To uninstall:** Settings → Apps → tr2en → Uninstall. It asks whether to delete your settings and the downloaded model too.
 - **Portable (no install):** extract `tr2en-…-windows-x64.zip` to a permanent folder and run `tr2en.exe`. To update, quit from the tray (**Çıkış**) first and extract the new zip into the same folder.

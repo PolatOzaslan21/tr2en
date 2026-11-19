@@ -317,6 +317,16 @@ def test_html_gizlilik_guncelleme_maddesi():
     assert "Güncelleme denetimi yalnızca siz" in metin
 
 
+def test_html_virustotal_notu():
+    """Hakkında bölümünde tarama notu var; dış http(s) src/href eklenmemeli."""
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "VirusTotal" in metin
+    assert metin.index('id="hakkinda"') < metin.index("VirusTotal")
+    assert 'data-ac="surumler"' in metin
+    assert re.search(r"(?:src|href)\s*=\s*[\"']https?://", metin, re.I) is None
+    assert re.search(r"(?:src|href)\s*=\s*[\"']//", metin) is None
+
+
 def test_readme_gizlilik_guncelleme_maddesi():
     tr = README_TR_YOLU.read_text(encoding="utf-8")
     en = README_EN_YOLU.read_text(encoding="utf-8")
