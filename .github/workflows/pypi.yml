@@ -1,0 +1,52 @@
+name: pypi
+
+# v* etiketi push edilince: test + paketi derle + PyPI'ye yükle.
+# Şifre/anahtar yok: PyPI "trusted publishing" (OIDC) ile yalnızca bu repo,
+# bu dosya (pypi.yml) ve "pypi" ortamı yayın yapabilir.
+# Elle çalıştırma (Actions → pypi → Run workflow) da yayınlar; PyPI aynı sürümü ikinci kez kabul etmez.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  derle:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.12"
+      - name: Testler
+        run: uv run --extra test --extra yerel --extra uygulama pytest -q
+      - name: Paket
+        run: uv build
+      - name: Sürüm etiketle uyumlu mu
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $beklenen = $env:GITHUB_REF_NAME.TrimStart("v")
+          if (-not (Test-Path "dist/tr2en-$beklenen.tar.gz")) { throw "pyproject sürümü etiketle ($env:GITHUB_REF_NAME) uyuşmuyor" }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: paket
+          path: dist/
+
+  yayinla:
+    needs: derle
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/tr2en/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: paket
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

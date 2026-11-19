@@ -1,4 +1,4 @@
-**Read this in English: [English](README.en.md)**
+**Read this in English: [English](https://github.com/PolatOzaslan21/tr2en/blob/main/README.en.md)**
 
 # tr2en — Türkçe → İngilizce çeviri katmanı
 
@@ -133,7 +133,7 @@ tr2en kısayolu yakalamak için klavye kancası kullanır. Bazı antivirüsler b
 uv run --extra test --extra yerel --extra uygulama pytest -q
 ```
 
-Testler her push'ta GitHub Actions'ta Windows üzerinde çalışır. Kod üzerinde çalışan yapay zekâ ajanları için kurallar: [AGENTS.md](AGENTS.md). Kod içindeki adlar Türkçedir.
+Testler her push'ta GitHub Actions'ta Windows üzerinde çalışır. Kod üzerinde çalışan yapay zekâ ajanları için kurallar: [AGENTS.md](https://github.com/PolatOzaslan21/tr2en/blob/main/AGENTS.md). Kod içindeki adlar Türkçedir.
 
 ## Lisans
 

@@ -1,6 +1,6 @@
 # tr2en — Turkish → English translation layer
 
-[Türkçe](README.md) | **English**
+[Türkçe](https://github.com/PolatOzaslan21/tr2en/blob/main/README.md) | **English**
 
 **Local Turkish to English translation for Windows: select text, press a hotkey, the English replaces it.** A small tray app for writing English prompts to AI assistants (Claude, ChatGPT, Copilot…), offline translation, or quick prompt translation.
 
@@ -135,7 +135,7 @@ tr2en uses a keyboard hook to catch the hotkey. Some antivirus programs may flag
 uv run --extra test --extra yerel --extra uygulama pytest -q
 ```
 
-Tests run on Windows in GitHub Actions on every push. Rules for AI coding agents: [AGENTS.md](AGENTS.md). Identifiers in the code are in Turkish.
+Tests run on Windows in GitHub Actions on every push. Rules for AI coding agents: [AGENTS.md](https://github.com/PolatOzaslan21/tr2en/blob/main/AGENTS.md). Identifiers in the code are in Turkish.
 
 ## License
 
