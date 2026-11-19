@@ -93,7 +93,7 @@ def test_komut_pythonw_yanindaysa(tmp_path, monkeypatch):
     pythonw.write_bytes(b"")
     monkeypatch.setattr(sys, "executable", str(tmp_path / "python.exe"))
     monkeypatch.delattr(sys, "frozen", raising=False)
-    assert komut() == f'"{pythonw}" -m ceviri_katmani.uygulama'
+    assert komut() == f'"{pythonw}" -m ceviri_katmani.uygulama --arka'
 
 
 def test_komut_pythonw_yoksa_sys_executable(tmp_path, monkeypatch):
@@ -101,7 +101,7 @@ def test_komut_pythonw_yoksa_sys_executable(tmp_path, monkeypatch):
     exe.write_bytes(b"")
     monkeypatch.setattr(sys, "executable", str(exe))
     monkeypatch.delattr(sys, "frozen", raising=False)
-    assert komut() == f'"{exe}" -m ceviri_katmani.uygulama'
+    assert komut() == f'"{exe}" -m ceviri_katmani.uygulama --arka'
 
 
 def test_komut_frozen(tmp_path, monkeypatch):
@@ -109,7 +109,7 @@ def test_komut_frozen(tmp_path, monkeypatch):
     exe.write_bytes(b"")
     monkeypatch.setattr(sys, "executable", str(exe))
     monkeypatch.setattr(sys, "frozen", True, raising=False)
-    assert komut() == f'"{exe}"'
+    assert komut() == f'"{exe}" --arka'
 
 
 # ---- Uygulama metodları ----

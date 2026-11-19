@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import queue
+import subprocess
 import sys
 import threading
 import time
@@ -10,8 +11,27 @@ import traceback
 from typing import Any
 
 from ..cekirdek.cevirmen import CeviriHatasi
-from ..cekirdek.kurulum import akilli_cevir, zincir_kur
+from ..cekirdek.kurulum import akilli_cevir, zincir_kur_v2
 from .gecmis import Gecmis, Islem
+
+BULUT_GORUNEN_ADLARI = {
+    "gemini": "Google Gemini",
+    "openai": "OpenAI",
+    "deepseek": "DeepSeek",
+    "openrouter": "OpenRouter",
+    "diger": "Diğer servis",
+}
+YEREL_GORUNEN_ADLARI = {
+    "dahili": "dahili model",
+    "ollama": "Ollama",
+    "lmstudio": "LM Studio",
+    "klasor": "model klasörü",
+}
+
+
+def dahili_zincir_kur() -> Any:
+    """Zincir kurulamazsa kullanılan dahili yerel model zinciri (cevirmen "yerel", yerel_secili "dahili")."""
+    return zincir_kur_v2({"cevirmen": "yerel", "yerel_secili": "dahili"}, lambda _servis: None)
 
 
 def _silme_bekle(adet: int) -> float:
@@ -22,6 +42,94 @@ def _silme_bekle(adet: int) -> float:
 def _yapistirma_bekle(uzunluk: int) -> float:
     """Ctrl+V işlenmeden pano geri yüklenirse hiçbir şey yapıştırılmaz (Polat'ın testi, 16.11.2026)."""
     return min(2.0, 0.35 + uzunluk / 800)
+
+
+# ---- tr2en penceresi süreci ----
+
+CREATE_NO_WINDOW = 0x08000000
+PENCERE_BEKLEME_SN = 10.0
+_pencere_popen = subprocess.Popen
+_pencere_surecleri: list = []
+
+
+def _varsayilan_pencere_yedegi() -> None:
+    """WebView2 yoksa: bildir ve ayar dosyasını aç (tepsideki ayarlari_ac mantığıyla aynı)."""
+    from . import ayarlar as ayarlar_mod
+    from .bildirim import bildir
+
+    bildir(
+        "tr2en penceresi açılamadı",
+        "Bu bilgisayarda Microsoft Edge WebView2 eksik; ayar dosyası açılıyor.",
+        "uyari",
+    )
+    try:
+        os.startfile(str(ayarlar_mod.ayar_yolu()))
+    except Exception:
+        pass
+
+
+def _pencere_yedek_kontrol(surec: Any, yedek: Any) -> None:
+    """Süreç 10 sn içinde 2 koduyla biterse (WebView2 yok) yedeği çalıştırır."""
+    try:
+        kod = surec.wait(timeout=PENCERE_BEKLEME_SN)
+    except Exception:
+        return  # hâlâ çalışıyor ya da bekleme hatası: yedek gerekmez
+    if kod == 2:
+        try:
+            yedek()
+        except Exception:
+            pass
+
+
+def pencere_ac(sihirbaz: bool = False, *, yedek: Any = None, popen: Any = None) -> Any:
+    """tr2en penceresini ayrı süreçte açar; Popen nesnesini döner.
+
+    ``yedek``: süreç WebView2 yokluğu (kod 2) ile biterse çağrılır; verilmezse
+    bildirim + ayar dosyası açılır. ``popen`` test için enjekte edilebilir.
+    Açılan süreç saklanır; uygulama kapanırken hâlâ çalışıyorsa sonlandırılır.
+    """
+    if getattr(sys, "frozen", False):
+        komut = [sys.executable, "--ayarlar"]
+    else:
+        komut = [sys.executable, "-m", "ceviri_katmani.uygulama", "--ayarlar"]
+    if sihirbaz:
+        komut.append("--sihirbaz")
+    uretici = popen if popen is not None else _pencere_popen
+    surec = uretici(
+        komut,
+        creationflags=CREATE_NO_WINDOW,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    _pencere_surecleri.append(surec)
+    threading.Thread(
+        target=_pencere_yedek_kontrol,
+        args=(surec, yedek if yedek is not None else _varsayilan_pencere_yedegi),
+        daemon=True,
+    ).start()
+    return surec
+
+
+def pencere_surecleri_kapat() -> None:
+    """Kapanışta hâlâ çalışan tr2en pencere süreçlerini sonlandırır."""
+    while _pencere_surecleri:
+        surec = _pencere_surecleri.pop()
+        try:
+            if surec.poll() is None:
+                surec.terminate()
+        except Exception:
+            pass
+
+
+def _boru_sunucusu_kur(isleyici: Any) -> Any:
+    """Boru sunucusunu kurar (pencere ile ana süreç arasındaki köprü).
+
+    Testler bu fonksiyonu sahte sınıfla değiştirir; gerçek boru açılmaz.
+    """
+    from . import boru
+
+    return boru.BoruSunucusu(isleyici)
 
 
 class Uygulama:
@@ -43,6 +151,7 @@ class Uygulama:
         self._kuyruk: queue.Queue = queue.Queue()
         self._calis = False
         self._meşgul = False
+        self._cevir_kilidi = threading.Lock()
         self._isci = threading.Thread(target=self._isci_dongusu, daemon=True)
         self._dinleyici: Any | None = None
         self.gecmis = Gecmis()
@@ -101,14 +210,17 @@ class Uygulama:
             try:
                 try:
                     tur, arg = is_
-                    if tur == "kisayol":
-                        self._kisayol_isle()
-                    elif tur == "tetik":
-                        self._tetik_isle(*arg)
-                    elif tur == "guvensiz":
-                        self._guvensiz_isle(arg)
-                    elif tur == "kisayol_kayit":
-                        self._kisayol_kaydi_isle(*arg)
+                    # Aynı anda yalnızca BİR çeviri çalışır: pencere (boru) ve
+                    # kısayol işleri birbirini bozmaz.
+                    with self._cevir_kilidi:
+                        if tur == "kisayol":
+                            self._kisayol_isle()
+                        elif tur == "tetik":
+                            self._tetik_isle(*arg)
+                        elif tur == "guvensiz":
+                            self._guvensiz_isle(arg)
+                        elif tur == "kisayol_kayit":
+                            self._kisayol_kaydi_isle(*arg)
                 except Exception as e:
                     # Beklenmedik hata işçiyi ÖLDÜRMEZ: kullanıcı bilgilendirilir,
                     # döngü devam eder ve sonraki kısayol çalışır (INCELEME-1 bulgu 1).
@@ -207,7 +319,7 @@ class Uygulama:
         if cevirmen and cevirmen.startswith("yerel:"):
             self.bildir("Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin", "", "uyari")
         elif cevirmen and cevirmen.startswith("uyumlu:"):
-            model = self.ayarlar.get("uyumlu_model") or cevirmen.partition(":")[2]
+            model = cevirmen.partition(":")[2] or self.ayarlar.get("uyumlu_model") or ""
             self.bildir(f"Çevrildi ({model})")
         else:
             self.bildir("Çevrildi (Gemini)")
@@ -348,6 +460,118 @@ class Uygulama:
             f"Sebep: {sebep}" if sebep else "",
         )
 
+    # ---- pencere (boru) istekleri ----
+
+    EN_FAZLA_METIN = 5000
+
+    def boru_istegi(self, istek: dict) -> dict:
+        """Pencere sürecinden gelen isteği işler; panoya dokunmaz.
+
+        ``{"tur": "cevir", "metin": str}``, ``{"tur": "durum"}`` ve
+        ``{"tur": "aktif_degistir"}`` desteklenir. Metin ve çeviri hiçbir yere
+        yazılmaz/loglanmaz; yalnızca özet kaydı açıksa karakter sayısı ve süre tutulur.
+        """
+        if not isinstance(istek, dict):
+            return {"ok": False, "hata": "geçersiz istek"}
+        tur = istek.get("tur")
+        if tur == "cevir":
+            return self._boru_cevir(istek.get("metin"))
+        if tur == "durum":
+            return self._boru_durum()
+        if tur == "aktif_degistir":
+            self.aktif_degistir()
+            return self._boru_durum()
+        return {"ok": False, "hata": "bilinmeyen istek"}
+
+    def _boru_cevir(self, metin: Any) -> dict:
+        """Pencereden gelen metni mevcut zincirle çevirir (pano kullanılmaz)."""
+        if not isinstance(metin, str) or not metin.strip():
+            return {"ok": False, "hata": "metin boş", "ceviri": "", "sure_sn": 0.0}
+        if len(metin) > self.EN_FAZLA_METIN:
+            return {
+                "ok": False,
+                "hata": f"metin en fazla {self.EN_FAZLA_METIN} karakter olabilir",
+                "ceviri": "",
+                "sure_sn": 0.0,
+            }
+        if self._meşgul or not self._cevir_kilidi.acquire(blocking=False):
+            return {
+                "ok": False,
+                "hata": "başka bir çeviri sürüyor",
+                "ceviri": "",
+                "sure_sn": 0.0,
+            }
+        t0 = time.perf_counter()
+        try:
+            sonuc = akilli_cevir(self.zincir, metin)
+        except CeviriHatasi as e:
+            self._kaydet("pencere", "hata", baslangic=t0, giris=len(metin))
+            return {
+                "ok": False,
+                "hata": str(e)[:160],
+                "ceviri": "",
+                "sure_sn": round(time.perf_counter() - t0, 3),
+            }
+        except Exception:
+            self._kaydet("pencere", "hata", baslangic=t0, giris=len(metin))
+            return {
+                "ok": False,
+                "hata": "çeviri yapılamadı",
+                "ceviri": "",
+                "sure_sn": round(time.perf_counter() - t0, 3),
+            }
+        finally:
+            self._cevir_kilidi.release()
+        sure = round(time.perf_counter() - t0, 3)
+        self._kaydet(
+            "pencere",
+            sonuc.durum,
+            cevirmen=self._cevirmen_gorunen_adi(sonuc.cevirmen),
+            baslangic=t0,
+            giris=len(metin),
+            cikis=len(sonuc.metin),
+        )
+        return {
+            "ok": True,
+            "ceviri": sonuc.metin,
+            "durum": sonuc.durum,
+            "cevirmen": self._cevirmen_gorunen_adi(sonuc.cevirmen),
+            "sure_sn": sure,
+        }
+
+    def _boru_durum(self) -> dict:
+        """Pencereye gösterilecek gerçek durum bilgisi."""
+        from .. import __version__
+
+        return {
+            "ok": True,
+            "aktif": self.aktif_mi(),
+            "cevirmen": self.cevirmen(),
+            "cevirmen_adi": self.cevirmen_gorunen_adi(),
+            "kisayol_adi": self.kisayol_adi(),
+            "surum": __version__,
+        }
+
+    def cevirmen_gorunen_adi(self) -> str:
+        """Ayarlanan çevirmenin görünen adı (ör. "Bulut — Google Gemini")."""
+        if self.cevirmen() == "bulut":
+            return f"Bulut — {self.bulut_adi()}"
+        return f"Yerel — {self.yerel_adi()}"
+
+    def _cevirmen_gorunen_adi(self, ham: str | None) -> str:
+        """Çeviriyi yapan çevirmenin görünen adı (ham ad boşsa ayarlanan çevirmen)."""
+        if not ham:
+            return self.cevirmen_gorunen_adi()
+        if ham.startswith("gemini"):
+            return f"Bulut — {self.bulut_adi()}"
+        if ham.startswith("yerel"):
+            return f"Yerel — {self.yerel_adi()}"
+        if ham.startswith("uyumlu:"):
+            model = ham.partition(":")[2]
+            if model:
+                return model
+        return self.cevirmen_gorunen_adi()
+
     # ---- tepsi arayüzü ----
 
     def aktif_mi(self) -> bool:
@@ -360,28 +584,40 @@ class Uygulama:
             self.tepsi.guncelle()
 
     def cevirmen(self) -> str:
-        return self.ayarlar.get("cevirmen", "gemini")
+        return self.ayarlar.get("cevirmen", "bulut")
 
-    def uyumlu_tanimli_mi(self) -> bool:
-        return bool(self.ayarlar.get("uyumlu_adres") and self.ayarlar.get("uyumlu_model"))
+    def bulut_adi(self) -> str:
+        servis = self.ayarlar.get("bulut_servis") or "gemini"
+        return BULUT_GORUNEN_ADLARI.get(servis, servis)
+
+    def yerel_adi(self) -> str:
+        secili = self.ayarlar.get("yerel_secili") or "dahili"
+        return YEREL_GORUNEN_ADLARI.get(secili, secili)
 
     def cevirmen_sec(self, ad: str) -> None:
-        if self.cevirmen() == ad:
+        if ad not in ("bulut", "yerel"):
             return
-        if ad == "uyumlu" and not self.uyumlu_tanimli_mi():
-            self.bildir("Kendi modeliniz tanımlı değil", "Ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
+        if self.cevirmen() == ad:
             return
         zincir_uretici = self.ayarlar.get("zincir_uretici")
         if zincir_uretici is not None:
-            self.zincir = zincir_uretici(ad)
+            try:
+                self.zincir = zincir_uretici(ad)
+            except CeviriHatasi as e:
+                self.bildir("Çeviri ayarı eksik", str(e)[:160], "uyari")
+                self.ayarlar["cevirmen"] = "yerel"
+                self.ayarlar["yerel_secili"] = "dahili"
+                self.zincir = dahili_zincir_kur()
+                self._ayarlari_kaydet()
+                if self.tepsi is not None:
+                    self.tepsi.guncelle()
+                return
         self.ayarlar["cevirmen"] = ad
         self._ayarlari_kaydet()
-        if ad == "gemini":
-            self.bildir("Çevirmen: Gemini")
-        elif ad == "uyumlu":
-            self.bildir(f"Çevirmen: Kendi modelim ({self.ayarlar.get('uyumlu_model', '')})")
+        if ad == "bulut":
+            self.bildir(f"Çevirmen: Bulut ({self.bulut_adi()})")
         else:
-            self.bildir("Çevirmen: Yalnızca yerel")
+            self.bildir(f"Çevirmen: Yerel ({self.yerel_adi()})")
         if self.tepsi is not None:
             self.tepsi.guncelle()
 
@@ -425,6 +661,70 @@ class Uygulama:
             os.startfile(str(dosya))
         except Exception:
             self.bildir("Ayar dosyası açılamadı")
+
+    def pencere_ac(self) -> None:
+        """tr2en penceresini ayrı süreçte açar; WebView2 yoksa ayar dosyası açılır."""
+
+        def yedek() -> None:
+            self.bildir(
+                "tr2en penceresi açılamadı",
+                "Bu bilgisayarda Microsoft Edge WebView2 eksik; ayar dosyası açılıyor.",
+                "uyari",
+            )
+            self.ayarlari_ac()
+
+        pencere_ac(yedek=yedek)
+
+    # Yenilemede zinciri yeniden kurmayı gerektiren ayar anahtarları (bkz. ayarlari_yenile).
+    ZINCIR_YENILEME_ANAHTARLARI = (
+        "bulut_servis", "bulut_adres", "bulut_model", "bulut_yedek_yerel",
+        "yerel_secili", "ollama_adres", "ollama_model", "lmstudio_adres",
+        "lmstudio_model", "klasor_yolu", "gemini_model",
+    )
+
+    def ayarlari_yenile(self, yeni_dosya: dict) -> None:
+        """"yenile" sinyali: ayar dosyasındaki değerleri çalışma zamanına uygular.
+
+        Zinciri ilgilendiren ayarlar değiştiyse zincir yeniden kurulur; kisayol
+        değiştiyse ``kisayol_sec`` çağrılır; ``sona_bosluk``/``ozet_kaydi`` yazılır;
+        ``gizlilik_onayi`` geldiyse çalışma zamanı "yerel zorlaması" kalkar. Hata
+        olursa uygulama çökmez, "Ayarlar uygulanamadı" bildirimi gösterilir.
+        """
+        try:
+            eski = self.ayarlar
+            zorlama = bool(eski.get("yerel_zorlamasi"))
+            onay = bool(yeni_dosya.get("gizlilik_onayi"))
+            hedef_cevirmen = yeni_dosya.get("cevirmen") or "bulut"
+            if zorlama and not onay:
+                hedef_cevirmen = "yerel"
+            zincir_degisti = hedef_cevirmen != eski.get("cevirmen") or any(
+                yeni_dosya.get(k) != eski.get(k) for k in self.ZINCIR_YENILEME_ANAHTARLARI
+            )
+            kisayol = yeni_dosya.get("kisayol")
+            if onay:
+                eski["yerel_zorlamasi"] = False
+            for k in self.ZINCIR_YENILEME_ANAHTARLARI:
+                eski[k] = yeni_dosya.get(k)
+            eski["cevirmen"] = hedef_cevirmen
+            eski["sona_bosluk"] = yeni_dosya.get("sona_bosluk", True)
+            eski["ozet_kaydi"] = yeni_dosya.get("ozet_kaydi", True)
+            if zincir_degisti:
+                zincir_uretici = eski.get("zincir_uretici")
+                if zincir_uretici is not None:
+                    try:
+                        self.zincir = zincir_uretici(hedef_cevirmen)
+                    except CeviriHatasi as e:
+                        self.bildir("Çeviri ayarı eksik", str(e)[:160], "uyari")
+                        eski["cevirmen"] = "yerel"
+                        eski["yerel_secili"] = "dahili"
+                        self.zincir = dahili_zincir_kur()
+                        self._ayarlari_kaydet()
+            if kisayol and kisayol != eski.get("kisayol"):
+                self.kisayol_sec(kisayol)
+            if self.tepsi is not None:
+                self.tepsi.guncelle()
+        except Exception:
+            self.bildir("Ayarlar uygulanamadı")
 
     def otomatik_baslat_acik_mi(self) -> bool:
         from . import otomatik_baslat
@@ -680,14 +980,25 @@ if sys.platform == "win32":
 
     def main(argv: list[str] | None = None) -> int:
         """tr2en giriş noktası."""
-        from . import gizlilik, pano, pencere, tek_ornek, tepsi, tetik
+        from . import anahtar_kasasi, gizlilik, otomatik_baslat, pano, pencere, sinyal, tek_ornek, tepsi, tetik
         from . import ayarlar as ayarlar_mod
         from .bildirim import bildir
 
+        args = list(sys.argv[1:]) if argv is None else list(argv)
+        arka = "--arka" in args
+
         kilit = tek_ornek.kilit_al()
         if kilit is None:
-            bildir("tr2en zaten çalışıyor", "Tepsi simgesine bakın")
+            if not arka:
+                if not sinyal.gonder("goster"):
+                    bildir("tr2en zaten çalışıyor", "Tepsi simgesine bakın")
             return 0
+
+        # Eski Run değerlerinde "--arka" yoksa Windows açılışında tr2en penceresi açılırdı.
+        try:
+            otomatik_baslat.goc_uygula()
+        except Exception:
+            pass
 
         for satir in ayarlar_mod.eski_klasorleri_tasi():
             if sys.stdout is not None:
@@ -697,43 +1008,26 @@ if sys.platform == "win32":
         if uyarilar:
             bildir("Ayar dosyasında sorun", "  ".join(uyarilar[:2]), "uyari")
 
-        if not dosya["gizlilik_onayi"]:
-            secim = gizlilik.gizlilik_sor()
-            if secim is None:
-                tek_ornek.kilit_birak(kilit)
-                return 0
-            dosya["cevirmen"] = secim
-            dosya["gizlilik_onayi"] = True
-            if not ayarlar_mod.kaydet(dosya):
-                bildir(
-                    "Ayar kaydedilemedi",
-                    "Ayarlar dosyaya yazılamadı; dosya kilitli olabilir.",
-                    "uyari",
-                )
+        # İlk açılış: MessageBox sorulmaz; onay gelene kadar çalışma zamanında
+        # cevirmen "yerel" (metin dışarı gitmez, dosyadaki değer değişmez) ve
+        # pencere sihirbaz kipinde açılır.
+        yerel_zorlamasi = not dosya["gizlilik_onayi"]
 
-        if dosya["cevirmen"] == "uyumlu" and not (dosya.get("uyumlu_adres") and dosya.get("uyumlu_model")):
-            dosya["cevirmen"] = "gemini"
-            bildir("Kendi modeliniz tanımlı değil", "Gemini'ye geçildi; ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
+        def anahtar_saglayici(servis: str) -> str | None:
+            if servis == "diger":
+                ortam = dosya.get("uyumlu_anahtar_degiskeni") or ""
+            else:
+                ortam = ayarlar_mod.BULUT_SERVIS_ANAHTARLARI.get(servis, "")
+            return anahtar_kasasi.anahtar_bul(servis, ortam)
 
         def zincir_uretici(ad: str):
-            yalniz = None
-            if ad == "yerel":
-                yalniz = "yerel"
-            elif ad == "uyumlu":
-                yalniz = "uyumlu"
-            return zincir_kur(
-                model=dosya["gemini_model"],
-                yalniz=yalniz,
-                zaman_asimi=dosya["zaman_asimi"],
-                uyumlu_adres=dosya["uyumlu_adres"],
-                uyumlu_model=dosya["uyumlu_model"],
-                uyumlu_anahtar=dosya["uyumlu_anahtar_degiskeni"],
-                uyumlu_zaman_asimi=dosya["uyumlu_zaman_asimi"],
-                uyumlu_dusunmeyi_kapat=dosya["uyumlu_dusunmeyi_kapat"],
-            )
+            gecici = dict(dosya)
+            gecici["cevirmen"] = ad
+            return zincir_kur_v2(gecici, anahtar_saglayici)
 
         def kaydet_cb() -> bool:
-            dosya["cevirmen"] = uygulama.cevirmen()
+            if not uygulama.ayarlar.get("yerel_zorlamasi"):
+                dosya["cevirmen"] = uygulama.cevirmen()
             dosya["kisayol"] = uygulama.kisayol_simdiki()
             return ayarlar_mod.kaydet(dosya)
 
@@ -746,9 +1040,21 @@ if sys.platform == "win32":
             "terminal_tetigi": dosya["terminal_tetigi"],
             "sona_bosluk": dosya["sona_bosluk"],
             "ozet_kaydi": dosya["ozet_kaydi"],
-            "cevirmen": dosya["cevirmen"],
+            "cevirmen": "yerel" if yerel_zorlamasi else dosya["cevirmen"],
+            "bulut_servis": dosya["bulut_servis"],
+            "bulut_adres": dosya["bulut_adres"],
+            "bulut_model": dosya["bulut_model"],
+            "bulut_yedek_yerel": dosya["bulut_yedek_yerel"],
+            "yerel_secili": dosya["yerel_secili"],
+            "ollama_adres": dosya["ollama_adres"],
+            "ollama_model": dosya["ollama_model"],
+            "lmstudio_adres": dosya["lmstudio_adres"],
+            "lmstudio_model": dosya["lmstudio_model"],
+            "klasor_yolu": dosya["klasor_yolu"],
+            "gemini_model": dosya["gemini_model"],
             "uyumlu_adres": dosya["uyumlu_adres"],
             "uyumlu_model": dosya["uyumlu_model"],
+            "yerel_zorlamasi": yerel_zorlamasi,
             "dinleyici_sinifi": tetik.Dinleyici,
             "aktif_hwnd_cb": _aktif_hwnd,
             "zincir_uretici": zincir_uretici,
@@ -756,14 +1062,73 @@ if sys.platform == "win32":
             "kopya_sureleri_yolu": str(ayarlar_mod.ayar_klasoru() / "kopya_sureleri.json"),
             "kaydet_cb": kaydet_cb,
         }
-        uygulama = Uygulama(pano, pencere, zincir_uretici(dosya["cevirmen"]), bildir, ayarlar)
+        try:
+            zincir = zincir_uretici(ayarlar["cevirmen"])
+        except CeviriHatasi as e:
+            bildir("Çeviri ayarı eksik", str(e)[:160], "uyari")
+            ayarlar["cevirmen"] = "yerel"
+            ayarlar["yerel_secili"] = "dahili"
+            if not yerel_zorlamasi:
+                dosya["cevirmen"] = "yerel"
+                dosya["yerel_secili"] = "dahili"
+            zincir = dahili_zincir_kur()
+        uygulama = Uygulama(pano, pencere, zincir, bildir, ayarlar)
         uygulama.baslat()
+        # Pencere süreci çeviriyi BİZE yollar (adlandırılmış boru): model burada yüklenir.
+        boru_sunucusu = None
+        try:
+            boru_sunucusu = _boru_sunucusu_kur(uygulama.boru_istegi)
+            boru_sunucusu.baslat()
+        except Exception:
+            boru_sunucusu = None
         # Yerel model yoksa arka planda indir (Hugging Face, SHA256 doğrulamalı); bu sırada Gemini çalışır.
         from .model_indirme import gerekirse_arkaplanda_indir
 
         gerekirse_arkaplanda_indir(bildir)
         t = tepsi.Tepsi(uygulama)
         uygulama.tepsi = t
+
+        def yenile() -> None:
+            try:
+                yeni, _ = ayarlar_mod.yukle()
+                dosya.clear()
+                dosya.update(yeni)
+            except Exception:
+                bildir("Ayarlar uygulanamadı", "", "uyari")
+                return
+            uygulama.ayarlari_yenile(dosya)
+
+        bekleyici = sinyal.Bekleyici(
+            {
+                "goster": uygulama.pencere_ac,
+                "yenile": yenile,
+                "cikis": t.durdur,
+            }
+        )
+        bekleyici.baslat()
+
+        if yerel_zorlamasi:
+            def gizlilik_yedegi() -> None:
+                """WebView2 yoksa eski MessageBox akışı yedek olarak çalışır."""
+                secim = gizlilik.gizlilik_sor()
+                if secim is None:
+                    uygulama.cikis()
+                    t.durdur()
+                    return
+                dosya["cevirmen"] = secim
+                dosya["gizlilik_onayi"] = True
+                if not ayarlar_mod.kaydet(dosya):
+                    bildir(
+                        "Ayar kaydedilemedi",
+                        "Ayarlar dosyaya yazılamadı; dosya kilitli olabilir.",
+                        "uyari",
+                    )
+                uygulama.ayarlari_yenile(dosya)
+
+            pencere_ac(sihirbaz=True, yedek=gizlilik_yedegi)
+        elif not arka:
+            uygulama.pencere_ac()
+
         bildir(
             "tr2en çalışıyor",
             f"Kısayol: {ayarlar_mod.kisayol_adi(dosya['kisayol'])}" + (f" · Terminal: {dosya['tetik']}" if dosya["terminal_tetigi"] else ""),
@@ -772,7 +1137,14 @@ if sys.platform == "win32":
         try:
             t.calistir()
         finally:
+            bekleyici.durdur()
+            if boru_sunucusu is not None:
+                try:
+                    boru_sunucusu.durdur()
+                except Exception:
+                    pass
             uygulama.durdur()
+            pencere_surecleri_kapat()
             tek_ornek.kilit_birak(kilit)
             olc = getattr(uygulama._dinleyici, "olcum", None)
             if callable(olc) and sys.stdout is not None:

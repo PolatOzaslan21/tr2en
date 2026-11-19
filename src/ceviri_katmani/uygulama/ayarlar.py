@@ -5,11 +5,25 @@ import os
 import tomllib
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 VARSAYILAN: dict[str, Any] = {
     "kisayol": "<ctrl>+<shift>+<space>",
     "tetik": ";en",
-    "cevirmen": "gemini",
+    "cevirmen": "bulut",
+    "bulut_servis": "gemini",
+    "bulut_adres": "",
+    "bulut_model": "",
+    "bulut_yedek_yerel": True,
+    "yerel_secili": "dahili",
+    "ollama_adres": "http://localhost:11434/v1",
+    "ollama_model": "",
+    "lmstudio_adres": "http://localhost:1234/v1",
+    "lmstudio_model": "",
+    "klasor_yolu": "",
+    "kapatinca_sor": True,
+    "tema": "sistem",
+    "ayar_surumu": 2,
     "uyumlu_adres": "",
     "uyumlu_model": "",
     "uyumlu_anahtar_degiskeni": "",
@@ -26,14 +40,45 @@ VARSAYILAN: dict[str, Any] = {
     "gizlilik_onayi": False,
 }
 
-GECERLI_CEVIRMENLER = ("gemini", "uyumlu", "yerel")
+GECERLI_CEVIRMENLER = ("bulut", "yerel")
+# Şema 1'den kalan değerler; yalnızca göç sırasında kabul edilir (goc_uygula çevirir).
+ESKI_CEVIRMENLER = ("gemini", "uyumlu")
+GECERLI_BULUT_SERVISLERI = ("gemini", "openai", "deepseek", "openrouter", "diger")
+GECERLI_YEREL_SECILILER = ("dahili", "ollama", "lmstudio", "klasor")
+GECERLI_TEMALAR = ("sistem", "acik", "koyu")
+
+# Bulut servislerinin sabit uç noktaları (yalnızca "diger" için bulut_adres kullanılır).
+from ..cekirdek.servisler import BULUT_SERVIS_ADLARI  # noqa: E402  (yeniden dışa aktarım)
+
+# Anahtarın ORTAM DEĞİŞKENİ adları (anahtarın kendisi değil!).
+# "diger" için ayarlardaki uyumlu_anahtar_degiskeni kullanılır.
+BULUT_SERVIS_ANAHTARLARI: dict[str, str] = {
+    "gemini": "GEMINI_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "diger": "",
+}
 
 ACIKLAMALAR: dict[str, str] = {
     "kisayol": "Global kısayol (pynput biçimi, ör. <ctrl>+<shift>+k)",
     "tetik": "Terminalde mesaj sonuna yazılan tetik (ör. ;en)",
-    "cevirmen": "\"gemini\" (önerilen, yedek: yerel model), \"uyumlu\" (kendi OpenAI uyumlu modeliniz) ya da \"yerel\" (metin bilgisayardan çıkmaz)",
-    "uyumlu_adres": "OpenAI uyumlu API adresi, ör. https://api.openai.com/v1 ya da Ollama için http://localhost:11434/v1",
-    "uyumlu_model": "model adı, ör. gpt-4o-mini, llama3.2",
+    "cevirmen": "\"bulut\" (çevrimiçi servis, yedek: yerel model) ya da \"yerel\" (metin bilgisayardan çıkmaz)",
+    "bulut_servis": "Bulut çevirmeni: \"gemini\", \"openai\", \"deepseek\", \"openrouter\" ya da \"diger\" (kendi OpenAI uyumlu adresiniz)",
+    "bulut_adres": "Yalnızca bulut_servis = \"diger\" için OpenAI uyumlu API adresi, ör. https://api.example.com/v1",
+    "bulut_model": "Bulut servisinde kullanılacak model adı (boşsa servisin varsayılanı; gemini için gemini_model kullanılır)",
+    "bulut_yedek_yerel": "Bulut çalışmazsa dahili yerel modele geç",
+    "yerel_secili": "Yerel çevirmen: \"dahili\" (CTranslate2 modeli), \"ollama\", \"lmstudio\" ya da \"klasor\" (model klasörü)",
+    "ollama_adres": "Ollama'nın OpenAI uyumlu adresi",
+    "ollama_model": "Ollama model adı, ör. llama3.2",
+    "lmstudio_adres": "LM Studio'nun OpenAI uyumlu adresi",
+    "lmstudio_model": "LM Studio model adı",
+    "klasor_yolu": "CTranslate2 model klasörünün yolu (yerel_secili = \"klasor\" için)",
+    "kapatinca_sor": "Uygulama kapatılırken onay sor",
+    "tema": "Görünüm teması: \"sistem\", \"acik\" ya da \"koyu\"",
+    "ayar_surumu": "Ayar dosyası şemasının sürümü (2); elle değiştirmeyin",
+    "uyumlu_adres": "Eski şema: OpenAI uyumlu API adresi (göç sırasında yeni anahtarlara taşınır)",
+    "uyumlu_model": "Eski şema: model adı (göç sırasında yeni anahtarlara taşınır)",
     "uyumlu_anahtar_degiskeni": "anahtarın ORTAM DEĞİŞKENİ adı (anahtarın kendisi değil!), ör. OPENAI_API_KEY; Ollama için boş",
     "uyumlu_zaman_asimi": "saniye; yerel LLM'ler yavaş olabilir",
     "uyumlu_dusunmeyi_kapat": "Ollama'da akıl yürüten modeller (qwen3 vb.) için true: düşünmeyi kapatır, çok hızlanır",
@@ -107,8 +152,77 @@ def _tip_uygun(deger: Any, varsayilan: Any) -> bool:
     return False
 
 
+def _goc_gerekli_mi(ham: dict[str, Any]) -> bool:
+    """Ham sözlükte ayar_surumu yok ya da 2'den küçükse göç gerekir."""
+    surum = ham.get("ayar_surumu")
+    return not (isinstance(surum, int) and not isinstance(surum, bool) and surum >= 2)
+
+
+_YEREL_KONAKLAR = ("localhost", "127.0.0.1", "::1")
+
+
+def goc_uygula(ayarlar: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Şema 1 ("gemini"/"uyumlu"/"yerel") ayarlarını şema 2'ye ("bulut"/"yerel") taşır.
+
+    Sözlüğü yerinde değiştirip aynen döner; ikinci eleman uyarı satırlarıdır.
+    Göç bir kez çalışır: ayar_surumu 2 olan dosyada yeniden çalışmaz.
+    """
+    uyarilar: list[str] = []
+    cevirmen = ayarlar.get("cevirmen")
+    if cevirmen == "gemini":
+        ayarlar["cevirmen"] = "bulut"
+        ayarlar["bulut_servis"] = "gemini"
+        ayarlar["bulut_yedek_yerel"] = True
+    elif cevirmen == "yerel":
+        ayarlar["cevirmen"] = "yerel"
+        ayarlar["yerel_secili"] = "dahili"
+    elif cevirmen == "uyumlu":
+        adres = ayarlar.get("uyumlu_adres") or ""
+        model = ayarlar.get("uyumlu_model") or ""
+        if not (adres and model):
+            ayarlar["cevirmen"] = "bulut"
+            ayarlar["bulut_servis"] = "gemini"
+            uyarilar.append("uyumlu_adres/uyumlu_model boş, gemini'ye geçildi")
+        else:
+            parca = urlsplit(adres)
+            konak = parca.hostname or ""
+            try:
+                port = parca.port
+            except ValueError:
+                port = None
+            if konak in _YEREL_KONAKLAR:
+                ayarlar["cevirmen"] = "yerel"
+                if port == 11434:
+                    ayarlar["yerel_secili"] = "ollama"
+                    ayarlar["ollama_adres"] = adres
+                    ayarlar["ollama_model"] = model
+                else:
+                    ayarlar["yerel_secili"] = "lmstudio"
+                    ayarlar["lmstudio_adres"] = adres
+                    ayarlar["lmstudio_model"] = model
+            else:
+                ayarlar["cevirmen"] = "bulut"
+                ayarlar["bulut_model"] = model
+                if konak == "api.openai.com":
+                    ayarlar["bulut_servis"] = "openai"
+                elif konak == "api.deepseek.com":
+                    ayarlar["bulut_servis"] = "deepseek"
+                elif konak == "openrouter.ai":
+                    ayarlar["bulut_servis"] = "openrouter"
+                else:
+                    ayarlar["bulut_servis"] = "diger"
+                    ayarlar["bulut_adres"] = adres
+    ayarlar["ayar_surumu"] = 2
+    return ayarlar, uyarilar
+
+
 def dogrula(ham: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """Ham sözlüğü varsayılanlarla birleştirir; geçersizleri düzeltip uyarı toplar."""
+    """Ham sözlüğü varsayılanlarla birleştirir; geçersizleri düzeltip uyarı toplar.
+
+    Ham sözlükte ayar_surumu 2'den küçük ya da yoksa sonunda goc_uygula ile
+    eski şema değerlerini yenisine çevirir; eski "gemini"/"uyumlu" değerleri
+    göç sırasında reddedilmez.
+    """
     ayarlar: dict[str, Any] = {
         anahtar: (list(deger) if isinstance(deger, list) else deger)
         for anahtar, deger in VARSAYILAN.items()
@@ -130,9 +244,21 @@ def dogrula(ham: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         ayarlar[anahtar] = deger
         gecerli.add(anahtar)
 
-    if "cevirmen" in gecerli and ayarlar["cevirmen"] not in GECERLI_CEVIRMENLER:
+    goc_gerekli = _goc_gerekli_mi(ham)
+    gecerli_cevirmenler = GECERLI_CEVIRMENLER + (ESKI_CEVIRMENLER if goc_gerekli else ())
+
+    if "cevirmen" in gecerli and ayarlar["cevirmen"] not in gecerli_cevirmenler:
         ayarlar["cevirmen"] = VARSAYILAN["cevirmen"]
         uyarilar.append("cevirmen geçersiz, varsayılan kullanıldı")
+
+    for anahtar, gecerliler in (
+        ("bulut_servis", GECERLI_BULUT_SERVISLERI),
+        ("yerel_secili", GECERLI_YEREL_SECILILER),
+        ("tema", GECERLI_TEMALAR),
+    ):
+        if anahtar in gecerli and ayarlar[anahtar] not in gecerliler:
+            ayarlar[anahtar] = VARSAYILAN[anahtar]
+            uyarilar.append(f"{anahtar} geçersiz, varsayılan kullanıldı")
 
     if "zaman_asimi" in gecerli and not 0.5 <= ayarlar["zaman_asimi"] <= 30:
         ayarlar["zaman_asimi"] = VARSAYILAN["zaman_asimi"]
@@ -150,6 +276,10 @@ def dogrula(ham: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     for anahtar in ham:
         if anahtar not in VARSAYILAN:
             uyarilar.append(f"bilinmeyen ayar '{anahtar}' atıldı")
+
+    if goc_gerekli:
+        ayarlar, goc_uyarilari = goc_uygula(ayarlar)
+        uyarilar.extend(goc_uyarilari)
 
     return ayarlar, uyarilar
 
@@ -190,7 +320,12 @@ def yukle(yol: Path | None = None) -> tuple[dict[str, Any], list[str]]:
             uyarilar.append("ayar dosyası yazılamadı")
         return dogrula({})[0], uyarilar
 
-    return dogrula(ham)
+    ayarlar, uyarilar = dogrula(ham)
+    if _goc_gerekli_mi(ham):
+        # Göç yapıldıysa yeni şemayı dosyaya yazar; göç bir kez çalışır.
+        if not kaydet(ayarlar, dosya):
+            uyarilar.append("ayar dosyası yazılamadı")
+    return ayarlar, uyarilar
 
 
 def _kacis(metin: str) -> str:

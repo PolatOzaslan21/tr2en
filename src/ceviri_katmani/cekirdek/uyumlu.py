@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from urllib.parse import urlsplit
 
 import httpx
@@ -19,7 +20,8 @@ _YEREL_ADLAR = {"localhost", "127.0.0.1", "::1"}
 class UyumluCevirmen:
     def __init__(self, adres: str, model: str, anahtar_degiskeni: str = "",
                  zaman_asimi: float = 15.0, istemci: httpx.Client | None = None,
-                 dusunmeyi_kapat: bool = False):
+                 dusunmeyi_kapat: bool = False,
+                 anahtar_saglayici: Callable[[], str | None] | None = None):
         adres = adres.rstrip("/")
         if not (adres.startswith("https://") or adres.startswith("http://")):
             raise CeviriHatasi("adres http:// ya da https:// ile başlamalı")
@@ -35,6 +37,7 @@ class UyumluCevirmen:
         self.model = model
         self.ad = f"uyumlu:{model}"
         self.anahtar_degiskeni = anahtar_degiskeni
+        self.anahtar_saglayici = anahtar_saglayici
         self.istemci = istemci or httpx.Client(timeout=zaman_asimi)
         # Ollama'daki akıl yürüten küçük modeller (qwen3.5 vb.) düşünürken token sınırına takılıp
         # boş "length" dönüyordu; reasoning_effort="none" 22 sn -> 1 sn (19.11.2026 ölçümü).
@@ -43,7 +46,11 @@ class UyumluCevirmen:
 
     def cevir(self, metin: str, kaynak: str = "tr", hedef: str = "en") -> str:
         anahtar: str | None = None
-        if self.anahtar_degiskeni:
+        if self.anahtar_saglayici is not None:
+            anahtar = self.anahtar_saglayici()
+            if not anahtar:
+                raise CeviriHatasi("API anahtarı tanımlı değil")
+        elif self.anahtar_degiskeni:
             anahtar = anahtar_oku(self.anahtar_degiskeni)
             if not anahtar:
                 raise CeviriHatasi(f"{self.anahtar_degiskeni} tanımlı değil")

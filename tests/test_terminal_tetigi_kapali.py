@@ -153,7 +153,7 @@ def test_otomatik_baslat_gui_baslaticiyi_tercih_eder(tmp_path, monkeypatch):
     (tmp_path / "pythonw.exe").write_bytes(b"")
     (tmp_path / "tr2en.exe").write_bytes(b"")
     monkeypatch.setattr(sys, "executable", str(tmp_path / "python.exe"))
-    assert otomatik_baslat.komut() == f'"{tmp_path / "tr2en.exe"}"'
+    assert otomatik_baslat.komut() == f'"{tmp_path / "tr2en.exe"}" --arka'
 
 
 def test_karisik_secim_turkce_sayilir():

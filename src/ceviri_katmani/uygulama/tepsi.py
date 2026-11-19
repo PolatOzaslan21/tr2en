@@ -52,9 +52,9 @@ class Tepsi:
             traceback.print_exc()
             return False
 
-    def _gemini_secili(self, _item=None) -> bool:
+    def _bulut_secili(self, _item=None) -> bool:
         try:
-            return self.arayuz.cevirmen() == "gemini"
+            return self.arayuz.cevirmen() == "bulut"
         except Exception:
             traceback.print_exc()
             return False
@@ -66,34 +66,34 @@ class Tepsi:
             traceback.print_exc()
             return False
 
-    def _uyumlu_secili(self, _item=None) -> bool:
+    def _bulut_etiketi(self) -> str:
         try:
-            return self.arayuz.cevirmen() == "uyumlu"
+            fn = getattr(self.arayuz, "bulut_adi", None)
+            ad = fn() if fn is not None else ""
         except Exception:
             traceback.print_exc()
-            return False
+            ad = ""
+        return f"Bulut — {ad}" if ad else "Bulut"
 
-    def _uyumlu_tanimli_mi(self) -> bool:
+    def _yerel_etiketi(self) -> str:
         try:
-            fn = getattr(self.arayuz, "uyumlu_tanimli_mi", None)
-            return bool(fn()) if fn is not None else False
+            fn = getattr(self.arayuz, "yerel_adi", None)
+            ad = fn() if fn is not None else ""
         except Exception:
             traceback.print_exc()
-            return False
+            ad = ""
+        return f"Yerel — {ad}" if ad else "Yerel"
 
     # ---- eylem geri çağrıları ----
 
     def _etkin_tiklandi(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.aktif_degistir)
 
-    def _gemini_sec(self, _icon=None, _item=None) -> None:
-        _yut(lambda: self.arayuz.cevirmen_sec("gemini"))
+    def _bulut_sec(self, _icon=None, _item=None) -> None:
+        _yut(lambda: self.arayuz.cevirmen_sec("bulut"))
 
     def _yerel_sec(self, _icon=None, _item=None) -> None:
         _yut(lambda: self.arayuz.cevirmen_sec("yerel"))
-
-    def _uyumlu_sec(self, _icon=None, _item=None) -> None:
-        _yut(lambda: self.arayuz.cevirmen_sec("uyumlu"))
 
     def _kisayol_simdiki(self) -> str | None:
         try:
@@ -144,7 +144,11 @@ class Tepsi:
     def _son_orijinali_kopyala(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.son_orijinali_kopyala)
 
+    def _tr2en_penceresi_ac(self, _icon=None, _item=None) -> None:
+        _yut(self.arayuz.pencere_ac)
+
     def _ayarlari_ac(self, _icon=None, _item=None) -> None:
+        # Menüden kaldırıldı; WebView2 yedek davranışı için korunur.
         _yut(self.arayuz.ayarlari_ac)
 
     def _cikis(self, _icon=None, _item=None) -> None:
@@ -168,29 +172,27 @@ class Tepsi:
         pystray = self._pystray_getir()
         return [
             pystray.MenuItem(
+                "tr2en'i aç",
+                self._tr2en_penceresi_ac,
+                default=True,
+            ),
+            pystray.MenuItem(
                 "Etkin",
                 self._etkin_tiklandi,
                 checked=self._aktif_durum,
-                default=True,
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Çevirmen",
                 pystray.Menu(
                     pystray.MenuItem(
-                        "Gemini (önerilen, yedek: yerel model)",
-                        self._gemini_sec,
-                        checked=self._gemini_secili,
+                        self._bulut_etiketi(),
+                        self._bulut_sec,
+                        checked=self._bulut_secili,
                         radio=True,
                     ),
                     pystray.MenuItem(
-                        "Kendi modelim (OpenAI uyumlu)" if self._uyumlu_tanimli_mi() else "Kendi modelim — ayar dosyasında tanımlayın",
-                        self._uyumlu_sec,
-                        checked=self._uyumlu_secili,
-                        radio=True,
-                    ),
-                    pystray.MenuItem(
-                        "Yalnızca yerel (metin bilgisayardan çıkmaz)",
+                        self._yerel_etiketi(),
                         self._yerel_sec,
                         checked=self._yerel_secili,
                         radio=True,
@@ -215,7 +217,6 @@ class Tepsi:
                 self._otomatik_baslat_tiklandi,
                 checked=self._otomatik_baslat_durum,
             ),
-            pystray.MenuItem("Ayarlar dosyasını aç", self._ayarlari_ac),
             pystray.MenuItem("Çıkış", self._cikis),
         ]
 

@@ -48,12 +48,12 @@ def test_kilit_birak_none_sessiz():
     kilit_birak(None)
 
 
-def test_gizlilik_sor_evet_gemini():
+def test_gizlilik_sor_evet_bulut():
     def kutu(metin, baslik, bayrak):
         assert baslik == "tr2en — Gizlilik"
         return 6
 
-    assert gizlilik_sor(mesaj_kutusu=kutu) == "gemini"
+    assert gizlilik_sor(mesaj_kutusu=kutu) == "bulut"
 
 
 def test_gizlilik_sor_hayir_yerel():
@@ -65,9 +65,11 @@ def test_gizlilik_sor_iptal_none():
 
 
 def test_gizlilik_metin_dolu():
-    assert "Gemini" in METIN
+    assert "Bulut (önerilen: Google Gemini)" in METIN
     assert "Yalnızca yerel" in METIN
     assert "bilgisayarınızdan çıkmaz" in METIN
+    assert "Evet = Bulut" in METIN
+    assert "Hayır = Yerel" in METIN
 
 
 def test_bildirim_sesleri_winotify_da_var():

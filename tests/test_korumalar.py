@@ -69,6 +69,10 @@ OLUMSUZ_TR_DOGRU = [
 
 OLUMSUZ_TR_YANLIS = [
     "bir deneme yaptım",
+    # isim (-ma/-me) + ek fiil -dır/-dir: olumsuz geçmiş zaman (-madı/-medi) değil
+    "Merhaba dünya, bu bir denemedir.",
+    "Asıl sorun bu güncellemedir.",
+    "Bu bir dramadır.",
     "yazma işlemi bitti",
     "kod sorunsuz çalışıyor",
     "bu kodu çalıştır",

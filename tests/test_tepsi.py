@@ -13,7 +13,7 @@ from ceviri_katmani.uygulama.tepsi import Tepsi, simge_uret
 class SahteArayuz:
     def __init__(self):
         self.aktif = True
-        self.cevirmen_ad = "gemini"
+        self.cevirmen_ad = "bulut"
         self.kisayol_deger = "<ctrl>+<shift>+<space>"
         self.islemler = []
         self.son_var = False
@@ -29,6 +29,12 @@ class SahteArayuz:
 
     def cevirmen(self):
         return self.cevirmen_ad
+
+    def bulut_adi(self):
+        return "Google Gemini"
+
+    def yerel_adi(self):
+        return "dahili model"
 
     def kisayol_simdiki(self):
         return self.kisayol_deger
@@ -59,6 +65,9 @@ class SahteArayuz:
     def ayarlari_ac(self):
         self.cagrilar.append("ayarlari_ac")
 
+    def pencere_ac(self):
+        self.cagrilar.append("pencere_ac")
+
     def otomatik_baslat_acik_mi(self):
         return self.otomatik_baslat
 
@@ -84,6 +93,7 @@ def test_menu_sira_ve_adlar(tepsi):
     ogeler = tepsi.menu_ogeleri()
     adlar = [o.text for o in ogeler if o is not pystray.Menu.SEPARATOR]
     assert adlar == [
+        "tr2en'i aç",
         "Etkin",
         "Çevirmen",
         "Son işlemler",
@@ -91,43 +101,49 @@ def test_menu_sira_ve_adlar(tepsi):
         "Son orijinali kopyala",
         "Kısayol",
         "Windows açılışında başlat",
-        "Ayarlar dosyasını aç",
         "Çıkış",
     ]
     ayraclar = [o for o in ogeler if o is pystray.Menu.SEPARATOR]
     assert len(ayraclar) == 2
+    assert "Ayarlar dosyasını aç" not in adlar
+
+
+def test_ayarlari_ac_en_ustte_ve_tek_default(tepsi, arayuz):
+    ogeler = tepsi.menu_ogeleri()
+    assert ogeler[0].text == "tr2en'i aç"
+    assert ogeler[0].default is True
+    varsayilanlar = [o for o in ogeler if o is not pystray.Menu.SEPARATOR and o.default]
+    assert [o.text for o in varsayilanlar] == ["tr2en'i aç"]
+    ogeler[0](None)
+    assert "pencere_ac" in arayuz.cagrilar
 
 
 def test_etkin_checked_ve_default(tepsi, arayuz):
-    etkin = tepsi.menu_ogeleri()[0]
-    assert etkin.default is True
+    etkin = tepsi.menu_ogeleri()[1]
+    assert etkin.default is not True
     assert etkin.checked is True
     arayuz.aktif = False
     assert etkin.checked is False
 
 
 def test_cevirmen_radio_checked(tepsi, arayuz):
-    cevirmen = tepsi.menu_ogeleri()[2]
-    gemini, uyumlu, yerel = list(cevirmen.submenu)
-    assert gemini.radio is True
-    assert uyumlu.radio is True
+    cevirmen = tepsi.menu_ogeleri()[3]
+    bulut, yerel = list(cevirmen.submenu)
+    assert bulut.radio is True
     assert yerel.radio is True
-    assert gemini.checked is True
-    assert uyumlu.checked is False
-    assert yerel.checked is False
-    arayuz.cevirmen_ad = "uyumlu"
-    assert gemini.checked is False
-    assert uyumlu.checked is True
+    assert bulut.checked is True
     assert yerel.checked is False
     arayuz.cevirmen_ad = "yerel"
-    assert gemini.checked is False
-    assert uyumlu.checked is False
+    assert bulut.checked is False
     assert yerel.checked is True
+    arayuz.cevirmen_ad = "bulut"
+    assert bulut.checked is True
+    assert yerel.checked is False
 
 
 def test_son_islemler_bos(tepsi, arayuz):
     arayuz.islemler = []
-    son = tepsi.menu_ogeleri()[3]
+    son = tepsi.menu_ogeleri()[4]
     alt = list(son.submenu)
     assert [o.text for o in alt] == ["Henüz işlem yok"]
     assert alt[0].enabled is False
@@ -135,32 +151,51 @@ def test_son_islemler_bos(tepsi, arayuz):
 
 def test_son_islemler_dolu(tepsi, arayuz):
     arayuz.islemler = ["10:00  cevrildi", "09:59  hata"]
-    son = tepsi.menu_ogeleri()[3]
+    son = tepsi.menu_ogeleri()[4]
     alt = list(son.submenu)
     assert [o.text for o in alt] == ["10:00  cevrildi", "09:59  hata"]
     assert all(o.enabled is False for o in alt)
 
 
 def test_etkin_tiklaninca_aktif_degistir(tepsi, arayuz):
-    etkin = tepsi.menu_ogeleri()[0]
+    etkin = tepsi.menu_ogeleri()[1]
     etkin(None)
     assert "aktif_degistir" in arayuz.cagrilar
 
 
 def test_cevirmen_tiklaninca_sec(tepsi, arayuz):
-    gemini, uyumlu, yerel = list(tepsi.menu_ogeleri()[2].submenu)
+    bulut, yerel = list(tepsi.menu_ogeleri()[3].submenu)
     yerel(None)
     assert ("cevirmen_sec", "yerel") in arayuz.cagrilar
-    gemini(None)
-    assert ("cevirmen_sec", "gemini") in arayuz.cagrilar
-    uyumlu(None)
-    assert ("cevirmen_sec", "uyumlu") in arayuz.cagrilar
+    bulut(None)
+    assert ("cevirmen_sec", "bulut") in arayuz.cagrilar
+
+
+def test_cevirmen_alt_menusu_iki_oge(tepsi, arayuz):
+    ogeler = list(tepsi.menu_ogeleri()[3].submenu)
+    assert [o.text for o in ogeler] == ["Bulut — Google Gemini", "Yerel — dahili model"]
+    assert all(o.radio is True for o in ogeler)
+    assert ogeler[0].checked is True
+    assert ogeler[1].checked is False
+    arayuz.cevirmen_ad = "yerel"
+    assert ogeler[0].checked is False
+    assert ogeler[1].checked is True
+
+
+def test_cevirmen_etiket_yoksa_kisa_ad():
+    class EtiketsizArayuz(SahteArayuz):
+        bulut_adi = None
+        yerel_adi = None
+
+    tepsi = Tepsi(EtiketsizArayuz())
+    ogeler = list(tepsi.menu_ogeleri()[3].submenu)
+    assert [o.text for o in ogeler] == ["Bulut", "Yerel"]
 
 
 def test_son_ceviri_eylemleri(tepsi, arayuz):
     arayuz.son_var = True
-    goster = tepsi.menu_ogeleri()[4]
-    kopyala = tepsi.menu_ogeleri()[5]
+    goster = tepsi.menu_ogeleri()[5]
+    kopyala = tepsi.menu_ogeleri()[6]
     assert goster.enabled is True
     assert kopyala.enabled is True
     goster(None)
@@ -171,17 +206,22 @@ def test_son_ceviri_eylemleri(tepsi, arayuz):
 
 def test_son_ceviri_yoksa_pasif(tepsi, arayuz):
     arayuz.son_var = False
-    assert tepsi.menu_ogeleri()[4].enabled is False
     assert tepsi.menu_ogeleri()[5].enabled is False
+    assert tepsi.menu_ogeleri()[6].enabled is False
 
 
 def test_ayarlar_ve_cikis(tepsi, arayuz):
-    ayarlar = tepsi.menu_ogeleri()[9]
+    ayarlar = tepsi.menu_ogeleri()[0]
     cikis = tepsi.menu_ogeleri()[10]
     ayarlar(None)
-    assert "ayarlari_ac" in arayuz.cagrilar
+    assert "pencere_ac" in arayuz.cagrilar
     cikis(None)
     assert "cikis" in arayuz.cagrilar
+
+def test_ayarlari_ac_yontemi_kaldi(tepsi, arayuz):
+    """Menüden kalktı ama yedek davranış için yöntem duruyor."""
+    tepsi._ayarlari_ac(None, None)
+    assert "ayarlari_ac" in arayuz.cagrilar
 
 
 class SahteIcon:
@@ -208,7 +248,7 @@ def test_geri_cagri_istisnasi_yutulur(tepsi, arayuz, monkeypatch):
         raise RuntimeError("patladi")
 
     arayuz.aktif_degistir = patlar
-    etkin = tepsi.menu_ogeleri()[0]
+    etkin = tepsi.menu_ogeleri()[1]
     etkin(None)  # yükselmemeli
     assert kayit
 
@@ -231,7 +271,7 @@ def test_simge_uret_boyut():
 
 
 def test_kisayol_alt_menusu_secenekler_ve_secim(tepsi):
-    alt = [o for o in tepsi.menu_ogeleri()[7].submenu if o is not pystray.Menu.SEPARATOR]
+    alt = [o for o in tepsi.menu_ogeleri()[8].submenu if o is not pystray.Menu.SEPARATOR]
     assert [o.text for o in alt] == ["Ctrl+Shift+Space", "Ctrl+Shift+Y", "Kendi kısayolum…"]
     assert [o.checked for o in alt[:2]] == [True, False]
     alt[1](None)
@@ -240,13 +280,13 @@ def test_kisayol_alt_menusu_secenekler_ve_secim(tepsi):
 
 def test_kisayol_ozel_deger_gosterilir(tepsi):
     tepsi.arayuz.kisayol_deger = "<ctrl>+<shift>+k"
-    alt = [o for o in tepsi.menu_ogeleri()[7].submenu if o is not pystray.Menu.SEPARATOR]
+    alt = [o for o in tepsi.menu_ogeleri()[8].submenu if o is not pystray.Menu.SEPARATOR]
     assert alt[-2].text == "Özel: Ctrl+Shift+K"
     assert alt[-2].enabled is False
 
 
 def test_kendi_kisayolum_kaydi_baslatir(tepsi):
-    alt = [o for o in tepsi.menu_ogeleri()[7].submenu if o is not pystray.Menu.SEPARATOR]
+    alt = [o for o in tepsi.menu_ogeleri()[8].submenu if o is not pystray.Menu.SEPARATOR]
     alt[-1](None)
     assert "kisayol_kaydet_baslat" in tepsi.arayuz.cagrilar
 
@@ -255,19 +295,19 @@ def test_otomatik_baslat_oge_sira(tepsi):
     ogeler = tepsi.menu_ogeleri()
     adlar = [o.text for o in ogeler if o is not pystray.Menu.SEPARATOR]
     assert adlar.index("Windows açılışında başlat") == adlar.index("Kısayol") + 1
-    assert adlar.index("Windows açılışında başlat") == adlar.index("Ayarlar dosyasını aç") - 1
-    assert ogeler[8].text == "Windows açılışında başlat"
+    assert adlar.index("Windows açılışında başlat") == adlar.index("Çıkış") - 1
+    assert ogeler[9].text == "Windows açılışında başlat"
 
 
 def test_otomatik_baslat_checked(tepsi, arayuz):
-    oge = tepsi.menu_ogeleri()[8]
+    oge = tepsi.menu_ogeleri()[9]
     assert oge.checked is False
     arayuz.otomatik_baslat = True
     assert oge.checked is True
 
 
 def test_otomatik_baslat_tiklaninca_degistir(tepsi, arayuz):
-    oge = tepsi.menu_ogeleri()[8]
+    oge = tepsi.menu_ogeleri()[9]
     oge(None)
     assert "otomatik_baslat_degistir" in arayuz.cagrilar
     assert arayuz.otomatik_baslat is True
