@@ -20,12 +20,14 @@ _ONSOZ = re.compile(
 
 
 def temizle_ve_dogrula(girdi: str, cikti: str) -> str:
-    """Çıktıyı temizler; uzunluk şüpheliyse KorumaHatasi fırlatır."""
+    """Çıktıyı temizler; uzunluk şüpheliyse ya da sonuç boşsa KorumaHatasi fırlatır."""
     g = girdi.strip()
     sonuc = cikti.strip()
     sonuc = _kod_sarisi_kaldir(g, sonuc)
     sonuc = _onsoz_kaldir(sonuc)
     sonuc = _tirnak_sarisi_kaldir(g, sonuc)
+    if not sonuc.strip():
+        raise KorumaHatasi("çeviri çıktısı boş")
     _uzunluk_dogrula(g, sonuc)
     return sonuc
 
@@ -43,7 +45,12 @@ def _kod_sarisi_kaldir(girdi: str, cikti: str) -> str:
 
 
 def _onsoz_kaldir(cikti: str) -> str:
-    """Baştaki önsöz satırlarını kaldırır; en fazla 5 tur dener."""
+    """Baştaki önsöz satırlarını kaldırır; en fazla 5 tur dener.
+
+    Kural: önsöz yalnızca (a) iki nokta ile bitiyorsa ya da (b) satırın
+    tamamı önsözden ibaretse (ayrı satır) kaldırılır. Aynı satırda devam eden
+    gerçek çeviri silinmez.
+    """
     for _ in range(5):
         ham = cikti.lstrip()
         if not ham:
@@ -54,14 +61,17 @@ def _onsoz_kaldir(cikti: str) -> str:
             return ham
         son = satir[m.end():]
         if m.group(0).rstrip().endswith(":"):
+            # önsöz iki nokta ile bitiyor -> satırın kalanı gerçek çeviri
+            cikti = son.lstrip() + ("\n" + digerleri if digerleri else "")
+        elif not son.strip():
+            # önsöz tek başına bir satır -> satırı düşür, sonrakine geç
+            cikti = digerleri
+        elif _ONSOZ.match(son.lstrip()):
+            # "Sure! Here is the translation:" gibi zincir önsöz -> kalanı işle
             cikti = son.lstrip() + ("\n" + digerleri if digerleri else "")
         else:
-            kesme = _iki_nokta(son, m.end())
-            if kesme is not None:
-                devami = satir[kesme:].lstrip()
-                cikti = (devami + "\n" + digerleri) if digerleri else devami
-            else:
-                cikti = digerleri
+            # aynı satırda gerçek çeviri var -> dokunma
+            return ham
         if not cikti.strip():
             return ""
     return cikti.lstrip()

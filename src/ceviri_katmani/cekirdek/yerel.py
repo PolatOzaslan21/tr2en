@@ -67,20 +67,22 @@ class YerelCevirmen:
             raise CeviriHatasi("yerel model yalnızca tr->en")
         if not metin.strip():
             return metin
-        self._yukle()
         satir_parcalari = parcala(metin)
-        girdiler: list[list[str]] = []
+        girdiler: list[str] = []
         konumlar: list[tuple[int, int]] = []
         for satir_i, parcalar in enumerate(satir_parcalari):
             for parca_i, parca in enumerate(parcalar):
                 if _ingilizce_gibi(parca):
                     continue  # zaten İngilizce parça olduğu gibi kalır (önceki çeviriyle karışık seçim)
-                girdiler.append(self._src.encode(parca, out_type=str) + ["</s>"])
+                girdiler.append(parca)
                 konumlar.append((satir_i, parca_i))
         if not girdiler:
-            return "\n".join("" for _ in satir_parcalari)
+            # çevrilecek parça yok -> özgün metni aynen döndür (model yüklenmez)
+            return metin
+        self._yukle()
+        kodlanmis = [self._src.encode(parca, out_type=str) + ["</s>"] for parca in girdiler]
         ceviriler = self._translator.translate_batch(
-            girdiler, beam_size=4, max_decoding_length=MAX_DECODING_LENGTH,
+            kodlanmis, beam_size=4, max_decoding_length=MAX_DECODING_LENGTH,
         )
         cikti = [list(p) for p in satir_parcalari]
         for (satir_i, parca_i), cevirilen in zip(konumlar, ceviriler):

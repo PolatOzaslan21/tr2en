@@ -19,11 +19,16 @@ _TR_KELIMELER = frozenset((
     "nasıl", "neden", "tamam",
     # ek yaygın emir/olay kalıpları (test örnekleri gereği)
     "yapma", "et",
+    # kısa/sık selamlama, emir ve adlar (özel harfsiz Türkçe sözcükler)
+    "merhaba", "selam", "gel", "kedi", "evet", "hayır", "lütfen", "teşekkürler",
 ))
 
 _EN_KELIMELER = frozenset((
     "the", "and", "is", "are", "to", "of", "in", "for", "with",
     "this", "that", "it", "you", "not", "be", "do", "does",
+    "hello", "hi", "thanks", "please", "what", "how", "why", "when",
+    "where", "can", "will", "would", "should", "have", "has", "was",
+    "were", "my", "your", "we", "they", "he", "she",
 ))
 
 # Kelime sonu ek kalıpları; arkasından en çok 3 harf daha gelebilir
@@ -56,3 +61,22 @@ def turkce_mi(metin: str) -> bool:
         elif _EK.search(kelime):
             puan += 1
     return puan > 0
+
+
+def ingilizce_var_mi(metin: str) -> bool:
+    """Metinde en az bir yaygın İngilizce sözcük var mı."""
+    if not metin or not metin.strip():
+        return False
+    maskeli, _ = maskele(metin)
+    maskeli = re.sub(r"\bI\b", "i", maskeli)
+    temiz = _YER.sub(" ", _tr_kucuk(maskeli))
+    return any(kelime in _EN_KELIMELER for kelime in _KELIME.findall(temiz))
+
+
+def harf_var_mi(metin: str) -> bool:
+    """Metinde en az bir alfabetik karakter var mı (emoji/simge hariç)."""
+    if not metin:
+        return False
+    maskeli, _ = maskele(metin)
+    temiz = _YER.sub(" ", _tr_kucuk(maskeli))
+    return bool(_KELIME.search(temiz))
