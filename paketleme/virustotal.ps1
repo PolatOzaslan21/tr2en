@@ -169,6 +169,11 @@ try {
             }
         } catch {
             Write-Host "Yükleme başarısız: $($is.ad) — $(Guvenli-Metin $_.Exception.Message)"
+            # VT hata gövdesi (ör. {"error":{"code":...,"message":...}}); anahtar içermez, yine de süzülür.
+            if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+                Write-Host "  ayrıntı: $(Guvenli-Metin $_.ErrorDetails.Message)"
+            }
+            Write-Host "  adım: $($_.InvocationInfo.ScriptLineNumber). satır"
         }
         $isler += $is
     }
