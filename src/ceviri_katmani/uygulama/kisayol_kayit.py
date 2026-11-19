@@ -28,7 +28,26 @@ BILINEN_CAKISMALAR: dict[str, str] = {
     "ctrl+shift+s": "birçok programda 'Farklı kaydet'tir",
     "ctrl+shift+z": "birçok programda yinele (redo) işlemidir",
     "ctrl+shift+enter": "Excel'de dizi formülü girer",
+    "ctrl+f4": "birçok programda sekmeyi/belgeyi kapatır",
+    "ctrl+space": "bazı programlarda otomatik tamamlamayı ya da giriş dilini açar",
+    "alt+space": "pencere menüsünü açar",
+    "ctrl+q": "bazı programlardan çıkar",
+    "ctrl+w": "tarayıcılarda sekmeyi kapatır",
+    "ctrl+t": "tarayıcılarda yeni sekme açar",
+    "ctrl+n": "birçok programda yeni pencere/belge açar",
+    "ctrl+p": "yazdırma penceresini açar",
+    "ctrl+f": "arama kutusunu açar",
 }
+
+# Kesinlikle reddedilenler: tr2en seçili metni Ctrl+C ile alıp Ctrl+V ile yapıştırır;
+# bunlar ve en temel düzenleme kısayolları kısayol olursa iş bozulur.
+YASAK: dict[str, str] = {
+    **{f"ctrl+{h}": "temel bir düzenleme kısayolu (kopyala, yapıştır, kes, geri al, yinele, tümünü seç, kaydet)"
+       for h in "cvxzyas"},
+    "alt+f4": "pencereyi kapatır",
+}
+
+ONERILEN = "Ctrl+Shift+Space"
 
 
 def tus_gecerli_mi(tus: str) -> bool:
@@ -51,12 +70,17 @@ def birlesim_olustur(degistiriciler: set[str], tus: str | None) -> tuple[str | N
     if "ctrl" in mods and "alt" in mods:
         return None, "Ctrl+Alt (AltGr) Türkçe klavyede ₺, @, € gibi işaretleri yazar; başka bir birleşim seçin."
     fonksiyon_tusu = tus.startswith("f") and len(tus) > 1
-    if len(mods) < 2 and not (mods and fonksiyon_tusu):
-        return None, "En az iki değiştirici tuş gerekir (ör. Ctrl+Shift+K); F tuşlarıyla tek değiştirici yeter (ör. Ctrl+F9)."
+    if not mods or (mods == {"shift"} and not fonksiyon_tusu):
+        return None, "Ctrl ya da Alt ile birlikte basın (ör. Ctrl+Shift+K); yalnızca Shift büyük harf yazar."
     sirali = [m for m in DEGISTIRICILER if m in mods]
     ad = "+".join(sirali + [tus])
-    uyari = BILINEN_CAKISMALAR.get(ad, "")
-    if uyari:
-        uyari = f"Dikkat: bu kısayol {uyari}; orada o işlem çalışmayabilir."
+    if ad in YASAK:
+        return None, f"Bu kısayol {YASAK[ad]}; tr2en bunu kullanamaz."
+    uyarilar = []
+    if ad in BILINEN_CAKISMALAR:
+        uyarilar.append(f"Dikkat: bu kısayol {BILINEN_CAKISMALAR[ad]}; orada o işlem çalışmayabilir.")
+    if len(mods) < 2 and not fonksiyon_tusu:
+        uyarilar.append(f"Tek değiştiricili kısayollar başka programlarla daha sık çakışır; sorun olursa önerilen {ONERILEN}'e dönün.")
+    uyari = " ".join(uyarilar)
     tus_pynput = tus if len(tus) == 1 else f"<{tus}>"
     return "+".join([f"<{m}>" for m in sirali] + [tus_pynput]), uyari

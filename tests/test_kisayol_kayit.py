@@ -18,7 +18,11 @@ def test_gecerli_birlesimler(mods, tus, beklenen):
 
 
 @pytest.mark.parametrize("mods,tus", [
-    ({"ctrl"}, "k"),               # tek değiştirici + harf: Ctrl+C/V gibi temel kısayolları ezer
+    ({"ctrl"}, "c"),               # tr2en'in kendi kopyalaması
+    ({"ctrl"}, "v"),
+    ({"ctrl"}, "z"),
+    ({"alt"}, "f4"),
+    ({"shift"}, "k"),              # büyük harf yazar
     (set(), "f9"),                 # değiştiricisiz
     ({"ctrl", "alt"}, "t"),        # AltGr
     ({"ctrl", "shift"}, None),     # desteklenmeyen tuş
@@ -28,6 +32,14 @@ def test_gecerli_birlesimler(mods, tus, beklenen):
 def test_reddedilenler(mods, tus):
     kisayol, mesaj = birlesim_olustur(mods, tus)
     assert kisayol is None and mesaj
+
+
+def test_tek_degistirici_uyariyla_kabul():
+    kisayol, mesaj = birlesim_olustur({"ctrl"}, "k")
+    assert kisayol == "<ctrl>+k" and "Ctrl+Shift+Space" in mesaj
+    kisayol, mesaj = birlesim_olustur({"alt"}, "j")
+    assert kisayol == "<alt>+j" and mesaj
+    assert birlesim_olustur({"ctrl", "shift"}, "k") == ("<ctrl>+<shift>+k", "")
 
 
 def test_bilinen_cakisma_uyarir_ama_kabul_eder():

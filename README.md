@@ -99,7 +99,7 @@ Gemini **önerilen** seçenek, ama zorunlu değil. OpenAI uyumlu API sunan her s
 
 Tepsi menüsü: etkinleştir/duraklat, çevirmen, kısayol (Ctrl+Shift+Space / Ctrl+Shift+Y ya da **Kendi kısayolum…**), son işlemler, son çeviriyi göster, son orijinali kopyala, Windows açılışında başlat.
 
-**Kendi kısayolum…:** seçince 10 saniye içinde istediğiniz birleşime basın (ör. Ctrl+Shift+K; Esc vazgeçer). En az iki değiştirici tuş gerekir (F tuşlarında Ctrl+F9 gibi tek değiştirici yeter); Ctrl+Alt kabul edilmez, çünkü Türkçe klavyede AltGr ile aynıdır (₺, @ yazar). **Uyarı:** seçtiğiniz kısayolu başka bir program da kullanıyorsa o programda o işlem çalışmayabilir; bilinen çakışmalarda (ör. Ctrl+Shift+T tarayıcıda kapatılan sekmeyi açar) tr2en sizi uyarır.
+**Kendi kısayolum…:** seçince 10 saniye içinde istediğiniz birleşime basın (ör. Ctrl+Shift+K; Esc vazgeçer). Ctrl ya da Alt gerekir. Kabul edilmeyenler: Ctrl+C/V/X/Z/Y/A/S (tr2en kopyala-yapıştırla çalışır), Alt+F4 ve Ctrl+Alt (Türkçe klavyede AltGr ile aynıdır, ₺ @ yazar). **Uyarı:** kendi kısayolunuz başka bir programın kısayoluyla çakışırsa o programda o işlem ya da tr2en düzgün çalışmayabilir; tek değiştiricili kısayollar (ör. Ctrl+Q) daha sık çakışır. Bilinen çakışmalarda tr2en uyarır. **Önerilen: varsayılan Ctrl+Shift+Space.**
 
 Diğer her şey `%APPDATA%\tr2en\ayarlar.toml` dosyasında (tepsiden "Ayarlar dosyasını aç"): zaman aşımı, Gemini modeli, kendi modeliniz, yasaklı uygulamalar, sona boşluk. Değiştirdikten sonra uygulamayı yeniden başlatın.
 
