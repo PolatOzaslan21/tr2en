@@ -1,6 +1,7 @@
 [project]
 name = "tr2en"
 version = "0.1.0"
+readme = "README.md"
 description = "Yerel Türkçe → İngilizce çeviri katmanı: metni seç, kısayola bas. Local Turkish to English translator for Windows (offline model + optional Gemini)."
 license = "MIT"
 keywords = ["turkish", "turkce", "ceviri", "translation", "turkish-english", "offline-translation", "local", "windows"]
