@@ -17,7 +17,7 @@ tr2en-cli = "ceviri_katmani.cli:main"
 tr2en-konsol = "ceviri_katmani.uygulama.ana:main"
 
 [project.gui-scripts]
-tr2en = "ceviri_katmani.uygulama.ana:main"
+tr2en = "ceviri_katmani.uygulama.arkaplan:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ceviri_katmani"]
