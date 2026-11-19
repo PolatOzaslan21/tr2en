@@ -43,5 +43,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view $env:SURUM *> $null
-          if ($LASTEXITCODE -ne 0) { gh release create $env:SURUM --generate-notes --latest --title "tr2en $env:SURUM" }
+          if ($LASTEXITCODE -ne 0) { gh release create $env:SURUM --generate-notes --latest --title "tr2en $env:SURUM (Beta)" }
           gh release upload $env:SURUM (Get-ChildItem dist/*.zip, dist/*.sha256).FullName --clobber
