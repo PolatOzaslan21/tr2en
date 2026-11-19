@@ -26,6 +26,7 @@ _PAKET_DOSYASI = Path(__file__).with_name("sozluk.tsv")
 
 _AYRAC = "QZS"
 _YER_TAMAM = re.compile(r"QZS(\d+)QZS", re.IGNORECASE)
+_TOKEN_KALIBI = re.compile(r"(?:ZXQ|QZS)\d+(?:ZXQ|QZS)", re.IGNORECASE)
 
 _HARFLER = "a-z0-9çğıöşü_"
 
@@ -171,38 +172,52 @@ class SozlukluCevirmen:
         if self._desen is None:
             return metin, []
         kucuk = _kucuk_tr(metin)
-        parcalar: list[str] = []
-        cikti: list[str] = []
-        son = 0
+        eslesmeler: list[tuple[int, int, str]] = []
         for m in self._desen.finditer(kucuk):
             if m.lastgroup is None:
                 continue
-            indeks = len(parcalar)
-            parcalar.append(self._ingilizceler[int(m.lastgroup[1:])])
-            cikti.append(metin[son : m.start()])
-            cikti.append(f"{_AYRAC}{indeks}{_AYRAC}")
-            son = m.end()
-        if not parcalar:
+            eslesmeler.append((m.start(), m.end(), self._ingilizceler[int(m.lastgroup[1:])]))
+        for m in _TOKEN_KALIBI.finditer(kucuk):
+            eslesmeler.append((m.start(), m.end(), metin[m.start():m.end()]))
+        if not eslesmeler:
             return metin, []
+        eslesmeler.sort(key=lambda t: t[0])
+        parcalar: list[str] = []
+        cikti: list[str] = []
+        son = 0
+        for baslangic, bitis, parca in eslesmeler:
+            if baslangic < son:
+                continue  # iç içe çakışan eşleşmeyi atla
+            indeks = len(parcalar)
+            parcalar.append(parca)
+            cikti.append(metin[son:baslangic])
+            cikti.append(f"{_AYRAC}{indeks}{_AYRAC}")
+            son = bitis
         cikti.append(metin[son:])
         return "".join(cikti), parcalar
 
     @staticmethod
     def _geri_koy(metin: str, parcalar: list[str]) -> str:
-        bulunan: set[int] = set()
+        if not parcalar:
+            return metin
+        sayilar: dict[int, int] = {}
+        for m in _YER_TAMAM.finditer(metin):
+            indeks = int(m.group(1))
+            sayilar[indeks] = sayilar.get(indeks, 0) + 1
+        for i in range(len(parcalar)):
+            adet = sayilar.get(i, 0)
+            if adet == 0:
+                raise KorumaHatasi(f"sözlük yer tutucusu kayboldu: {i}")
+            if adet > 1:
+                raise KorumaHatasi(f"sözlük yer tutucusu çoğaldı: {i}")
+        fazla = [i for i in sayilar if i >= len(parcalar)]
+        if fazla:
+            raise KorumaHatasi(f"fazladan sözlük yer tutucusu: {fazla}")
 
         def degistir(m: re.Match) -> str:
-            indeks = int(m.group(1))
-            if indeks < len(parcalar):
-                bulunan.add(indeks)
-                return parcalar[indeks]
-            return m.group(0)
+            return parcalar[int(m.group(1))]
 
-        sonuc = _YER_TAMAM.sub(degistir, metin)
-        eksik = [i for i in range(len(parcalar)) if i not in bulunan]
-        if eksik:
-            raise KorumaHatasi(f"sözlük yer tutucusu kayboldu: {eksik}")
-        return sonuc
+        return _YER_TAMAM.sub(degistir, metin)
 
     def cevir(self, metin: str, kaynak: str = "tr", hedef: str = "en") -> str:
         if kaynak != "tr" or hedef != "en" or self._desen is None:

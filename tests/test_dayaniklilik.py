@@ -252,7 +252,6 @@ def test_gemini_ksa_aciklama_uzunluk_kontrolu_yakalar(gemini_anahtar):
     assert zincir.son_kullanilan == "yerel:tc-big"
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU: finishReason MAX_TOKENS (kesik çeviri) kontrol edilmiyor")
 def test_gemini_max_tokens_yarim_ceviri_yakalanmali(gemini_anahtar):
     """finishReason=MAX_TOKENS kesinti demektir. Uzun ve olumsuzluk içermeyen bir
     metnin kesik çevirisi uzunluk denetiminden geçtiği için sessizce kullanıcıya
@@ -394,7 +393,6 @@ def test_indirme_sha_tutmazsa_hedef_korunur(tmp_path, monkeypatch):
     assert not (tmp_path / "model.indiriliyor").exists()
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU ÖNEMLİ: disk dolu (OSError) IndirmeHatasi'na sarılmıyor, ham sızıyor")
 def test_indirme_disk_dolu_indirme_hatasi_olmali(tmp_path, monkeypatch):
     """Disk dolu (OSError) → ham OSError değil IndirmeHatasi beklenir; CLI yalnız
     IndirmeHatasi yakaladığı için aksi hâlde kullanıcıya traceback gösterilir."""
@@ -412,7 +410,6 @@ def test_indirme_disk_dolu_indirme_hatasi_olmali(tmp_path, monkeypatch):
         indir.model_indir(tmp_path / "model", istemci=_sahte_istemci(handler))
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU ÖNEMLİ: hedef kilitli (PermissionError) IndirmeHatasi'na sarılmıyor")
 def test_indirme_hedef_kilitli_indirme_hatasi_olmali(tmp_path, monkeypatch):
     """Hedef klasör kilitli (os.replace PermissionError) → IndirmeHatasi beklenir."""
     icerikler = {"model.bin": b"veri"}
@@ -446,7 +443,6 @@ def test_indirme_hata_sonrasi_gecici_klasor_temizlenir(tmp_path, monkeypatch):
     assert not (tmp_path / "model.indiriliyor").exists()
 
 
-@pytest.mark.xfail(strict=False, reason="BULGU KRİTİK: os.replace başarısız olursa önceki geçerli model rmtree ile silinmiş oluyor")
 def test_indirme_kilitli_swap_onceden_kurulu_modeli_kaybetmez(tmp_path, monkeypatch):
     """Zaten indirilmiş geçerli model üzerine yeniden indirme sırasında swap
     başarısız olursa (hedef kilitli), mevcut kurulum YOK OLMAMALI. Şu an kod

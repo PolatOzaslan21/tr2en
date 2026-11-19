@@ -1,12 +1,15 @@
 """Gemini API çevirmeni (Google AI Studio ücretsiz anahtarı)."""
 from __future__ import annotations
 
+import re
+
 import httpx
 
 from .anahtar import anahtar_oku
 from .cevirmen import CeviriHatasi
 
 DILLER = {"tr": "Turkish", "en": "English"}
+_MODEL_KALIBI = re.compile(r"^[A-Za-z0-9._-]+$")
 TALIMAT = (
     "Translate the user's {kaynak} text to {hedef}. Output ONLY the translation, nothing else. "
     "Keep code, file paths, URLs, commands and technical terms unchanged. "
@@ -19,6 +22,8 @@ URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateC
 class GeminiCevirmen:
     def __init__(self, model: str = "gemini-3.5-flash-lite", anahtar_degiskeni: str = "GEMINI_API_KEY",
                  zaman_asimi: float = 4.0, istemci: httpx.Client | None = None):
+        if not _MODEL_KALIBI.match(model):
+            raise CeviriHatasi("geçersiz model adı")
         self.model = model
         self.ad = f"gemini:{model}"
         self.anahtar_degiskeni = anahtar_degiskeni
@@ -47,9 +52,13 @@ class GeminiCevirmen:
                 mesaj = r.text[:120]
             raise CeviriHatasi(f"HTTP {r.status_code}: {mesaj}")
         try:
-            parcalar = r.json()["candidates"][0]["content"]["parts"]
+            aday = r.json()["candidates"][0]
         except (KeyError, IndexError, ValueError) as e:
             raise CeviriHatasi("beklenmeyen cevap biçimi") from e
+        bitis = aday.get("finishReason", "STOP")
+        if bitis != "STOP":
+            raise CeviriHatasi(f"tamamlanmamış çeviri: {bitis}")
+        parcalar = aday.get("content", {}).get("parts", [])
         sonuc = "".join(p.get("text", "") for p in parcalar if not p.get("thought")).strip()
         if not sonuc:
             raise CeviriHatasi("boş çeviri")

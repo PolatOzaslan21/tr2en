@@ -36,8 +36,10 @@ _YER_TAMAM = re.compile(r"ZXQ(\d+)ZXQ")
 # Öncelik sırası alternasyon sırasıyla aynıdır; finditer soldan sağa,
 # çakışmayan eşleşmeler döndürdüğü için iç içe eşleşme olmaz.
 _PARCALAR = re.compile(
+    # 0) kullanıcının metninde zaten var olan yer tutucu biçimleri (çakışmayı önler)
+    r"ZXQ\d+ZXQ|QZS\d+QZS"
     # 1) ``` ile çevrili kod bloğu (dil etiketi dahil, çok satırlı)
-    r"```[^\n]*\n.*?```"
+    r"|```[^\n]*\n.*?```"
     # 2) satır içi kod
     r"|`[^`\n]+`"
     # 3) URL
@@ -84,32 +86,43 @@ def geri_koy(metin: str, parcalar: list[str]) -> str:
 
     Çeviri modeli yer tutucunun etrafına boşluk eklemiş/silmiş olabilir;
     eşleşme yer tutucu simgesinin kendisinde arandığı için bu tolere edilir.
-    Herhangi bir yer tutucu bulunamazsa KorumaHatasi fırlatır.
+    Her yer tutucu TAM OLARAK bir kez bulunmalı; eksik, çoğalmış ya da
+    beklenmeyen (indeks aralığı dışında) yer tutucu KorumaHatasi fırlatır.
     """
     if not parcalar:
         return metin
-    bulunan: set[int] = set()
+    sayilar: dict[int, int] = {}
+    for m in _YER_TAMAM.finditer(metin):
+        indeks = int(m.group(1))
+        sayilar[indeks] = sayilar.get(indeks, 0) + 1
+    for i in range(len(parcalar)):
+        adet = sayilar.get(i, 0)
+        if adet == 0:
+            raise KorumaHatasi(f"yer tutucu bulunamadı: {i}")
+        if adet > 1:
+            raise KorumaHatasi(f"yer tutucu çoğaldı: {i}")
+    fazla = [i for i in sayilar if i >= len(parcalar)]
+    if fazla:
+        raise KorumaHatasi(f"fazladan yer tutucu: {fazla}")
 
     def degistir(m: re.Match) -> str:
-        indeks = int(m.group(1))
-        if indeks < len(parcalar):
-            bulunan.add(indeks)
-            return parcalar[indeks]
-        return m.group(0)
+        return parcalar[int(m.group(1))]
 
-    sonuc = _YER_TAMAM.sub(degistir, metin)
-    eksik = [i for i in range(len(parcalar)) if i not in bulunan]
-    if eksik:
-        raise KorumaHatasi(f"yer tutucu bulunamadı: {eksik}")
-    return sonuc
+    return _YER_TAMAM.sub(degistir, metin)
 
 
 _NEG_SABIT = ("değil", "yok", "asla", "sakın", "hiçbir", "hiç")
 
+# Sonda -ma/-me ile biten ama olumsuz OLMAYAN yaygın kök isimler.
+_MA_ME_ISTISNA = frozenset({
+    "elma", "firma", "tema", "şema", "forma", "prima",
+    "dama", "lama", "yama", "sima",
+})
+
 _NEG_EK = re.compile(
     rf"[{_HARF_KUCUK}]+(?:"
-    # kişi/zaman ekleri gelebilir: istemiyorum, yapmadık, güncellemeyeceğiz
-    rf"(?:m[ıiuü]yor|m[ae]d[ıi]|m[ae]y[ae]c[ae][kğ])[{_HARF_KUCUK}]*"
+    # kişi/zaman ekleri gelebilir: istemiyorum, yapmadık, güncellemeyeceğiz, silmemişler
+    rf"(?:m[ıiuü]yor|m[ae]d[ıi]|m[ae]y[ae]c[ae][kğ]|m[ae]m[ıi]ş)[{_HARF_KUCUK}]*"
     # -maz/-mez yalnızca sonda ya da s/l ile devam (amazon gibi yanlış eşleşmeyi önler)
     rf"|m[ae]z(?:[sl][{_HARF_KUCUK}]*)?"
     rf"|m[ae]d[ae]n|m[ae]m[ae]l[ıi]|m[ae]y[ıi]n|m[ae]s[ıi]n"
@@ -146,13 +159,16 @@ def olumsuz_tr(metin: str) -> bool:
         kelime = mm.group(0)
         if len(kelime) < 4 or not kelime.endswith(("ma", "me")):
             continue
+        if kelime in _MA_ME_ISTISNA:
+            continue
         if _SONRASI.match(m, mm.end()):
             return True
     return False
 
 
 _NEG_EN = re.compile(
-    r"\b(?:not|never|no|none|nothing|nor|without|avoid|stop|ignore|skip|neither|cannot)\b"
+    r"\b(?:not|never|no|none|nothing|nor|without|avoid|stop|ignore|skip|neither|cannot"
+    r"|unable|unless|fail|failed|fails|nobody|nowhere)\b"
     r"|n['’]t\b"
     r"|\binstead\s+of\b",
     re.IGNORECASE,

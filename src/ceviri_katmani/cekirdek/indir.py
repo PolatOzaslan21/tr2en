@@ -88,14 +88,30 @@ def model_indir(
                                 ilerleme(indirilen, toplam)
             except IndirmeHatasi:
                 raise
+            except OSError as e:
+                raise IndirmeHatasi(f"{ad} yazılamadı: {type(e).__name__}") from e
             except httpx.HTTPError as e:
                 raise IndirmeHatasi(f"{ad} indirilemedi: {type(e).__name__}") from e
             if alinan != boyut or ozet.hexdigest() != sha:
                 raise IndirmeHatasi(f"{ad} doğrulanamadı")
 
+        eski = klasor.parent / (klasor.name + ".eski")
         if klasor.exists():
-            shutil.rmtree(klasor)
-        os.replace(gecici, klasor)
+            shutil.rmtree(eski, ignore_errors=True)
+            try:
+                os.replace(klasor, eski)
+            except OSError as e:
+                raise IndirmeHatasi(f"mevcut model yedeklenemedi: {type(e).__name__}") from e
+        try:
+            os.replace(gecici, klasor)
+        except OSError as e:
+            if eski.exists() and not klasor.exists():
+                try:
+                    os.replace(eski, klasor)
+                except OSError:
+                    pass
+            raise IndirmeHatasi(f"model taşınamadı: {type(e).__name__}") from e
+        shutil.rmtree(eski, ignore_errors=True)
     except BaseException:
         shutil.rmtree(gecici, ignore_errors=True)
         raise

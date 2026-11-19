@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from .cevirmen import CevirmenZinciri
 from .bolme import parcala
-from .dil import turkce_mi
+from .dil import harf_var_mi, ingilizce_var_mi, turkce_mi
 from .gemini import GeminiCevirmen
 from .korumalar import KorumaliCevirmen
 from .sozluk import SozlukluCevirmen
@@ -38,9 +38,9 @@ def _turkce_var_mi(metin: str) -> bool:
 
 
 def akilli_cevir(zincir: CevirmenZinciri, metin: str, dil_kontrolu: bool = True) -> Sonuc:
-    """Türkçe değilse dokunmaz; çeviremezse CeviriHatasi fırlatır (orijinal metin çağıranda kalır)."""
+    """Türkçe değilse ve İngilizce olduğu kesinse dokunmaz; çeviremezse CeviriHatasi fırlatır."""
     if not metin.strip():
         return Sonuc(metin, "bos")
-    if dil_kontrolu and not _turkce_var_mi(metin):
+    if dil_kontrolu and not _turkce_var_mi(metin) and (ingilizce_var_mi(metin) or not harf_var_mi(metin)):
         return Sonuc(metin, "zaten-ingilizce")
     return Sonuc(zincir.cevir(metin), "cevrildi", zincir.son_kullanilan)
