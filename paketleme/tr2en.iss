@@ -1,4 +1,4 @@
-; tr2en kurulum dosyası (Inno Setup 6). derle.ps1 çağırır:
+﻿; tr2en kurulum dosyası (Inno Setup 6). derle.ps1 çağırır:
 ;   ISCC.exe /DSurum=v0.1.3 /DKaynak=<dist\tr2en> /DCikti=<dist> paketleme\tr2en.iss
 ; Yönetici izni istemez; yalnızca o kullanıcıya %LOCALAPPDATA%\Programs\tr2en altına kurar.
 ; Ayarlar (%APPDATA%\tr2en) ve model (%LOCALAPPDATA%\tr2en) kurulum klasörünün dışındadır;
