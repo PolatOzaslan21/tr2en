@@ -43,7 +43,7 @@
 
 1. [Son sürüm](https://github.com/PolatOzaslan21/tr2en/releases/latest) sayfasından `tr2en-…-windows-x64-kurulum.exe` dosyasını indirip çalıştırın (~38 MB). Python ve yönetici izni gerekmez.
 2. Kurulum, Başlat menüsüne **tr2en** kısayolu ekler; isterseniz masaüstü kısayolu ve "Windows açılışında başlat" kutucuklarını da işaretleyin.
-3. Saatin yanında kırmızı/mavi **TR → EN** balon simgesi çıkar. Uygulamayı kapattıysanız Başlat menüsünde "tr2en" yazıp yeniden açabilirsiniz.
+3. Saatin yanında kırmızı/mavi **TR → EN** balon simgesi çıkar. Simge önce saatin yanındaki **^** (gizli simgeler) menüsünde görünebilir; sürekli görünsün isterseniz oradan görev çubuğuna sürükleyin. Uygulamayı kapattıysanız Başlat menüsünde "tr2en" yazıp yeniden açabilirsiniz.
 
 - .exe henüz dijital imzalı değil; Windows "bilgisayarınızı korudu" (SmartScreen) uyarısı verirse **Ek bilgi → Yine de çalıştır**'a tıklayın. İndirdiğiniz dosyanın doğruluğunu sürümdeki `.sha256` dosyasıyla kontrol edebilirsiniz.
 - **Güncellemek için:** yeni kurulum dosyasını çalıştırmanız yeterli; açıksa tr2en'i kendisi kapatır, ayarlarınız ve model korunur.

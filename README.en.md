@@ -45,7 +45,7 @@ On first start the app asks which one you want to use.
 
 1. Download and run `tr2en-…-windows-x64-kurulum.exe` (~38 MB) from the [latest release](https://github.com/PolatOzaslan21/tr2en/releases/latest) ("kurulum" means "setup"). No Python and no admin rights needed.
 2. The installer adds a **tr2en** Start menu shortcut; you can also tick a desktop shortcut and "start with Windows".
-3. A red/blue **TR → EN** speech-bubble icon appears next to the clock. If you quit the app, type "tr2en" in the Start menu to open it again.
+3. A red/blue **TR → EN** speech-bubble icon appears next to the clock. Windows may first put it in the hidden icons menu (the **^** next to the clock); drag it to the taskbar to keep it visible. If you quit the app, type "tr2en" in the Start menu to open it again.
 
 - The .exe is not code-signed yet; if Windows shows "Windows protected your PC" (SmartScreen), click **More info → Run anyway**. You can verify the download with the `.sha256` file in the release.
 - **To update:** just run the new installer; it closes a running tr2en itself and keeps your settings and the model.
