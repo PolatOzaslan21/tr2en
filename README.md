@@ -60,6 +60,25 @@ Kaynaktan çalıştırmak için: depoyu klonlayın, `baslat-arkaplan.cmd` (konso
 
 Ücretsiz katman (Kasım 2026): Gemini 3.5 Flash-Lite için dakikada 15, günde 500 istek.
 
+### Kendi modelinizi kullanın (isteğe bağlı)
+
+Gemini **önerilen** seçenek, ama zorunlu değil. OpenAI uyumlu API sunan her servisi ya da bilgisayarınızdaki bir modeli bağlayabilirsiniz. `ayarlar.toml`'da dört satırı doldurun, sonra tepsiden **Çevirmen → Kendi modelim**'i seçin:
+
+| Servis | `uyumlu_adres` | `uyumlu_model` (örnek) | `uyumlu_anahtar_degiskeni` |
+|---|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | `OPENAI_API_KEY` |
+| OpenRouter (yüzlerce model) | `https://openrouter.ai/api/v1` | `google/gemini-2.5-flash` | `OPENROUTER_API_KEY` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` | `GROQ_API_KEY` |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | `DEEPSEEK_API_KEY` |
+| **Ollama** (yerel, ücretsiz) | `http://localhost:11434/v1` | `qwen3.5:0.8b`, `llama3.2` | *(boş bırakın)* |
+| LM Studio (yerel) | `http://localhost:1234/v1` | yüklediğiniz model | *(boş bırakın)* |
+
+- `uyumlu_anahtar_degiskeni` alanına anahtarın **kendisini değil**, kaydettiğiniz ortam değişkeninin **adını** yazın (yukarıdaki PowerShell komutunda `GEMINI_API_KEY` yerine o adı kullanın).
+- Ollama'da düşünen modeller (qwen3 ailesi) için `uyumlu_dusunmeyi_kapat = true` yapın: 0,8B'lik qwen3.5'te çeviri 22 sn'den ~1 sn'ye iniyor.
+- Yerel LLM'ler yavaşsa `uyumlu_zaman_asimi`'ni artırın (varsayılan 15 sn).
+- Güvenlik için `http://` yalnızca kendi bilgisayarınızdaki (localhost) servislerde kabul edilir; uzak servisler `https://` olmalı.
+- Korumalar (kod/URL koruma, olumsuzluk kontrolü) bu seçenekte de çalışır. Küçük modeller olumsuzluğu sık kaçırır; tr2en bu durumda çeviriyi yapıştırmaz.
+
 ## Ayarlar
 
 Tepsi menüsü: etkinleştir/duraklat, çevirmen, kısayol (Ctrl+Shift+Space / Ctrl+Shift+Y / Ctrl+Shift+T), son işlemler, son çeviriyi göster, son orijinali kopyala, Windows açılışında başlat.
@@ -108,7 +127,7 @@ Kod denetimi raporu ve tasarım notları proje klasöründe. Lisans: kod **MIT**
 
 **tr2en** is a small Windows tray app for Turkish → English translation: select Turkish text anywhere, press **Ctrl+Shift+Space**, and the selection is replaced with its English translation. Your clipboard is restored afterwards.
 
-- Translators: Google **Gemini** (your own free API key, `GEMINI_API_KEY`) with an **offline fallback model** (CTranslate2 int8 conversion of Helsinki-NLP opus-mt-tc-big-tr-en, ~230 MB, downloaded once from Hugging Face and SHA256-verified). "Local only" mode keeps text on your machine.
+- Translators: Google **Gemini** (recommended; your own free API key, `GEMINI_API_KEY`), **any OpenAI-compatible API** (OpenAI, OpenRouter, Groq, DeepSeek, or a local Ollama / LM Studio model), with an **offline fallback model** (CTranslate2 int8 conversion of Helsinki-NLP opus-mt-tc-big-tr-en, ~230 MB, downloaded once from Hugging Face and SHA256-verified). "Local only" mode keeps text on your machine.
 - Safety checks: code/URLs/paths are never translated, lost negations block the paste, truncated or chatty LLM replies are rejected.
 - Privacy: translated text is never logged; the keyboard hook only detects the hotkey.
 - RAM: ~50 MB idle, ~300 MB with the offline model loaded.

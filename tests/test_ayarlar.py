@@ -52,6 +52,11 @@ def test_yaz_oku_gidis_donus(tmp_path: Path) -> None:
         "kisayol": "<ctrl>+<alt>+y",
         "tetik": ";;cevir",
         "cevirmen": "yerel",
+        "uyumlu_adres": "https://api.openai.com/v1",
+        "uyumlu_model": "gpt-4o-mini",
+        "uyumlu_anahtar_degiskeni": "OPENAI_API_KEY",
+        "uyumlu_zaman_asimi": 30,
+        "uyumlu_dusunmeyi_kapat": False,
         "gemini_model": "gemini-test",
         "zaman_asimi": 7,
         "terminal_tetigi": True,
@@ -65,7 +70,7 @@ def test_yaz_oku_gidis_donus(tmp_path: Path) -> None:
     kaydet(ozel, yol)
     okunan, uyarilar = yukle(yol)
 
-    beklenen = dict(ozel, zaman_asimi=7.0, izinli=["code.exe"], ek_terminaller=["wezterm.exe"])
+    beklenen = dict(ozel, zaman_asimi=7.0, uyumlu_zaman_asimi=30.0, izinli=["code.exe"], ek_terminaller=["wezterm.exe"])
     assert uyarilar == []
     assert okunan == beklenen
 
@@ -119,7 +124,7 @@ def test_gecerli_dosya_yeniden_yazilmaz(tmp_path: Path) -> None:
     assert yol.read_text(encoding="utf-8") == icerik
 
 
-@pytest.mark.parametrize("cevirmen", ["gemini", "yerel"])
+@pytest.mark.parametrize("cevirmen", ["gemini", "uyumlu", "yerel"])
 def test_gecerli_cevirmen_kabul(cevirmen: str) -> None:
     ayarlar, uyarilar = dogrula({"cevirmen": cevirmen})
     assert ayarlar["cevirmen"] == cevirmen

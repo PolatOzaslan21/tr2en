@@ -10,6 +10,11 @@ VARSAYILAN: dict[str, Any] = {
     "kisayol": "<ctrl>+<shift>+<space>",
     "tetik": ";en",
     "cevirmen": "gemini",
+    "uyumlu_adres": "",
+    "uyumlu_model": "",
+    "uyumlu_anahtar_degiskeni": "",
+    "uyumlu_zaman_asimi": 15.0,
+    "uyumlu_dusunmeyi_kapat": False,
     "gemini_model": "gemini-3.5-flash-lite",
     "zaman_asimi": 4.0,
     "terminal_tetigi": False,
@@ -21,12 +26,17 @@ VARSAYILAN: dict[str, Any] = {
     "gizlilik_onayi": False,
 }
 
-GECERLI_CEVIRMENLER = ("gemini", "yerel")
+GECERLI_CEVIRMENLER = ("gemini", "uyumlu", "yerel")
 
 ACIKLAMALAR: dict[str, str] = {
     "kisayol": "Global kısayol (pynput biçimi, ör. <ctrl>+<shift>+t)",
     "tetik": "Terminalde mesaj sonuna yazılan tetik (ör. ;en)",
-    "cevirmen": "\"gemini\" (yedek: yerel model) ya da \"yerel\" (metin bilgisayardan çıkmaz)",
+    "cevirmen": "\"gemini\" (önerilen, yedek: yerel model), \"uyumlu\" (kendi OpenAI uyumlu modeliniz) ya da \"yerel\" (metin bilgisayardan çıkmaz)",
+    "uyumlu_adres": "OpenAI uyumlu API adresi, ör. https://api.openai.com/v1 ya da Ollama için http://localhost:11434/v1",
+    "uyumlu_model": "model adı, ör. gpt-4o-mini, llama3.2",
+    "uyumlu_anahtar_degiskeni": "anahtarın ORTAM DEĞİŞKENİ adı (anahtarın kendisi değil!), ör. OPENAI_API_KEY; Ollama için boş",
+    "uyumlu_zaman_asimi": "saniye; yerel LLM'ler yavaş olabilir",
+    "uyumlu_dusunmeyi_kapat": "Ollama'da akıl yürüten modeller (qwen3 vb.) için true: düşünmeyi kapatır, çok hızlanır",
     "gemini_model": "Gemini isteklerinde kullanılacak model",
     "zaman_asimi": "Gemini isteği zaman aşımı, saniye (0.5-30)",
     "terminal_tetigi": "Deneysel: terminalde mesaj sonuna tetik yazınca çevir (kırılgan, varsayılan kapalı)",
@@ -127,6 +137,10 @@ def dogrula(ham: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     if "zaman_asimi" in gecerli and not 0.5 <= ayarlar["zaman_asimi"] <= 30:
         ayarlar["zaman_asimi"] = VARSAYILAN["zaman_asimi"]
         uyarilar.append("zaman_asimi geçersiz, varsayılan kullanıldı")
+
+    if "uyumlu_zaman_asimi" in gecerli and not 1 <= ayarlar["uyumlu_zaman_asimi"] <= 120:
+        ayarlar["uyumlu_zaman_asimi"] = VARSAYILAN["uyumlu_zaman_asimi"]
+        uyarilar.append("uyumlu_zaman_asimi geçersiz, varsayılan kullanıldı")
 
     for anahtar in ("kisayol", "tetik"):
         if anahtar in gecerli and not ayarlar[anahtar].strip():

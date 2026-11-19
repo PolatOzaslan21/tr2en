@@ -199,6 +199,16 @@ class Uygulama:
         else:
             self.bildir("Çevrilemedi", mesaj, "hata")
 
+    def _basari_bildir(self, cevirmen: str | None) -> None:
+        """Başarı bildirimini kullanılan çevirmenin adına göre verir."""
+        if cevirmen and cevirmen.startswith("yerel:"):
+            self.bildir("Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin", "", "uyari")
+        elif cevirmen and cevirmen.startswith("uyumlu:"):
+            model = self.ayarlar.get("uyumlu_model") or cevirmen.partition(":")[2]
+            self.bildir(f"Çevrildi ({model})")
+        else:
+            self.bildir("Çevrildi (Gemini)")
+
     @staticmethod
     def _yerel_model_indiriliyor(mesaj: str) -> str | None:
         """Yerel model indiriliyorsa indirme yüzdesini döner; değilse None."""
@@ -271,14 +281,7 @@ class Uygulama:
                 self.pano.metin_koy(sonuc.metin)
                 self.pano.yapistir()
                 time.sleep(_yapistirma_bekle(len(sonuc.metin)))
-                if sonuc.cevirmen and sonuc.cevirmen.startswith("yerel:"):
-                    self.bildir(
-                        "Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin",
-                        "",
-                        "uyari",
-                    )
-                else:
-                    self.bildir("Çevrildi (Gemini)")
+                self._basari_bildir(sonuc.cevirmen)
         finally:
             self._pano_geri_yukle(yedek)
 
@@ -321,14 +324,7 @@ class Uygulama:
             time.sleep(_silme_bekle(silinecek))
             self.pano.yapistir()
             time.sleep(_yapistirma_bekle(len(sonuc.metin)))
-            if sonuc.cevirmen and sonuc.cevirmen.startswith("yerel:"):
-                self.bildir(
-                    "Yerel modelle çevrildi — kalite düşük olabilir, kontrol edin",
-                    "",
-                    "uyari",
-                )
-            else:
-                self.bildir("Çevrildi (Gemini)")
+            self._basari_bildir(sonuc.cevirmen)
         finally:
             self._pano_geri_yukle(yedek)
 
@@ -353,15 +349,26 @@ class Uygulama:
     def cevirmen(self) -> str:
         return self.ayarlar.get("cevirmen", "gemini")
 
+    def uyumlu_tanimli_mi(self) -> bool:
+        return bool(self.ayarlar.get("uyumlu_adres") and self.ayarlar.get("uyumlu_model"))
+
     def cevirmen_sec(self, ad: str) -> None:
         if self.cevirmen() == ad:
+            return
+        if ad == "uyumlu" and not self.uyumlu_tanimli_mi():
+            self.bildir("Kendi modeliniz tanımlı değil", "Ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
             return
         zincir_uretici = self.ayarlar.get("zincir_uretici")
         if zincir_uretici is not None:
             self.zincir = zincir_uretici(ad)
         self.ayarlar["cevirmen"] = ad
         self._ayarlari_kaydet()
-        self.bildir("Çevirmen: Gemini" if ad == "gemini" else "Çevirmen: Yalnızca yerel")
+        if ad == "gemini":
+            self.bildir("Çevirmen: Gemini")
+        elif ad == "uyumlu":
+            self.bildir(f"Çevirmen: Kendi modelim ({self.ayarlar.get('uyumlu_model', '')})")
+        else:
+            self.bildir("Çevirmen: Yalnızca yerel")
         if self.tepsi is not None:
             self.tepsi.guncelle()
 
@@ -580,11 +587,25 @@ if sys.platform == "win32":
                     "uyari",
                 )
 
+        if dosya["cevirmen"] == "uyumlu" and not (dosya.get("uyumlu_adres") and dosya.get("uyumlu_model")):
+            dosya["cevirmen"] = "gemini"
+            bildir("Kendi modeliniz tanımlı değil", "Gemini'ye geçildi; ayar dosyasında uyumlu_adres ve uyumlu_model'i doldurun.", "uyari")
+
         def zincir_uretici(ad: str):
+            yalniz = None
+            if ad == "yerel":
+                yalniz = "yerel"
+            elif ad == "uyumlu":
+                yalniz = "uyumlu"
             return zincir_kur(
                 model=dosya["gemini_model"],
-                yalniz=("yerel" if ad == "yerel" else None),
+                yalniz=yalniz,
                 zaman_asimi=dosya["zaman_asimi"],
+                uyumlu_adres=dosya["uyumlu_adres"],
+                uyumlu_model=dosya["uyumlu_model"],
+                uyumlu_anahtar=dosya["uyumlu_anahtar_degiskeni"],
+                uyumlu_zaman_asimi=dosya["uyumlu_zaman_asimi"],
+                uyumlu_dusunmeyi_kapat=dosya["uyumlu_dusunmeyi_kapat"],
             )
 
         def kaydet_cb() -> bool:
@@ -602,6 +623,8 @@ if sys.platform == "win32":
             "sona_bosluk": dosya["sona_bosluk"],
             "ozet_kaydi": dosya["ozet_kaydi"],
             "cevirmen": dosya["cevirmen"],
+            "uyumlu_adres": dosya["uyumlu_adres"],
+            "uyumlu_model": dosya["uyumlu_model"],
             "dinleyici_sinifi": tetik.Dinleyici,
             "aktif_hwnd_cb": _aktif_hwnd,
             "zincir_uretici": zincir_uretici,

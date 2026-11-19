@@ -104,13 +104,20 @@ def test_etkin_checked_ve_default(tepsi, arayuz):
 
 def test_cevirmen_radio_checked(tepsi, arayuz):
     cevirmen = tepsi.menu_ogeleri()[2]
-    gemini, yerel = list(cevirmen.submenu)
+    gemini, uyumlu, yerel = list(cevirmen.submenu)
     assert gemini.radio is True
+    assert uyumlu.radio is True
     assert yerel.radio is True
     assert gemini.checked is True
+    assert uyumlu.checked is False
+    assert yerel.checked is False
+    arayuz.cevirmen_ad = "uyumlu"
+    assert gemini.checked is False
+    assert uyumlu.checked is True
     assert yerel.checked is False
     arayuz.cevirmen_ad = "yerel"
     assert gemini.checked is False
+    assert uyumlu.checked is False
     assert yerel.checked is True
 
 
@@ -137,11 +144,13 @@ def test_etkin_tiklaninca_aktif_degistir(tepsi, arayuz):
 
 
 def test_cevirmen_tiklaninca_sec(tepsi, arayuz):
-    gemini, yerel = list(tepsi.menu_ogeleri()[2].submenu)
+    gemini, uyumlu, yerel = list(tepsi.menu_ogeleri()[2].submenu)
     yerel(None)
     assert ("cevirmen_sec", "yerel") in arayuz.cagrilar
     gemini(None)
     assert ("cevirmen_sec", "gemini") in arayuz.cagrilar
+    uyumlu(None)
+    assert ("cevirmen_sec", "uyumlu") in arayuz.cagrilar
 
 
 def test_son_ceviri_eylemleri(tepsi, arayuz):

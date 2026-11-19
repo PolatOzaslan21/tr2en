@@ -79,6 +79,21 @@ class Tepsi:
             traceback.print_exc()
             return False
 
+    def _uyumlu_secili(self, _item=None) -> bool:
+        try:
+            return self.arayuz.cevirmen() == "uyumlu"
+        except Exception:
+            traceback.print_exc()
+            return False
+
+    def _uyumlu_tanimli_mi(self) -> bool:
+        try:
+            fn = getattr(self.arayuz, "uyumlu_tanimli_mi", None)
+            return bool(fn()) if fn is not None else False
+        except Exception:
+            traceback.print_exc()
+            return False
+
     # ---- eylem geri çağrıları ----
 
     def _etkin_tiklandi(self, _icon=None, _item=None) -> None:
@@ -89,6 +104,9 @@ class Tepsi:
 
     def _yerel_sec(self, _icon=None, _item=None) -> None:
         _yut(lambda: self.arayuz.cevirmen_sec("yerel"))
+
+    def _uyumlu_sec(self, _icon=None, _item=None) -> None:
+        _yut(lambda: self.arayuz.cevirmen_sec("uyumlu"))
 
     def _kisayol_simdiki(self) -> str | None:
         try:
@@ -168,9 +186,15 @@ class Tepsi:
                 "Çevirmen",
                 pystray.Menu(
                     pystray.MenuItem(
-                        "Gemini (yedek: yerel model)",
+                        "Gemini (önerilen, yedek: yerel model)",
                         self._gemini_sec,
                         checked=self._gemini_secili,
+                        radio=True,
+                    ),
+                    pystray.MenuItem(
+                        "Kendi modelim (OpenAI uyumlu)" if self._uyumlu_tanimli_mi() else "Kendi modelim — ayar dosyasında tanımlayın",
+                        self._uyumlu_sec,
+                        checked=self._uyumlu_secili,
                         radio=True,
                     ),
                     pystray.MenuItem(

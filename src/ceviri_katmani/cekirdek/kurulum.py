@@ -3,20 +3,31 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .cevirmen import CevirmenZinciri
+from .cevirmen import CeviriHatasi, CevirmenZinciri
 from .bolme import parcala
 from .dil import harf_var_mi, ingilizce_var_mi, turkce_mi
 from .gemini import GeminiCevirmen
 from .korumalar import KorumaliCevirmen
 from .sozluk import SozlukluCevirmen
+from .uyumlu import UyumluCevirmen
 from .yerel import YerelCevirmen
 
 
 def zincir_kur(model: str = "gemini-3.5-flash-lite", yalniz: str | None = None,
-               korumasiz: bool = False, zaman_asimi: float = 4.0) -> CevirmenZinciri:
+               korumasiz: bool = False, zaman_asimi: float = 4.0,
+               uyumlu_adres: str = "", uyumlu_model: str = "", uyumlu_anahtar: str = "",
+               uyumlu_zaman_asimi: float = 15.0, uyumlu_dusunmeyi_kapat: bool = False) -> CevirmenZinciri:
     gemini = GeminiCevirmen(model=model, zaman_asimi=zaman_asimi)
     yerel = SozlukluCevirmen(YerelCevirmen())  # sözlük yalnızca yerel modele (Gemini terimleri zaten biliyor)
-    cevirmenler = {"gemini": [gemini], "yerel": [yerel]}.get(yalniz or "", [gemini, yerel])
+    if yalniz == "uyumlu":
+        if not (uyumlu_adres and uyumlu_model):
+            raise CeviriHatasi("kendi modeliniz tanımlı değil: ayar dosyasında uyumlu_adres ve uyumlu_model")
+        uyumlu = UyumluCevirmen(adres=uyumlu_adres, model=uyumlu_model,
+                                anahtar_degiskeni=uyumlu_anahtar, zaman_asimi=uyumlu_zaman_asimi,
+                                dusunmeyi_kapat=uyumlu_dusunmeyi_kapat)
+        cevirmenler = [uyumlu, yerel]
+    else:
+        cevirmenler = {"gemini": [gemini], "yerel": [yerel]}.get(yalniz or "", [gemini, yerel])
     if not korumasiz:
         cevirmenler = [KorumaliCevirmen(c) for c in cevirmenler]
     return CevirmenZinciri(cevirmenler)
