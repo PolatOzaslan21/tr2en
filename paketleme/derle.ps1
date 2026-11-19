@@ -1,9 +1,12 @@
-# tr2en.exe derleme (PyInstaller, tek klasör, konsolsuz). Hem yerelde hem GitHub Actions'ta kullanılır.
+﻿# tr2en.exe derleme (PyInstaller, tek klasör, konsolsuz). Hem yerelde hem GitHub Actions'ta kullanılır.
 # Kullanım: powershell -File paketleme\derle.ps1 [-Cikti dist] [-Surum v0.1.0-beta]
-# Çıktı: <Cikti>\tr2en\tr2en.exe ve <Cikti>\tr2en-<Surum>-windows-x64.zip (+ .sha256)
+# Çıktı: <Cikti>\tr2en\tr2en.exe , <Cikti>\tr2en-<Surum>-windows-x64.zip
+#        ve Inno Setup varsa <Cikti>\tr2en-<Surum>-windows-x64-kurulum.exe (her birine .sha256)
+# -KurulumZorunlu: Inno Setup bulunamazsa hata ver (CI'da kullanılır).
 param(
     [string]$Cikti = "dist",
-    [string]$Surum = "yerel"
+    [string]$Surum = "yerel",
+    [switch]$KurulumZorunlu
 )
 $ErrorActionPreference = "Stop"
 $kok = Split-Path $PSScriptRoot -Parent
@@ -33,7 +36,30 @@ if (-not (Test-Path (Join-Path $klasor "_internal\ceviri_katmani\cekirdek\sozluk
 $zip = Join-Path $Cikti "tr2en-$Surum-windows-x64.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $klasor -DestinationPath $zip
-$ozet = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-"$ozet  $(Split-Path $zip -Leaf)" | Set-Content "$zip.sha256" -Encoding ascii
+function Ozet-Yaz([string]$dosya) {
+    $ozet = (Get-FileHash $dosya -Algorithm SHA256).Hash.ToLower()
+    "$ozet  $(Split-Path $dosya -Leaf)" | Set-Content "$dosya.sha256" -Encoding ascii
+}
+Ozet-Yaz $zip
 "klasör: {0:N0} MB, zip: {1:N0} MB" -f ((Get-ChildItem $klasor -Recurse | Measure-Object Length -Sum).Sum / 1MB), ((Get-Item $zip).Length / 1MB)
 $zip
+
+# Kurulum dosyası (Inno Setup 6)
+$iscc = @(
+    (Get-Command iscc -ErrorAction SilentlyContinue).Source,
+    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+    "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if (-not $iscc) {
+    if ($KurulumZorunlu) { throw "Inno Setup 6 (ISCC.exe) bulunamadı" }
+    "Inno Setup bulunamadı; kurulum dosyası atlandı (yalnızca zip)."
+    return
+}
+& $iscc /Q "/DSurum=$Surum" "/DKaynak=$klasor" "/DCikti=$Cikti" (Join-Path $PSScriptRoot "tr2en.iss")
+if ($LASTEXITCODE -ne 0) { throw "Inno Setup başarısız ($LASTEXITCODE)" }
+$kurulum = Join-Path $Cikti "tr2en-$Surum-windows-x64-kurulum.exe"
+if (-not (Test-Path $kurulum)) { throw "kurulum dosyası oluşmadı" }
+Ozet-Yaz $kurulum
+"kurulum: {0:N0} MB" -f ((Get-Item $kurulum).Length / 1MB)
+$kurulum

@@ -1,6 +1,6 @@
 name: exe
 
-# v* etiketi push edilince: test + tr2en.exe derle + sürüme (release) zip olarak ekle.
+# v* etiketi push edilince: test + tr2en.exe derle + sürüme (release) kurulum dosyası ve zip olarak ekle.
 # Elle çalıştırma (Actions → exe → Run workflow): yalnızca derler ve indirilebilir
 # "artifact" bırakır; sürüme dokunmaz (yayından önce elle denemek için).
 on:
@@ -27,14 +27,19 @@ jobs:
         run: |
           $ad = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME } else { "dev-$($env:GITHUB_SHA.Substring(0,7))" }
           "SURUM=$ad" >> $env:GITHUB_ENV
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
       - name: Derle
         shell: pwsh
-        run: ./paketleme/derle.ps1 -Cikti dist -Surum $env:SURUM
+        run: ./paketleme/derle.ps1 -Cikti dist -Surum $env:SURUM -KurulumZorunlu
       - uses: actions/upload-artifact@v7
         with:
           name: tr2en-${{ env.SURUM }}-windows-x64
           path: |
             dist/*.zip
+            dist/*.exe
             dist/*.sha256
       - name: Sürüme ekle
         if: github.ref_type == 'tag'
@@ -44,4 +49,4 @@ jobs:
         run: |
           gh release view $env:SURUM *> $null
           if ($LASTEXITCODE -ne 0) { gh release create $env:SURUM --generate-notes --latest --title "tr2en $env:SURUM (Beta)" }
-          gh release upload $env:SURUM (Get-ChildItem dist/*.zip, dist/*.sha256).FullName --clobber
+          gh release upload $env:SURUM (Get-ChildItem dist/*.zip, dist/*.exe, dist/*.sha256).FullName --clobber
