@@ -2,6 +2,8 @@
 
 **Yerel Türkçe İngilizce çeviri: metni seç, kısayola bas, İngilizcesi yerine gelsin.** Windows için küçük bir tepsi uygulaması. Yapay zekâya (Claude, ChatGPT, Copilot…) İngilizce prompt yazmak, internetsiz çeviri ya da hızlı prompt çevirme için.
 
+> **Durum: 0.1 Beta.** Yeni ve erken bir sürüm; eksikler ve hatalar olabilir. Sorun görürseniz [issue açın](https://github.com/PolatOzaslan21/tr2en/issues).
+
 *English summary at the bottom.*
 
 ## Ne yapar?
@@ -124,6 +126,8 @@ Kod denetimi raporu ve tasarım notları proje klasöründe. Lisans: kod **MIT**
 ---
 
 ## English
+
+**Status: 0.1 beta** (early release; expect rough edges, please report issues).
 
 **tr2en** is a small Windows tray app for Turkish → English translation: select Turkish text anywhere, press **Ctrl+Shift+Space**, and the selection is replaced with its English translation. Your clipboard is restored afterwards.
 
