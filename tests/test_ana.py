@@ -323,3 +323,135 @@ def test_basari_bildir_uyumlu_model_adi_adsten():
     uyg.ayarlar["uyumlu_model"] = "gpt-4o-mini"
     uyg._kisayol_isle()
     assert calls[0] == ("Çevrildi (llama3.2)", "", "bilgi")
+
+
+# ---- pencere (boru) istekleri ----
+
+
+def test_boru_cevir_zincirle_ceviriyor():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello how are you", durum="cevrildi", cevirmen="gemini:flash"),
+    )
+    sonuc = uyg.boru_istegi({"tur": "cevir", "metin": "merhaba nasılsın"})
+    assert sonuc["ok"] is True
+    assert sonuc["ceviri"] == "hello how are you"
+    assert sonuc["durum"] == "cevrildi"
+    assert sonuc["cevirmen"] == "Bulut — Google Gemini"
+    assert isinstance(sonuc["sure_sn"], float)
+    assert zincir.cagrilar == ["merhaba nasılsın"]
+
+
+def test_boru_cevir_pano_kullanmaz():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello", durum="cevrildi", cevirmen="gemini:flash"),
+    )
+    uyg.boru_istegi({"tur": "cevir", "metin": "merhaba"})
+    assert pano.koyulan is None
+    assert pano.yapistirildi == 0
+    assert pano.son_yedek is None
+
+
+def test_boru_cevir_zaten_ingilizce():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello", durum="zaten-ingilizce", cevirmen=None),
+    )
+    sonuc = uyg.boru_istegi({"tur": "cevir", "metin": "this is a test"})
+    assert sonuc["ok"] is True
+    assert sonuc["durum"] == "zaten-ingilizce"
+    assert zincir.cagrilar == []
+
+
+def test_boru_cevir_mesgulken_reddedilir():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello", durum="cevrildi", cevirmen="gemini:flash"),
+    )
+    uyg._meşgul = True
+    sonuc = uyg.boru_istegi({"tur": "cevir", "metin": "merhaba"})
+    assert sonuc == {"ok": False, "hata": "başka bir çeviri sürüyor", "ceviri": "", "sure_sn": 0.0}
+    assert zincir.cagrilar == []
+
+
+def test_boru_cevir_kilit_alinmışken_reddedilir():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello", durum="cevrildi", cevirmen="gemini:flash"),
+    )
+    uyg._cevir_kilidi.acquire()
+    try:
+        sonuc = uyg.boru_istegi({"tur": "cevir", "metin": "merhaba"})
+    finally:
+        uyg._cevir_kilidi.release()
+    assert sonuc["ok"] is False
+    assert sonuc["hata"] == "başka bir çeviri sürüyor"
+    assert zincir.cagrilar == []
+
+
+def test_boru_cevir_bos_metin_reddedilir():
+    uyg, pano, pencere, zincir, calls = make_uygulama()
+    for metin in ("", "   ", None, 5):
+        sonuc = uyg.boru_istegi({"tur": "cevir", "metin": metin})
+        assert sonuc["ok"] is False
+        assert sonuc["hata"] == "metin boş"
+    assert zincir.cagrilar == []
+
+
+def test_boru_cevir_uzun_metin_reddedilir():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello", durum="cevrildi", cevirmen="gemini:flash"),
+    )
+    sonuc = uyg.boru_istegi({"tur": "cevir", "metin": "x" * 5001})
+    assert sonuc["ok"] is False
+    assert "5000" in sonuc["hata"]
+    assert zincir.cagrilar == []
+
+
+def test_boru_cevir_hata_donusu():
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        hata=CeviriHatasi("API anahtarı tanımlı değil"),
+    )
+    sonuc = uyg.boru_istegi({"tur": "cevir", "metin": "merhaba"})
+    assert sonuc["ok"] is False
+    assert sonuc["hata"] == "API anahtarı tanımlı değil"
+    assert sonuc["ceviri"] == ""
+
+
+def test_boru_cevir_metni_loglanmaz(capsys):
+    gizli = "GIZLI_METIN_12345"
+    uyg, pano, pencere, zincir, calls = make_uygulama(
+        sonuc=Sonuc(metin="hello", durum="cevrildi", cevirmen="gemini:flash"),
+    )
+    uyg.boru_istegi({"tur": "cevir", "metin": gizli})
+    cikti = capsys.readouterr()
+    assert gizli not in cikti.out
+    assert gizli not in cikti.err
+    # Son işlemlerde yalnızca tür, karakter sayısı ve süre tutulur.
+    satirlar = uyg.son_islemler()
+    assert satirlar
+    assert "pencere" in satirlar[0]
+    assert gizli not in satirlar[0]
+
+
+def test_boru_durum():
+    uyg, pano, pencere, zincir, calls = make_uygulama()
+    sonuc = uyg.boru_istegi({"tur": "durum"})
+    assert sonuc["ok"] is True
+    assert sonuc["aktif"] is True
+    assert sonuc["cevirmen"] == "bulut"
+    assert sonuc["cevirmen_adi"] == "Bulut — Google Gemini"
+    assert sonuc["kisayol_adi"] == "Ctrl+Shift+T"
+    assert sonuc["surum"]
+
+
+def test_boru_aktif_degistir():
+    uyg, pano, pencere, zincir, calls = make_uygulama()
+    sonuc = uyg.boru_istegi({"tur": "aktif_degistir"})
+    assert sonuc["ok"] is True
+    assert sonuc["aktif"] is False
+    assert uyg.aktif_mi() is False
+    assert calls[-1] == ("Duraklatıldı", "", "bilgi")
+
+
+def test_boru_bilinmeyen_istek():
+    uyg, pano, pencere, zincir, calls = make_uygulama()
+    sonuc = uyg.boru_istegi({"tur": "bilinmeyen"})
+    assert sonuc == {"ok": False, "hata": "bilinmeyen istek"}
+    assert uyg.boru_istegi("metin") == {"ok": False, "hata": "geçersiz istek"}

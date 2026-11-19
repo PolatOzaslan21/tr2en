@@ -1,7 +1,10 @@
-"""Ayar penceresinin Python köprüsü: JS'in çağırdığı, webview'dan bağımsız API.
+"""tr2en penceresinin Python köprüsü: JS'in çağırdığı, webview'dan bağımsız API.
 
-Bu modül pywebview KULLANMAZ ve pencere AÇMAZ; ileride ayrı süreçte açılacak
-ayar penceresinin çağırdığı yöntemleri uygular (bkz. arayuz/KOPRU.md).
+Bu modül pywebview KULLANMAZ ve pencere AÇMAZ; ayrı süreçte açılan tr2en
+penceresinin çağırdığı yöntemleri uygular (bkz. arayuz/KOPRU.md).
+
+Çeviri pencerede YAPILMAZ: istek, ana sürece (tepsideki uygulama) adlandırılmış
+boru ile gönderilir; model yalnızca ana süreçte yüklenir.
 
 Her yöntem JSON'a çevrilebilir sözlük döner ve İSTİSNA FIRLATMAZ: hata olursa
 ``{"ok": False, "hata": "<kısa Türkçe metin>"}`` tabanlı bir sözlük döner.
@@ -23,12 +26,12 @@ from ..cekirdek.cevirmen import CeviriHatasi
 from ..cekirdek.kurulum import akilli_cevir, zincir_kur_v2
 from . import anahtar_kasasi
 from . import ayarlar as ayar_modulu
+from . import boru as boru_modulu
 from . import otomatik_baslat as otomatik_baslat_modulu
 from .ayarlar import BULUT_SERVIS_ANAHTARLARI, GECERLI_BULUT_SERVISLERI, VARSAYILAN
 from .kisayol_kayit import birlesim_olustur
 
 DENEME_METNI = "Merhaba dünya, bu bir denemedir."
-EN_FAZLA_METIN = 2000
 YEREL_KONAKLAR = ("localhost", "127.0.0.1", "::1")
 
 # baglanti_ac ile açılabilen TEK adresler; listede olmayan hiçbir URL açılmaz.
@@ -46,7 +49,7 @@ BEYAZ_LISTE: dict[str, str] = {
 
 
 class PencereApi:
-    """Ayar penceresinin JS'ten çağırdığı köprü (webview'dan bağımsız)."""
+    """tr2en penceresinin JS'ten çağırdığı köprü (webview'dan bağımsız)."""
 
     def __init__(
         self,
@@ -59,6 +62,7 @@ class PencereApi:
         klasor_secici: Callable[[], str | None] | None = None,
         otomatik_baslat: Any | None = None,
         saat: Callable[[], float] = time.perf_counter,
+        boru_istemcisi: Callable[[dict], dict] | None = None,
     ) -> None:
         self.ayar_yolu = Path(ayar_yolu) if ayar_yolu is not None else None
         self.kasa = anahtar_kasasi if kasa is None else kasa
@@ -69,6 +73,7 @@ class PencereApi:
         self.klasor_secici = klasor_secici
         self.otomatik_baslat = otomatik_baslat_modulu if otomatik_baslat is None else otomatik_baslat
         self.saat = saat
+        self.boru_istemcisi = boru_istemcisi if boru_istemcisi is not None else boru_modulu.istek
 
     # ---- iç yardımcılar (istisna yutarlar; dışarı sızdırmazlar) ----
 
@@ -208,31 +213,93 @@ class PencereApi:
                 "hata": self._gizli_kirp(self._hata(e), gizliler),
             }
 
-    def cevir_dene(self, metin: str) -> dict:
-        gizliler: list[str] = []
-        baslangic = self.saat()
-        if not isinstance(metin, str) or not metin.strip():
-            return {"ok": False, "ceviri": "", "cevirmen": None, "sure_sn": 0.0, "hata": "metin boş"}
-        metin = metin[:EN_FAZLA_METIN]
+    def cevir(self, metin: str) -> dict:
+        """Metni ana süreçte çevirir (boru üzerinden; pencere model YÜKLEMEZ).
+
+        Dönüş: ``{"ok", "ceviri", "cevirmen", "durum", "sure_sn", "hata"}``.
+        """
         try:
-            ayar, _ = ayar_modulu.yukle(self.ayar_yolu)
-            zincir = self.zincir_kurucu(ayar, self._anahtar_saglayici(ayar, gizliler, None))
-            sonuc = akilli_cevir(zincir, metin)
+            if not isinstance(metin, str) or not metin.strip():
+                return {"ok": False, "ceviri": "", "cevirmen": None, "sure_sn": 0.0, "hata": "metin boş"}
+            sonuc = self.boru_istemcisi({"tur": "cevir", "metin": metin})
+            if not isinstance(sonuc, dict):
+                return {"ok": False, "ceviri": "", "cevirmen": None, "sure_sn": 0.0,
+                        "hata": "tr2en çalışmıyor"}
+            if not sonuc.get("ok"):
+                return {
+                    "ok": False,
+                    "ceviri": "",
+                    "cevirmen": None,
+                    "sure_sn": self._sure(sonuc),
+                    "hata": str(sonuc.get("hata") or "çeviri yapılamadı"),
+                }
             return {
                 "ok": True,
-                "ceviri": self._gizli_kirp(sonuc.metin, gizliler),
-                "cevirmen": sonuc.cevirmen,
-                "sure_sn": round(self.saat() - baslangic, 3),
+                "ceviri": str(sonuc.get("ceviri") or ""),
+                "cevirmen": sonuc.get("cevirmen"),
+                "durum": str(sonuc.get("durum") or ""),
+                "sure_sn": self._sure(sonuc),
                 "hata": "",
             }
         except Exception as e:
+            return {"ok": False, "ceviri": "", "cevirmen": None, "sure_sn": 0.0, "hata": self._hata(e)}
+
+    def durum(self) -> dict:
+        """Uygulamanın gerçek durumu (boru üzerinden).
+
+        Dönüş: ``{"ok", "aktif", "cevirmen", "cevirmen_adi", "kisayol_adi", "surum", "hata"}``.
+        """
+        bos = {"ok": False, "aktif": False, "cevirmen": "", "cevirmen_adi": "",
+               "kisayol_adi": "", "surum": "", "hata": "tr2en çalışmıyor"}
+        try:
+            sonuc = self.boru_istemcisi({"tur": "durum"})
+            if not isinstance(sonuc, dict) or not sonuc.get("ok"):
+                hata = str(sonuc.get("hata")) if isinstance(sonuc, dict) and sonuc.get("hata") else bos["hata"]
+                return {**bos, "hata": hata}
             return {
-                "ok": False,
-                "ceviri": "",
-                "cevirmen": None,
-                "sure_sn": round(self.saat() - baslangic, 3),
-                "hata": self._gizli_kirp(self._hata(e), gizliler),
+                "ok": True,
+                "aktif": bool(sonuc.get("aktif")),
+                "cevirmen": str(sonuc.get("cevirmen") or ""),
+                "cevirmen_adi": str(sonuc.get("cevirmen_adi") or ""),
+                "kisayol_adi": str(sonuc.get("kisayol_adi") or ""),
+                "surum": str(sonuc.get("surum") or ""),
+                "hata": "",
             }
+        except Exception as e:
+            return {**bos, "hata": self._hata(e)}
+
+    def aktif_degistir(self) -> dict:
+        """tr2en'i duraklatır/etkinleştirir; yeni durumu döner (boru üzerinden)."""
+        try:
+            sonuc = self.boru_istemcisi({"tur": "aktif_degistir"})
+            if not isinstance(sonuc, dict) or not sonuc.get("ok"):
+                hata = str(sonuc.get("hata")) if isinstance(sonuc, dict) and sonuc.get("hata") else "tr2en çalışmıyor"
+                return {"ok": False, "aktif": False, "cevirmen": "", "cevirmen_adi": "",
+                        "kisayol_adi": "", "surum": "", "hata": hata}
+            return {
+                "ok": True,
+                "aktif": bool(sonuc.get("aktif")),
+                "cevirmen": str(sonuc.get("cevirmen") or ""),
+                "cevirmen_adi": str(sonuc.get("cevirmen_adi") or ""),
+                "kisayol_adi": str(sonuc.get("kisayol_adi") or ""),
+                "surum": str(sonuc.get("surum") or ""),
+                "hata": "",
+            }
+        except Exception as e:
+            return {"ok": False, "aktif": False, "cevirmen": "", "cevirmen_adi": "",
+                    "kisayol_adi": "", "surum": "", "hata": self._hata(e)}
+
+    @staticmethod
+    def _sure(sonuc: dict) -> float:
+        """Boru yanıtındaki süreyi güvenli biçimde döndürür."""
+        try:
+            return round(float(sonuc.get("sure_sn") or 0.0), 3)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def cevir_dene(self, metin: str) -> dict:
+        """Eski ad; artık ana süreçte çevirir (bkz. ``cevir``)."""
+        return self.cevir(metin)
 
     def ollama_modelleri(self, adres: str) -> dict:
         try:

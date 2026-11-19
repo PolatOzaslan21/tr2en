@@ -93,7 +93,7 @@ def test_menu_sira_ve_adlar(tepsi):
     ogeler = tepsi.menu_ogeleri()
     adlar = [o.text for o in ogeler if o is not pystray.Menu.SEPARATOR]
     assert adlar == [
-        "Ayarları aç",
+        "tr2en'i aç",
         "Etkin",
         "Çevirmen",
         "Son işlemler",
@@ -110,10 +110,10 @@ def test_menu_sira_ve_adlar(tepsi):
 
 def test_ayarlari_ac_en_ustte_ve_tek_default(tepsi, arayuz):
     ogeler = tepsi.menu_ogeleri()
-    assert ogeler[0].text == "Ayarları aç"
+    assert ogeler[0].text == "tr2en'i aç"
     assert ogeler[0].default is True
     varsayilanlar = [o for o in ogeler if o is not pystray.Menu.SEPARATOR and o.default]
-    assert [o.text for o in varsayilanlar] == ["Ayarları aç"]
+    assert [o.text for o in varsayilanlar] == ["tr2en'i aç"]
     ogeler[0](None)
     assert "pencere_ac" in arayuz.cagrilar
 
@@ -217,7 +217,6 @@ def test_ayarlar_ve_cikis(tepsi, arayuz):
     assert "pencere_ac" in arayuz.cagrilar
     cikis(None)
     assert "cikis" in arayuz.cagrilar
-
 
 def test_ayarlari_ac_yontemi_kaldi(tepsi, arayuz):
     """Menüden kalktı ama yedek davranış için yöntem duruyor."""

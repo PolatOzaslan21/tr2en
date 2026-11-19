@@ -1,4 +1,4 @@
-"""pencere_sureci.py testleri — sahte webview ve sahte win32 ile; gerçek pencere açılmaz.
+﻿"""pencere_sureci.py testleri — sahte webview ve sahte win32 ile; gerçek pencere açılmaz.
 
 HTML doğrulaması da bu dosyadadır: ayarlar.html tek parça olmalı, http(s)
 src/href içermemeli (dış bağlantılar yalnızca baglanti_ac ile) ve
@@ -184,9 +184,46 @@ def test_html_kopruye_bagli():
     metin = HTML_YOLU.read_text(encoding="utf-8")
     for yontem in ("ayarlari_al", "ayar_kaydet", "anahtar_kaydet", "anahtar_sil",
                    "baglanti_dene", "ollama_modelleri", "klasor_sec", "baglanti_ac",
-                   "kisayol_kaydet"):
+                   "kisayol_kaydet", "cevir", "durum", "aktif_degistir"):
         assert f"api.{yontem}" in metin
     assert "pywebviewready" in metin
+
+
+def test_html_cevir_bolumu_en_ustte():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    ogeler = re.findall(r'<button class="oge" data-bolum="([^"]+)"', metin)
+    assert ogeler[0] == "cevir"
+    assert ogeler[1:] == ["genel", "ceviri", "kisayol", "hakkinda", "rehber"]
+    assert 'id="cevir"' in metin
+    assert "Çeviri motoru" in metin
+
+
+def test_html_baslik_tr2en():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "<title>tr2en</title>" in metin
+
+
+def test_html_durum_satiri_var():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "durum-satiri" in metin
+    assert "durumYazi" in metin
+    assert "kenarDurumYazi" in metin
+    assert "Çalışıyor" in metin and "Duraklatıldı" in metin
+    assert "tr2en çalışmıyor" in metin
+    assert "5000" in metin
+    assert "maxlength=\"5000\"" in metin
+    assert "800" in metin
+
+
+def test_html_cevir_ve_durum_boru_kullanir():
+    metin = HTML_YOLU.read_text(encoding="utf-8")
+    assert "api.cevir(" in metin
+    assert "api.durum()" in metin
+    assert "api.aktif_degistir()" in metin
+    assert "cevirGirdi" in metin and "cevirSonuc" in metin
+    assert "cevirKopyala" in metin and "cevirTemizle" in metin
+    assert "cevirYukleniyor" in metin
+    assert "localStorage" not in metin
 
 
 def test_html_sihirbaz_ve_dene_kutusu():
@@ -218,15 +255,15 @@ def test_html_js_sozdizimi_gecerli(tmp_path):
 
 def test_one_getir_kuculmuse_geri_acar_one_getirir():
     gui = SahteGui(hwnd=7, kucuk=True)
-    pencere_sureci._one_getir("tr2en Ayarlar", gui=gui)
+    pencere_sureci._one_getir("tr2en", gui=gui)
     assert gui.gosterilen == [(7, gui.SW_RESTORE)]
     assert gui.one_alinan == [7]
-    assert gui.bulunan_baslik == "tr2en Ayarlar"
+    assert gui.bulunan_baslik == "tr2en"
 
 
 def test_one_getir_yoksa_bir_sey_yapmaz():
     gui = SahteGui(hwnd=0)
-    pencere_sureci._one_getir("tr2en Ayarlar", gui=gui)
+    pencere_sureci._one_getir("tr2en", gui=gui)
     assert gui.gosterilen == []
     assert gui.one_alinan == []
 
@@ -236,7 +273,7 @@ def test_one_getir_hata_yutar():
         def FindWindow(self, a, b):
             raise RuntimeError("win32 hatası")
 
-    pencere_sureci._one_getir("tr2en Ayarlar", gui=Bozuk())
+    pencere_sureci._one_getir("tr2en", gui=Bozuk())
 
 
 # ---- calistir ----
@@ -244,7 +281,7 @@ def test_one_getir_hata_yutar():
 def test_pencere_parametreleri_dogru(tmp_path, monkeypatch, kilit_kayit):
     kod, webview, api = calistir(tmp_path, monkeypatch, kilit_kayit)
     assert kod == 0
-    assert webview.argumanlar["baslik"] == "tr2en Ayarlar"
+    assert webview.argumanlar["baslik"] == "tr2en"
     assert webview.argumanlar["width"] == 820
     assert webview.argumanlar["height"] == 600
     assert webview.argumanlar["min_size"] == (720, 520)
@@ -310,7 +347,7 @@ def test_zaten_acik_pencere_one_getirilir(tmp_path, monkeypatch, kilit_kayit):
     monkeypatch.setattr(tek_ornek, "kilit_al", lambda ad, *, _win=None: alinan.append(ad) or None)
     kod = pencere_sureci.calistir([], webview_modulu=SahteWebview(), api=api_yap(tmp_path))
     assert kod == 0
-    assert cagrilar == ["tr2en Ayarlar"]
+    assert cagrilar == ["tr2en"]
     assert alinan == [pencere_sureci.MUTEX_ADI]
     assert kilit_kayit.birakilan == []
 

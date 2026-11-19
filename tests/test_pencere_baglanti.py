@@ -166,6 +166,7 @@ def dunya(monkeypatch, tmp_path):
         indirme=[],
         acilanlar=[],
         popen=SahtePopen(),
+        boru_sunucusu=None,
     )
 
     def kilit_al(*_a, **_k):
@@ -227,8 +228,27 @@ def dunya(monkeypatch, tmp_path):
             super().__init__(**kwargs)
             kayit.dinleyiciler.append(self)
 
+    class SahteBoruSunucusu:
+        """Boru sunucusu sahtesi: gerçek named pipe KURULMAZ."""
+
+        def __init__(self, isleyici):
+            self.isleyici = isleyici
+            self.baslatildi = 0
+            self.durduruldu = 0
+
+        def baslat(self) -> None:
+            self.baslatildi += 1
+            kayit.boru_sunucusu = self
+
+        def durdur(self) -> None:
+            self.durduruldu += 1
+
+    def boru_sunucusu_kur(isleyici):
+        return SahteBoruSunucusu(isleyici)
+
     monkeypatch.setattr(tek_ornek, "kilit_al", kilit_al)
     monkeypatch.setattr(tek_ornek, "kilit_birak", lambda k: kayit.kilit_birakilan.append(k))
+    monkeypatch.setattr(ana, "_boru_sunucusu_kur", boru_sunucusu_kur)
     monkeypatch.setattr(otomatik_baslat, "goc_uygula", lambda **_k: kayit.goc_cagrilari.append(1))
     monkeypatch.setattr(bildirim_mod, "bildir", bildir)
     monkeypatch.setattr(sinyal, "gonder", gonder)
@@ -354,7 +374,7 @@ def test_pencere_ac_varsayilan_yedek_bildirim_ve_ayar_dosyasi(monkeypatch):
     popen = SahtePopen(kod=2)
     ana.pencere_ac(popen=popen)
     assert bekle(lambda: acilanlar and bildirimler)
-    assert bildirimler[0][0] == "Ayar penceresi açılamadı"
+    assert bildirimler[0][0] == "tr2en penceresi açılamadı"
     assert "WebView2" in bildirimler[0][1]
     assert acilanlar[0].endswith("ayarlar.toml")
 
@@ -444,7 +464,7 @@ def test_sonraki_acilis_yedek_ayar_dosyasi_acilir(dunya):
     assert ana.main([]) == 0
     assert bekle(lambda: dunya.acilanlar)
     assert dunya.gizlilik_cagrilar == []
-    assert any(b[0] == "Ayar penceresi açılamadı" for b in dunya.bildirimler)
+    assert any(b[0] == "tr2en penceresi açılamadı" for b in dunya.bildirimler)
     assert any("WebView2" in b[1] for b in dunya.bildirimler if len(b) > 1)
     assert dunya.acilanlar[0].endswith("ayarlar.toml")
 
@@ -643,7 +663,17 @@ def test_goc_deger_yoksa_yazmaz():
     assert reg.degerler == {}
 
 
-# ---- 11) tepside "Ayarları aç" en üstte ve tek default ----
+# ---- 11) boru sunucusu (pencere <-> ana süreç) ----
+
+
+def test_boru_sunucusu_baslatilir_ve_kapatilir(dunya):
+    assert ana.main([]) == 0
+    assert dunya.boru_sunucusu is not None
+    assert dunya.boru_sunucusu.baslatildi == 1
+    assert dunya.boru_sunucusu.durduruldu == 1
+
+
+# ---- 12) tepside "tr2en'i aç" en üstte ve tek default ----
 
 
 class MinimalArayuz:
@@ -657,9 +687,9 @@ class MinimalArayuz:
 def test_tepsi_ayarlari_ac_en_ustte_tek_default():
     tepsi = Tepsi(MinimalArayuz())
     ogeler = tepsi.menu_ogeleri()
-    assert ogeler[0].text == "Ayarları aç"
+    assert ogeler[0].text == "tr2en'i aç"
     varsayilanlar = [o for o in ogeler if o is not pystray.Menu.SEPARATOR and o.default]
-    assert [o.text for o in varsayilanlar] == ["Ayarları aç"]
+    assert [o.text for o in varsayilanlar] == ["tr2en'i aç"]
     adlar = [o.text for o in ogeler if o is not pystray.Menu.SEPARATOR]
     assert "Ayarlar dosyasını aç" not in adlar
 

@@ -1,4 +1,4 @@
-# KÖPRÜ — Ayar Penceresi JS API'si (PencereApi)
+# KÖPRÜ — tr2en Penceresi JS API'si (PencereApi)
 
 JS'ten çağrılan Python köprüsü. İleride Rust/Tauri arka ucu **aynı sözleşmeyi**
 uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
@@ -9,6 +9,9 @@ uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
 - **Anahtar değeri asla JS'e dönmez**, loglanmaz, hata metinlerinde görünmez (dönüşler `***` ile temizlenir).
 - **Yalnızca beyaz liste URL** açılır (`baglanti_ac`); listede olmayan hiçbir adres tarayıcıya verilmez.
 - **`http://` yalnızca localhost** (Ollama model listesi yalnızca `localhost` / `127.0.0.1` / `[::1]` adreslerinden okunur).
+- **Çeviri pencerede yapılmaz:** `cevir` isteği adlandırılmış boru ile **ana sürece** gider
+  (`uygulama/boru.py`); model yalnızca ana süreçte yüklenir. Boru yoksa
+  `{"ok": False, "hata": "tr2en çalışmıyor"}` döner.
 - Tüm dönüşler JSON'a çevrilebilir sözlüktür.
 
 ## Yöntemler
@@ -21,7 +24,10 @@ uygulayacak. Uygulama: `src/ceviri_katmani/uygulama/pencere_api.py`.
 | `anahtar_kaydet(servis, deger)` | `str, str` | `{"ok"}` | Servisler: `gemini, openai, deepseek, openrouter, diger`. Değer hiçbir yere loglanmaz/dönmez. Başarılıysa sinyal `yenile`. |
 | `anahtar_sil(servis)` | `str` | `{"ok"}` | Başarılıysa sinyal `yenile`. |
 | `baglanti_dene(ayar_parcasi, anahtar=None)` | `dict, str\|None` | `{"ok", "sure_sn", "ceviri", "hata"}` | Ayarların **geçici** kopyasıyla zincir kurulur (`bulut_yedek_yerel` False zorlanır), `"Merhaba dünya, bu bir denemedir."` çevrilir. Dosyaya YAZMAZ. `anahtar` verilmişse (kaydedilmemiş) o kullanılır. |
-| `cevir_dene(metin)` | `str` | `{"ok", "ceviri", "cevirmen", "sure_sn", "hata"}` | Kayıtlı ayarlarla (yerel yedek dahil) akıllı çeviri. Metin 2000 karakterle sınırlı; boşsa `ok: False`. Metin zaten İngilizceyse çevrilmez (`cevirmen: None`). |
+| `cevir(metin)` | `str` | `{"ok", "ceviri", "cevirmen", "durum", "sure_sn", "hata"}` | **Ana süreçte çevirir** (boru üzerinden; pencere model yüklemez). Metin boşsa `ok: False`. `durum`: `"cevrildi"` / `"zaten-ingilizce"`. `cevirmen`: görünen ad (ör. "Bulut — Google Gemini"). |
+| `cevir_dene(metin)` | `str` | `{"ok", "ceviri", "cevirmen", "sure_sn", "hata"}` | Eski ad; artık `cevir`i çağırır (aynı sonuç). |
+| `durum()` | — | `{"ok", "aktif", "cevirmen", "cevirmen_adi", "kisayol_adi", "surum", "hata"}` | Boru üzerinden gerçek durum. `cevirmen`: `"bulut"` / `"yerel"`. `cevirmen_adi`: ör. "Bulut — Google Gemini". `kisayol_adi`: ör. "Ctrl+Shift+Space". |
+| `aktif_degistir()` | — | `{"ok", "aktif", "cevirmen", "cevirmen_adi", "kisayol_adi", "surum", "hata"}` | tr2en'i duraklatır/etkinleştirir (tepsiyle aynı davranış); yeni durumu döner. |
 | `ollama_modelleri(adres)` | `str` | `{"ok", "modeller"}` | Yalnızca yerel adresler. `GET {adres}/models`, 3 sn zaman aşımı; `data[].id` listesi döner. |
 | `klasor_sec()` | — | `{"ok", "yol"}` | `klasor_secici` ile klasör seçimi; `model.bin` yoksa `ok: False` ("Bu klasörde CTranslate2 modeli yok"). |
 | `baglanti_ac(anahtar_ad)` | `str` | `{"ok"}` | Yalnızca beyaz liste (`BEYAZ_LISTE`): `gemini_anahtar, openai_anahtar, deepseek_anahtar, openrouter_anahtar, ollama, lmstudio, github, sorun, gizlilik`. |
@@ -43,4 +49,5 @@ Başarısızlıkta dönüşler, yöntemdeki alanları nötr değerlerle (`"":`, 
 `tarayici_ac` (varsayılan `webbrowser.open`), `http_istemci` (httpx.Client benzeri),
 `zincir_kurucu` (varsayılan `zincir_kur_v2`), `klasor_secici` (varsayılan None → `ok: False`),
 `otomatik_baslat` (varsayılan `otomatik_baslat` modülü; testlerde sahte),
-`saat` (varsayılan `time.perf_counter`).
+`saat` (varsayılan `time.perf_counter`),
+`boru_istemcisi` (varsayılan `boru.istek`; `{"tur": ...}` sözlüğü alır, `dict` döner).

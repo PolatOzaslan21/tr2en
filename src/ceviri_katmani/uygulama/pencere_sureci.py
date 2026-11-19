@@ -1,4 +1,4 @@
-"""Ayar penceresini ayrı süreçte pywebview ile açar.
+"""tr2en penceresini ayrı süreçte pywebview ile açar.
 
 Ana uygulama bu modülü ayrı bir süreçte çalıştırır; pencere kapanınca süreç
 biter. Tek pencere kuralı: named mutex zaten varsa başlığı ``PENCERE_BASLIGI``
@@ -19,7 +19,7 @@ from . import tek_ornek
 from .pencere_api import PencereApi
 
 MUTEX_ADI = "Local\\Tr2enAyarPenceresi"
-PENCERE_BASLIGI = "tr2en Ayarlar"
+PENCERE_BASLIGI = "tr2en"
 GENISLIK, YUKSEKLIK = 820, 600
 MIN_GENISLIK, MIN_YUKSEKLIK = 720, 520
 
@@ -59,7 +59,7 @@ def _one_getir(baslik: str, *, gui=None) -> None:
 
 
 def _ayarlar_html(sihirbaz: bool = False) -> str:
-    """Ayar penceresinin URL'si; ``sihirbaz`` ise ilk açılış sihirbazını açar."""
+    """tr2en penceresinin URL'si; ``sihirbaz`` ise ilk açılış sihirbazını açar."""
     url = (Path(__file__).resolve().parent / "arayuz" / "ayarlar.html").as_uri()
     if sihirbaz:
         url += "#sihirbaz"
@@ -73,7 +73,7 @@ def calistir(
     api: Any | None = None,
     kilit: Any | None = None,
 ) -> int:
-    """Ayar penceresini açar; bitince dönen çıkış kodu.
+    """tr2en penceresini açar; bitince dönen çıkış kodu.
 
     ``webview_modulu``: sahte/enjekte webview modülü (varsayılan: gerçek
     pywebview). ``api``: JS köprüsü (varsayılan: PencereApi); verilirse yanına
@@ -162,7 +162,7 @@ def calistir(
             pencere.events.closing += kapatma_olayi
             webview.start(gui="edgechromium")
         except Exception as e:
-            print(f"ayar penceresi açılamadı: {e}", file=sys.stderr)
+            print(f"tr2en penceresi açılamadı: {e}", file=sys.stderr)
             return 2
         return 0
     finally:

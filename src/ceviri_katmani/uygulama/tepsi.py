@@ -144,7 +144,7 @@ class Tepsi:
     def _son_orijinali_kopyala(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.son_orijinali_kopyala)
 
-    def _ayarlar_penceresi_ac(self, _icon=None, _item=None) -> None:
+    def _tr2en_penceresi_ac(self, _icon=None, _item=None) -> None:
         _yut(self.arayuz.pencere_ac)
 
     def _ayarlari_ac(self, _icon=None, _item=None) -> None:
@@ -172,8 +172,8 @@ class Tepsi:
         pystray = self._pystray_getir()
         return [
             pystray.MenuItem(
-                "Ayarları aç",
-                self._ayarlar_penceresi_ac,
+                "tr2en'i aç",
+                self._tr2en_penceresi_ac,
                 default=True,
             ),
             pystray.MenuItem(

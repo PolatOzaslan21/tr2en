@@ -99,6 +99,27 @@ class SahteSaat:
         return suanki
 
 
+class SahteBoru:
+    """Boru istemcisi sahtesi: istekleri kaydeder, hazır cevap döner."""
+
+    def __init__(self, cevap: dict | None = None, hata: str | None = None) -> None:
+        self.cevap = cevap if cevap is not None else {
+            "ok": True,
+            "ceviri": "Hello world",
+            "cevirmen": "Bulut — Google Gemini",
+            "durum": "cevrildi",
+            "sure_sn": 0.5,
+        }
+        self.hata = hata
+        self.cagrilar: list[dict] = []
+
+    def __call__(self, istek: dict) -> dict:
+        self.cagrilar.append(istek)
+        if self.hata is not None:
+            return {"ok": False, "hata": self.hata}
+        return dict(self.cevap)
+
+
 @pytest.fixture
 def yol(tmp_path: Path) -> Path:
     return tmp_path / "ayarlar.toml"
@@ -360,62 +381,144 @@ def test_baglanti_dene_kasa_anahtarini_kullanir(yol, kasa):
     assert kurucu.anahtarlar == ["KASA_DEGER"]
 
 
-# ---- cevir_dene ----
+# ---- cevir / cevir_dene (boru üzerinden) ----
 
 
-def test_cevir_dene_basarili(yol, kasa):
-    kurucu = SahteZincirKurucu(SahteZincir(ceviri="Hello world"))
-    api = PencereApi(ayar_yolu=yol, kasa=kasa, zincir_kurucu=kurucu)
+def test_cevir_boruya_gider(yol):
+    boru = SahteBoru()
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
+    sonuc = api.cevir("Merhaba dünya")
+    assert sonuc["ok"] is True
+    assert sonuc["ceviri"] == "Hello world"
+    assert sonuc["cevirmen"] == "Bulut — Google Gemini"
+    assert sonuc["sure_sn"] == 0.5
+    assert sonuc["hata"] == ""
+    assert boru.cagrilar == [{"tur": "cevir", "metin": "Merhaba dünya"}]
+
+
+def test_cevir_pencere_model_yuklemez(yol):
+    """Çeviri pencere sürecinde değil, ana süreçte yapılır."""
+    kurucu = SahteZincirKurucu()
+    boru = SahteBoru()
+    api = PencereApi(ayar_yolu=yol, kasa=SahteKasa(), zincir_kurucu=kurucu, boru_istemcisi=boru)
+    api.cevir("Merhaba dünya")
+    assert kurucu.kurulan_ayarlar == []
+    assert kurucu.zincir.cagrilar == []
+
+
+def test_cevir_bos(yol):
+    boru = SahteBoru()
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
+    for metin in ("", "   ", None, 5):
+        sonuc = api.cevir(metin)
+        assert sonuc["ok"] is False
+        assert sonuc["hata"] == "metin boş"
+    assert boru.cagrilar == []
+
+
+def test_cevir_hata(yol):
+    boru = SahteBoru(hata="başka bir çeviri sürüyor")
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
+    sonuc = api.cevir("Merhaba dünya")
+    assert sonuc["ok"] is False
+    assert sonuc["ceviri"] == ""
+    assert sonuc["hata"] == "başka bir çeviri sürüyor"
+
+
+def test_cevir_boru_yoksa(yol):
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=lambda istek: {"ok": False, "hata": "tr2en çalışmıyor"})
+    sonuc = api.cevir("Merhaba dünya")
+    assert sonuc["ok"] is False
+    assert sonuc["hata"] == "tr2en çalışmıyor"
+
+
+def test_cevir_dene_ceviri_caagirir(yol):
+    boru = SahteBoru()
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
     sonuc = api.cevir_dene("Merhaba dünya")
     assert sonuc["ok"] is True
     assert sonuc["ceviri"] == "Hello world"
-    assert sonuc["cevirmen"] == "sahte:1"
-    assert sonuc["hata"] == ""
-    assert kurucu.zincir.cagrilar == ["Merhaba dünya"]
+    assert boru.cagrilar == [{"tur": "cevir", "metin": "Merhaba dünya"}]
 
 
 def test_cevir_dene_bos(yol):
-    api = PencereApi(ayar_yolu=yol, zincir_kurucu=SahteZincirKurucu())
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=SahteBoru())
     sonuc = api.cevir_dene("   ")
     assert sonuc["ok"] is False
     assert isinstance(sonuc["hata"], str) and sonuc["hata"]
 
 
-def test_cevir_dene_zaten_ingilizce(yol):
-    kurucu = SahteZincirKurucu()
-    api = PencereApi(ayar_yolu=yol, zincir_kurucu=kurucu)
-    sonuc = api.cevir_dene("this is a test")
-    assert sonuc["ok"] is True
-    assert sonuc["ceviri"] == "this is a test"
-    assert sonuc["cevirmen"] is None
-    assert kurucu.zincir.cagrilar == []
-
-
-def test_cevir_dene_uzun_metin_kisaltilir(yol):
-    kurucu = SahteZincirKurucu()
-    api = PencereApi(ayar_yolu=yol, zincir_kurucu=kurucu)
-    api.cevir_dene("merhaba " * 400)
-    assert len(kurucu.zincir.cagrilar[0]) == 2000
-
-
 def test_cevir_dene_hata(yol):
-    kurucu = SahteZincirKurucu(hata="API anahtarı tanımlı değil")
-    api = PencereApi(ayar_yolu=yol, zincir_kurucu=kurucu)
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=SahteBoru(hata="API anahtarı tanımlı değil"))
     sonuc = api.cevir_dene("Merhaba dünya")
     assert sonuc["ok"] is False
-    assert sonuc["ceviri"] == ""
-    assert sonuc["cevirmen"] is None
     assert sonuc["hata"] == "API anahtarı tanımlı değil"
 
 
-def test_cevir_dene_ceviri_anahtari_temizlenir(yol, kasa):
-    gizli = "GIZLI_CEVIRIDE_987"
-    kasa.veri["gemini"] = gizli
-    kurucu = SahteZincirKurucu(SahteZincir(ceviri=f"ceviri {gizli} son"))
-    api = PencereApi(ayar_yolu=yol, kasa=kasa, zincir_kurucu=kurucu)
-    sonuc = api.cevir_dene("Merhaba dünya")
+def test_cevir_metni_kisitlamaz(yol):
+    """Sınır ana süreçte (5000 karakter); pencere metni olduğu gibi gönderir."""
+    boru = SahteBoru()
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
+    api.cevir("merhaba " * 400)
+    assert len(boru.cagrilar[0]["metin"]) == 3200
+
+
+# ---- durum / aktif_degistir ----
+
+
+def test_durum_boruya_gider(yol):
+    boru = SahteBoru(cevap={
+        "ok": True, "aktif": True, "cevirmen": "bulut",
+        "cevirmen_adi": "Bulut — Google Gemini", "kisayol_adi": "Ctrl+Shift+Space",
+        "surum": "0.2.0",
+    })
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
+    sonuc = api.durum()
     assert sonuc["ok"] is True
-    assert gizli not in json.dumps(sonuc, ensure_ascii=False)
+    assert sonuc["aktif"] is True
+    assert sonuc["cevirmen"] == "bulut"
+    assert sonuc["cevirmen_adi"] == "Bulut — Google Gemini"
+    assert sonuc["kisayol_adi"] == "Ctrl+Shift+Space"
+    assert sonuc["surum"] == "0.2.0"
+    assert boru.cagrilar == [{"tur": "durum"}]
+
+
+def test_durum_boru_yoksa(yol):
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=lambda istek: {"ok": False, "hata": "tr2en çalışmıyor"})
+    sonuc = api.durum()
+    assert sonuc["ok"] is False
+    assert sonuc["hata"] == "tr2en çalışmıyor"
+    assert sonuc["aktif"] is False
+
+
+def test_aktif_degistir_boruya_gider(yol):
+    boru = SahteBoru(cevap={
+        "ok": True, "aktif": False, "cevirmen": "bulut",
+        "cevirmen_adi": "Bulut — Google Gemini", "kisayol_adi": "Ctrl+Shift+Space",
+        "surum": "0.2.0",
+    })
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=boru)
+    sonuc = api.aktif_degistir()
+    assert sonuc["ok"] is True
+    assert sonuc["aktif"] is False
+    assert boru.cagrilar == [{"tur": "aktif_degistir"}]
+
+
+def test_aktif_degistir_hata(yol):
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=SahteBoru(hata="tr2en çalışmıyor"))
+    sonuc = api.aktif_degistir()
+    assert sonuc["ok"] is False
+    assert sonuc["hata"] == "tr2en çalışmıyor"
+
+
+def test_boru_istemcisi_istisnasi_yutulur(yol):
+    def patlar(_istek: dict) -> dict:
+        raise RuntimeError("boru patladı")
+
+    api = PencereApi(ayar_yolu=yol, boru_istemcisi=patlar)
+    assert api.cevir("Merhaba")["ok"] is False
+    assert api.durum()["ok"] is False
+    assert api.aktif_degistir()["ok"] is False
 
 
 # ---- ollama_modelleri ----
@@ -624,7 +727,15 @@ def test_anahtar_degeri_hicbir_donusmede_yok(yol, kasa):
     gizli = "GIZLI_HIC_YOK_789"
     kasa.veri["gemini"] = gizli
     kurucu = SahteZincirKurucu(SahteZincir(ceviri=f"ceviri {gizli} son"))
-    api = PencereApi(ayar_yolu=yol, kasa=kasa, zincir_kurucu=kurucu, tarayici_ac=[].append)
+    api = PencereApi(
+        ayar_yolu=yol,
+        kasa=kasa,
+        zincir_kurucu=kurucu,
+        tarayici_ac=[].append,
+        boru_istemcisi=SahteBoru(cevap={"ok": True, "ceviri": "Hello world",
+                                         "cevirmen": "Bulut — Google Gemini",
+                                         "durum": "cevrildi", "sure_sn": 0.1}),
+    )
     donusler = [
         api.ayarlari_al(),
         api.ayar_kaydet({"tema": "koyu"}),
@@ -632,6 +743,9 @@ def test_anahtar_degeri_hicbir_donusmede_yok(yol, kasa):
         api.anahtar_sil("openai"),
         api.baglanti_dene({}, anahtar=gizli),
         api.cevir_dene("Merhaba dünya"),
+        api.cevir("Merhaba dünya"),
+        api.durum(),
+        api.aktif_degistir(),
         api.klasor_sec(),
         api.baglanti_ac("github"),
         api.kisayol_kaydet(["ctrl", "shift"], "k"),

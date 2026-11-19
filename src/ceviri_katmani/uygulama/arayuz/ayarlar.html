@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tr2en Ayarlar</title>
+<title>tr2en</title>
 <style>
 :root{
   --bg:#ececee; --sidebar:#e3e3e7; --panel:#ffffff; --text:#1d1d1f; --muted:#6e6e73;
@@ -140,6 +140,27 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
 .satir.sutun{flex-direction:column;align-items:stretch;gap:10px}
 .kucuk{color:var(--muted);font-size:11.5px}
 
+/* çevir sayfası */
+.cevir-arac{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.cevir-paneller{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.cevir-panel .satir.sutun{padding:0 14px 14px}
+.cevir-panel textarea{min-height:190px}
+@media (max-width:780px){.cevir-paneller{grid-template-columns:1fr}}
+.yukleniyor{height:2px;border-radius:2px;margin:-6px 0 12px;background:linear-gradient(90deg,var(--accent),transparent);
+  animation:akis 1.1s linear infinite}
+@keyframes akis{0%{opacity:.3}50%{opacity:1}100%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.yukleniyor{animation:none}}
+
+/* durum satırı */
+.durum-satiri{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;padding:9px 12px;
+  background:var(--panel);border-radius:10px;box-shadow:var(--shadow);color:var(--muted);font-size:11.5px}
+.durum-dugme{display:inline-flex;align-items:center;gap:6px;border:0;background:none;font:inherit;color:var(--text);
+  cursor:pointer;padding:2px 7px;border-radius:6px}
+.durum-dugme:hover{background:var(--field)}
+.durum-ayrac{opacity:.5}
+.nokta.pasif{background:var(--muted)}
+.nokta.hata{background:var(--danger)}
+
 /* ilk açılış sihirbazı */
 #sihirbaz{position:fixed;inset:0;background:var(--bg);z-index:45;display:none;flex-direction:column}
 #sihirbaz.acik{display:flex}
@@ -176,11 +197,14 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
       </svg>
       <div><b>tr2en</b><small>Türkçe → İngilizce</small></div>
     </div>
-    <button class="oge" data-bolum="genel" aria-current="page">
+    <button class="oge" data-bolum="cevir" aria-current="page">
+      <span class="simge s-mavi"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg></span>Çevir
+    </button>
+    <button class="oge" data-bolum="genel">
       <span class="simge s-gri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>Genel
     </button>
     <button class="oge" data-bolum="ceviri">
-      <span class="simge s-mavi"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg></span>Çeviri
+      <span class="simge s-mor"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></span>Çeviri motoru
     </button>
     <button class="oge" data-bolum="kisayol">
       <span class="simge s-mor"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>Kısayol
@@ -191,12 +215,48 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
     <button class="oge" data-bolum="rehber">
       <span class="simge" style="background:#ff9f0a"><svg viewBox="0 0 24 24"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg></span>Rehber
     </button>
-    <div class="alt"><span class="durum"><span class="nokta"></span>Çalışıyor</span><br>Pencereyi kapatınca tr2en tepside çalışmaya devam eder.</div>
+    <div class="alt"><span class="durum"><span class="nokta" id="kenarNokta"></span><span id="kenarDurumYazi">Durum biliniyor…</span></span><br>Pencereyi kapatınca tr2en tepside çalışmaya devam eder.</div>
   </aside>
 
   <main>
+    <!-- ÇEVİR -->
+    <section class="bolum acik" id="cevir">
+      <h1>Çevir</h1>
+      <div class="yukleniyor gizli" id="cevirYukleniyor" aria-hidden="true"></div>
+      <div class="cevir-arac">
+        <button class="dugme ana" id="cevirDugme">Çevir</button>
+        <span class="kucuk">Yazmayı bıraktığınızda otomatik çevirilir · Ctrl+Enter da çevirir.</span>
+      </div>
+      <div class="cevir-paneller">
+        <div class="kart cevir-panel">
+          <div class="satir"><div class="etiket">Türkçe<small id="cevirSayac">0 / 5000 karakter</small></div></div>
+          <div class="satir sutun">
+            <textarea id="cevirGirdi" maxlength="5000" rows="12" placeholder="Türkçe metni buraya yazın…" aria-label="Çevrilecek Türkçe metin"></textarea>
+          </div>
+        </div>
+        <div class="kart cevir-panel">
+          <div class="satir"><div class="etiket">İngilizce</div>
+            <div class="alan"><button class="dugme" id="cevirKopyala">Kopyala</button>
+              <button class="dugme" id="cevirTemizle">Temizle</button></div></div>
+          <div class="satir sutun">
+            <textarea id="cevirSonuc" rows="12" readonly placeholder="Çeviri burada görünür" aria-label="İngilizce çeviri sonucu"></textarea>
+          </div>
+        </div>
+      </div>
+      <p class="not uyari gizli" id="cevirHata" role="status"></p>
+      <div class="durum-satiri">
+        <button class="durum-dugme" id="durumDugme" title="Çalışma durumunu değiştir">
+          <span class="nokta" id="durumNokta"></span><span id="durumYazi">Durum biliniyor…</span>
+        </button>
+        <span class="durum-ayrac">·</span>
+        <span id="durumCevirmen">Çevirmen: —</span>
+        <span class="durum-ayrac">·</span>
+        <span id="durumKisayol">Kısayol: —</span>
+      </div>
+    </section>
+
     <!-- GENEL -->
-    <section class="bolum acik" id="genel">
+    <section class="bolum" id="genel">
       <h1>Genel</h1>
       <div class="kart">
         <div class="satir"><div class="etiket">Pencereyi kapatınca sor<small>Kapatırken tr2en'in tamamen kapanıp kapanmayacağını sorar.</small></div>
@@ -222,9 +282,9 @@ textarea{font:inherit;color:var(--text);background:var(--field);border:1px solid
       </div>
     </section>
 
-    <!-- ÇEVİRİ -->
+    <!-- ÇEVİRİ MOTORU -->
     <section class="bolum" id="ceviri">
-      <h1>Çeviri</h1>
+      <h1>Çeviri motoru</h1>
       <div class="secenek-buyuk" role="group" aria-label="Çeviri yeri" id="ceviriYer">
         <button class="kutu" data-yer="yerel" aria-pressed="false">
           <b>Yerel</b><small>Bu bilgisayarda çalışır. İnternet gerekmez, metin bilgisayardan çıkmaz. Uzun metinde daha zayıf.</small>
@@ -494,6 +554,9 @@ function sahteApi() {
     anahtar_sil: s => { console.log("anahtar_sil", s); return Promise.resolve({ok: true}); },
     baglanti_dene: (p, a) => { console.log("baglanti_dene", p, a ? "(anahtar girildi)" : ""); return Promise.resolve({ok: true, sure_sn: 0.6, ceviri: "Hello world", hata: ""}); },
     cevir_dene: m => { console.log("cevir_dene", m); return Promise.resolve({ok: true, ceviri: "Hello, the weather is very nice today.", cevirmen: "sahte:1", sure_sn: 0.6, hata: ""}); },
+    cevir: m => { console.log("cevir", m); return Promise.resolve({ok: true, ceviri: "Hello, the weather is very nice today.", cevirmen: "Bulut — Google Gemini", durum: "cevrildi", sure_sn: 0.6, hata: ""}); },
+    durum: () => Promise.resolve({ok: true, aktif: true, cevirmen: "bulut", cevirmen_adi: "Bulut — Google Gemini", kisayol_adi: "Ctrl+Shift+Space", surum: "0.2.0", hata: ""}),
+    aktif_degistir: () => Promise.resolve({ok: true, aktif: false, cevirmen: "bulut", cevirmen_adi: "Bulut — Google Gemini", kisayol_adi: "Ctrl+Shift+Space", surum: "0.2.0", hata: ""}),
     ilk_kurulum_tamamla: c => { console.log("ilk_kurulum_tamamla", c); return Promise.resolve({ok: true}); },
     ollama_modelleri: a => Promise.resolve({ok: true, modeller: ["qwen3:1.7b", "llama3.2"]}),
     klasor_sec: () => Promise.resolve({ok: false, yol: "", hata: "klasör seçilmedi"}),
@@ -543,6 +606,114 @@ apiAl().then(api => {
     return String(metin == null ? "" : metin)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
+
+  // ---- Çevir sayfası (çeviri ana süreçte, boru üzerinden yapılır) ----
+  const cevirGirdi = $("cevirGirdi");
+  const cevirSonuc = $("cevirSonuc");
+  let cevirZaman = null;
+  let cevirNo = 0;
+
+  function cevirSayacYaz() {
+    $("cevirSayac").textContent = cevirGirdi.value.length + " / 5000 karakter";
+  }
+  function cevirHataGoster(metin) {
+    const h = $("cevirHata");
+    if (!metin) { h.textContent = ""; h.classList.add("gizli"); return; }
+    h.textContent = metin;
+    h.classList.remove("gizli");
+  }
+  function cevirYukleniyor(goster) {
+    $("cevirYukleniyor").classList.toggle("gizli", !goster);
+  }
+  function cevirYap() {
+    const metin = cevirGirdi.value.trim();
+    if (!metin) { cevirSonuc.value = ""; cevirHataGoster(""); return; }
+    const no = ++cevirNo;
+    cevirYukleniyor(true);
+    cevirHataGoster("");
+    Promise.resolve()
+      .then(() => api.cevir(metin))
+      .then(sonuc => {
+        if (no !== cevirNo) return;
+        cevirYukleniyor(false);
+        if (sonuc && sonuc.ok) {
+          cevirSonuc.value = sonuc.ceviri || "";
+          cevirHataGoster("");
+        } else {
+          cevirSonuc.value = "";
+          cevirHataGoster((sonuc && sonuc.hata) || "Çeviri yapılamadı");
+        }
+      })
+      .catch(() => {
+        if (no !== cevirNo) return;
+        cevirYukleniyor(false);
+        cevirHataGoster("Çeviri yapılamadı");
+      });
+  }
+  cevirGirdi.addEventListener("input", () => {
+    cevirSayacYaz();
+    clearTimeout(cevirZaman);
+    cevirZaman = setTimeout(cevirYap, 800);
+  });
+  cevirGirdi.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); cevirYap(); }
+  });
+  $("cevirDugme").addEventListener("click", cevirYap);
+  $("cevirTemizle").addEventListener("click", () => {
+    cevirGirdi.value = "";
+    cevirSonuc.value = "";
+    cevirSayacYaz();
+    cevirHataGoster("");
+  });
+  function cevirKopyalandi() {
+    const b = $("cevirKopyala");
+    b.textContent = "Kopyalandı";
+    setTimeout(() => { b.textContent = "Kopyala"; }, 1500);
+  }
+  function cevirEskiKopya(metin) {
+    try {
+      cevirSonuc.focus();
+      cevirSonuc.select();
+      document.execCommand("copy");
+      cevirKopyalandi();
+    } catch (hata) { console.log("kopyalanamadı", hata); }
+  }
+  $("cevirKopyala").addEventListener("click", () => {
+    const metin = cevirSonuc.value;
+    if (!metin) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(metin).then(cevirKopyalandi).catch(() => cevirEskiKopya(metin));
+    } else {
+      cevirEskiKopya(metin);
+    }
+  });
+
+  // ---- durum satırı (gerçek durum: boru üzerinden) ----
+  function durumGoster(sonuc) {
+    const calisiyor = !!(sonuc && sonuc.ok && sonuc.aktif);
+    const noktaSinifi = (!sonuc || !sonuc.ok) ? "nokta hata" : (calisiyor ? "nokta" : "nokta pasif");
+    const etiket = (!sonuc || !sonuc.ok) ? "tr2en çalışmıyor" : (calisiyor ? "Çalışıyor" : "Duraklatıldı");
+    $("durumNokta").className = noktaSinifi;
+    $("durumYazi").textContent = etiket;
+    $("kenarNokta").className = noktaSinifi;
+    $("kenarDurumYazi").textContent = etiket;
+    $("durumCevirmen").textContent = "Çevirmen: " + ((sonuc && sonuc.cevirmen_adi) || "—");
+    $("durumKisayol").textContent = "Kısayol: " + ((sonuc && sonuc.kisayol_adi) || "—");
+  }
+  function durumTazele() {
+    return Promise.resolve()
+      .then(() => api.durum())
+      .then(sonuc => durumGoster(sonuc))
+      .catch(() => durumGoster(null));
+  }
+  $("durumDugme").addEventListener("click", () => {
+    Promise.resolve()
+      .then(() => api.aktif_degistir())
+      .then(sonuc => durumGoster(sonuc))
+      .catch(() => durumGoster(null));
+  });
+  setInterval(() => { if (!document.hidden) durumTazele(); }, 5000);
+  durumTazele();
 
   // Gezinme
   document.querySelectorAll(".oge").forEach(b => b.addEventListener("click", () => {
@@ -904,6 +1075,15 @@ apiAl().then(api => {
   }, true);
 
   // İlk açılış sihirbazı
+  // Sihirbaz kipinde "Çevir" bölümü gösterilmez; Genel açılır.
+  if (sihirbazAcik) {
+    const cevirOge = document.querySelector('.oge[data-bolum="cevir"]');
+    if (cevirOge) { cevirOge.classList.add("gizli"); cevirOge.removeAttribute("aria-current"); }
+    $("cevir").classList.remove("acik");
+    $("genel").classList.add("acik");
+    const genelOge = document.querySelector('.oge[data-bolum="genel"]');
+    if (genelOge) genelOge.setAttribute("aria-current", "page");
+  }
   const sihirbazDuzen = {adim: 1, yer: "bulut", baglanti: false};
   function sihirbazMesaj(metin, hataMi) {
     const s = $("sihirbazMesaj");
