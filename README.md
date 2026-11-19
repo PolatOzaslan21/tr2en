@@ -52,12 +52,14 @@
 
 ### Geliştiriciler için: uv ile
 
-Gereken: [uv](https://docs.astral.sh/uv/).
+[PyPI](https://pypi.org/project/tr2en/)'den, [uv](https://docs.astral.sh/uv/) ile:
 
 ```powershell
-uv tool install "tr2en[uygulama,yerel] @ git+https://github.com/PolatOzaslan21/tr2en"
+uv tool install "tr2en[uygulama,yerel]"
 tr2en
 ```
+
+(`pip install "tr2en[uygulama,yerel]"` da olur; Python ≥ 3.11.)
 
 Kaynaktan çalıştırmak için: depoyu klonlayın, `baslat-arkaplan.cmd` (konsolsuz) ya da `baslat.cmd` (konsollu, hata ayıklama) dosyasını çalıştırın.
 

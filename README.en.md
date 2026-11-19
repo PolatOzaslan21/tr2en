@@ -54,12 +54,14 @@ On first start the app asks which one you want to use.
 
 ### For developers: with uv
 
-Requirements: [uv](https://docs.astral.sh/uv/).
+From [PyPI](https://pypi.org/project/tr2en/), with [uv](https://docs.astral.sh/uv/):
 
 ```powershell
-uv tool install "tr2en[uygulama,yerel] @ git+https://github.com/PolatOzaslan21/tr2en"
+uv tool install "tr2en[uygulama,yerel]"
 tr2en
 ```
+
+(`pip install "tr2en[uygulama,yerel]"` works too; Python ≥ 3.11.)
 
 To run from source: clone the repo and run `baslat-arkaplan.cmd` (no console) or `baslat.cmd` (with console, for debugging).
 
