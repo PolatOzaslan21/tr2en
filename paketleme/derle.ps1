@@ -17,10 +17,16 @@ $Cikti = [IO.Path]::GetFullPath((Join-Path $kok $Cikti))
 uv run --extra uygulama python (Join-Path $PSScriptRoot "simge_olustur.py")
 if ($LASTEXITCODE -ne 0) { throw "simge üretilemedi" }
 
+$surumDosyasi = Join-Path $is "surum_bilgisi.txt"
+New-Item -ItemType Directory -Force $is | Out-Null
+uv run --extra uygulama python (Join-Path $PSScriptRoot "surum_bilgisi.py") $surumDosyasi
+if ($LASTEXITCODE -ne 0) { throw "sürüm bilgisi üretilemedi" }
+
 uv run --extra yerel --extra uygulama --with "pyinstaller==6.22.3" pyinstaller `
     (Join-Path $PSScriptRoot "giris.py") `
     --name tr2en --noconsole --onedir --noconfirm --clean `
     --icon (Join-Path $PSScriptRoot "tr2en.ico") `
+    --version-file $surumDosyasi `
     --collect-data ceviri_katmani `
     --hidden-import pystray._win32 `
     --hidden-import pynput.keyboard._win32 `

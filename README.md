@@ -36,6 +36,8 @@
 - Klavye kancası yalnızca kısayolu tanımak için kullanılır; tuşlar kaydedilmez.
 - Gemini seçiliyse metin Google'a gönderilir; **ücretsiz katmanda Google bu metinleri ürünlerini geliştirmek için kullanabilir.** Hassas metinler için "Yalnızca yerel" seçin.
 - API anahtarları yalnızca istek başlığında gider, hiçbir dosyaya ya da log'a yazılmaz.
+- "Kendi modelim" seçiliyse metin yalnızca ayarlarda yazdığınız adrese gider.
+- tr2en'in kendiliğinden yaptığı tek ağ bağlantısı, yerel model yoksa ilk açılışta modelin Hugging Face'ten (huggingface.co) indirilmesidir. Telemetri, kullanım istatistiği ya da güncelleme denetimi yoktur.
 
 ## Kurulum
 
@@ -140,6 +142,14 @@ uv run --extra test --extra yerel --extra uygulama pytest -q
 ```
 
 Testler her push'ta GitHub Actions'ta Windows üzerinde çalışır. Kod üzerinde çalışan yapay zekâ ajanları için kurallar: [AGENTS.md](https://github.com/PolatOzaslan21/tr2en/blob/main/AGENTS.md). Kod içindeki adlar Türkçedir.
+
+## Kod imzalama politikası (Code signing policy)
+
+tr2en.exe ve kurulum dosyası **henüz dijital imzalı değil**; ücretsiz açık kaynak imzası için [SignPath Foundation](https://signpath.org/)'a başvuru planlanıyor. İmza geldiğinde:
+
+- Dosyalar yalnızca bu depodaki kaynak koddan GitHub Actions ile derlenir; elle derlenmiş dosya imzalanmaz.
+- Roller: yazar, inceleyici ve onaylayan: [PolatOzaslan21](https://github.com/PolatOzaslan21) (depo sahibi). Dışarıdan gelen her değişiklik (pull request) birleştirilmeden önce incelenir; her sürümün imzalanması elle onaylanır.
+- Gizlilik: Bu program, kullanıcı ya da programı kuran/çalıştıran kişi özellikle istemedikçe başka ağ sistemlerine bilgi göndermez. Ayrıntılar: [Gizlilik](#gizlilik).
 
 ## Lisans
 

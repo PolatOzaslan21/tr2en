@@ -38,6 +38,8 @@ On first start the app asks which one you want to use.
 - The keyboard hook is only used to detect the hotkey; keystrokes are not recorded.
 - With Gemini, text is sent to Google; **on the free tier Google may use it to improve its products.** Use "local only" for sensitive text.
 - API keys are only sent in the request header, never written to a file or log.
+- With "Kendi modelim" (your own model), text goes only to the address you set.
+- The only network connection tr2en makes on its own is downloading the local model from Hugging Face (huggingface.co) on first start if it is missing. No telemetry, usage statistics or update checks.
 
 ## Install
 
@@ -142,6 +144,14 @@ uv run --extra test --extra yerel --extra uygulama pytest -q
 ```
 
 Tests run on Windows in GitHub Actions on every push. Rules for AI coding agents: [AGENTS.md](https://github.com/PolatOzaslan21/tr2en/blob/main/AGENTS.md). Identifiers in the code are in Turkish.
+
+## Code signing policy
+
+tr2en.exe and the installer are **not code-signed yet**; an application to [SignPath Foundation](https://signpath.org/) for free open source signing is planned. Once signing is in place:
+
+- Files are built only from the source code in this repository by GitHub Actions; manually built files are never signed.
+- Roles: author, reviewer and approver: [PolatOzaslan21](https://github.com/PolatOzaslan21) (repository owner). Every outside change (pull request) is reviewed before merging; signing of each release is approved manually.
+- Privacy: This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Details: [Privacy](#privacy).
 
 ## License
 
