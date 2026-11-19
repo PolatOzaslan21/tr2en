@@ -33,7 +33,6 @@ from ceviri_katmani.cekirdek.yerel import YerelCevirmen
 
 WIN32 = sys.platform == "win32"
 WINDOWS_YALNIZ = pytest.mark.skipif(not WIN32, reason="Windows'a özgü")
-GERCEK_MODEL = "D:/DevCache/ceviri-modelleri/tc-big-tr-en-int8"
 
 
 # --------------------------------------------------------------------------- #
@@ -305,16 +304,20 @@ def test_yerel_bozuk_model_yukleme_hatasi(tmp_path):
         c.cevir("merhaba dünya")
 
 
-def test_yerel_ctranslate2_kurulu_degil_ceviri_hatasi(monkeypatch):
+def test_yerel_ctranslate2_kurulu_degil_ceviri_hatasi(monkeypatch, tmp_path):
+    # Gerçek model klasörüne bağlı olmasın (CI'da yok): boş klasör yeterli,
+    # klasör kontrolünden sonra paket içe aktarma hatası beklenir.
     monkeypatch.setitem(sys.modules, "ctranslate2", None)
-    c = YerelCevirmen(GERCEK_MODEL)
+    c = YerelCevirmen(str(tmp_path))
     with pytest.raises(CeviriHatasi, match="uv sync"):
         c.cevir("merhaba dünya")
 
 
-def test_yerel_sentencepiece_kurulu_degil_ceviri_hatasi(monkeypatch):
+def test_yerel_sentencepiece_kurulu_degil_ceviri_hatasi(monkeypatch, tmp_path):
+    # Gerçek model klasörüne bağlı olmasın (CI'da yok): boş klasör yeterli,
+    # klasör kontrolünden sonra paket içe aktarma hatası beklenir.
     monkeypatch.setitem(sys.modules, "sentencepiece", None)
-    c = YerelCevirmen(GERCEK_MODEL)
+    c = YerelCevirmen(str(tmp_path))
     with pytest.raises(CeviriHatasi, match="uv sync"):
         c.cevir("merhaba dünya")
 
