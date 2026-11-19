@@ -11,12 +11,16 @@ WIN32 = sys.platform == "win32"
 if WIN32:
     import win32clipboard
     import win32con
+    import win32gui
+    import win32process
 
 __all__ = [
+    "DOGRUDAN_SINIFLAR",
     "PanoYedegi",
     "geri_sil",
     "metin_al",
     "metin_koy",
+    "odaktaki_duzenleyici",
     "secimi_kopyala",
     "sira_no",
     "yapistir",
@@ -160,6 +164,181 @@ def _sira_degisimini_bekle(
         uyku(adim_ms / 1000)
 
 
+# ---- Doğrudan pencere mesajı ile düzenleyiciye erişim ----
+# Windows 11'in yeni Not Defteri'nde (sınıf "Notepad") gönderilen Ctrl+C /
+# Ctrl+V tuşları ulaşmaz: pynput/SendInput tuşları hedef pencereye
+# iletilemez. Bu metin alanlarında tuş yerine pencere mesajı
+# (WM_COPY / WM_PASTE) gönderilir.
+
+DOGRUDAN_SINIFLAR = frozenset({"RichEditD2DPT"})
+
+_EM_GETSEL = 0x00B0
+_WM_COPY = 0x0301
+_WM_PASTE = 0x0302
+_SMTO_ABORTIFHUNG = 0x0002
+_NOTEPAD_SINIF = "Notepad"
+_MESAJ_ZAMANI_MS = 1000
+
+
+class _GUITHREADINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("hwndActive", wintypes.HWND),
+        ("hwndFocus", wintypes.HWND),
+        ("hwndCapture", wintypes.HWND),
+        ("hwndMenuOwner", wintypes.HWND),
+        ("hwndMoveSize", wintypes.HWND),
+        ("hwndCaret", wintypes.HWND),
+        ("rcCaret", wintypes.RECT),
+    ]
+
+
+def _cvp(deger):
+    """None / tam sayı / işaretçiyi c_void_p'ye çevirir."""
+    if deger is None:
+        return None
+    if isinstance(deger, ctypes.c_void_p):
+        return deger
+    if isinstance(deger, int):
+        return ctypes.c_void_p(deger)
+    return ctypes.cast(deger, ctypes.c_void_p)
+
+
+class _WinApi:
+    """Windows API sarmalayıcıları; testlerde sahte nesneyle değiştirilir."""
+
+    def __init__(self) -> None:
+        self._user32 = None
+
+    def _u32(self):
+        if self._user32 is None:
+            u32 = ctypes.WinDLL("user32", use_last_error=True)
+            u32.GetGUIThreadInfo.argtypes = [
+                wintypes.DWORD,
+                ctypes.POINTER(_GUITHREADINFO),
+            ]
+            u32.GetGUIThreadInfo.restype = wintypes.BOOL
+            u32.SendMessageTimeoutW.argtypes = [
+                wintypes.HWND,
+                wintypes.UINT,
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                wintypes.UINT,
+                wintypes.UINT,
+                ctypes.POINTER(ctypes.c_size_t),
+            ]
+            u32.SendMessageTimeoutW.restype = ctypes.c_ssize_t
+            self._user32 = u32
+        return self._user32
+
+    def on_plan_pencere(self) -> int:
+        """Ön plandaki üst düzey pencere; yoksa 0."""
+        return int(win32gui.GetForegroundWindow() or 0)
+
+    def sinif_adi(self, hwnd: int) -> str:
+        return str(win32gui.GetClassName(hwnd) or "")
+
+    def odak_hwnd(self, hwnd: int) -> int:
+        """Ön plan penceresinin iş parçacığında odaklı denetim; yoksa 0."""
+        is_parcacik, _surec = win32process.GetWindowThreadProcessId(hwnd)
+        if not is_parcacik:
+            return 0
+        bilgi = _GUITHREADINFO()
+        bilgi.cbSize = ctypes.sizeof(_GUITHREADINFO)
+        if not self._u32().GetGUIThreadInfo(is_parcacik, ctypes.byref(bilgi)):
+            return 0
+        return int(bilgi.hwndFocus or 0)
+
+    def cocuklar(self, hwnd: int) -> list[int]:
+        """Pencerenin tüm alt pencereleri (torunlar dâhil)."""
+        liste: list[int] = []
+
+        def _cb(cocuk, _ek):
+            liste.append(int(cocuk))
+            return True
+
+        win32gui.EnumChildWindows(hwnd, _cb, None)
+        return liste
+
+    def gorunur(self, hwnd: int) -> bool:
+        return bool(win32gui.IsWindowVisible(hwnd))
+
+    def secim_araligi(self, hwnd: int) -> tuple[int, int] | None:
+        """EM_GETSEL ile (baş, son); okunamazsa None."""
+        bas = ctypes.c_uint32(0)
+        son = ctypes.c_uint32(0)
+        ok, paket = self._mesaj(
+            hwnd,
+            _EM_GETSEL,
+            ctypes.cast(ctypes.pointer(bas), ctypes.c_void_p),
+            ctypes.cast(ctypes.pointer(son), ctypes.c_void_p),
+        )
+        if not ok:
+            return None
+        if bas.value == son.value:
+            # Bazı denetimler aralığı yalnızca dönüş değerinde verir.
+            p_bas = paket & 0xFFFF
+            p_son = (paket >> 16) & 0xFFFF
+            if p_son > p_bas:
+                return (p_bas, p_son)
+        return (int(bas.value), int(son.value))
+
+    def kopyala(self, hwnd: int) -> bool:
+        """WM_COPY gönderir; başarılıysa True."""
+        ok, _ = self._mesaj(hwnd, _WM_COPY)
+        return ok
+
+    def yapistir(self, hwnd: int) -> bool:
+        """WM_PASTE gönderir; başarılıysa True."""
+        ok, _ = self._mesaj(hwnd, _WM_PASTE)
+        return ok
+
+    def _mesaj(self, hwnd, mesaj, wparam=None, lparam=None) -> tuple[bool, int]:
+        """SendMessageTimeoutW ile mesaj gönderir: (başarılı, dönüş değeri)."""
+        sonuc = ctypes.c_size_t(0)
+        ok = self._u32().SendMessageTimeoutW(
+            int(hwnd),
+            int(mesaj),
+            _cvp(wparam),
+            _cvp(lparam),
+            _SMTO_ABORTIFHUNG,
+            _MESAJ_ZAMANI_MS,
+            ctypes.byref(sonuc),
+        )
+        return bool(ok), int(sonuc.value)
+
+
+_api = _WinApi()
+
+
+def odaktaki_duzenleyici() -> int | None:
+    """Odaktaki doğrudan düzenlenebilir denetimin HWND'si; yoksa None.
+
+    Önce odak denetiminin sınıfı DOGRUDAN_SINIFLAR'da mı bakılır; değilse
+    ön plan penceresi "Notepad" ise onun görünür alt pencereleri içinde
+    ilk DOGRUDAN_SINIFLAR sınıfındaki pencere seçilir. Her Windows çağrısı
+    hata verirse None döner (istisna fırlatılmaz).
+    """
+    try:
+        on_plan = _api.on_plan_pencere()
+        if not on_plan:
+            return None
+        odak = _api.odak_hwnd(on_plan)
+        if odak and _api.sinif_adi(odak) in DOGRUDAN_SINIFLAR:
+            return int(odak)
+        if _api.sinif_adi(on_plan) != _NOTEPAD_SINIF:
+            return None
+        for cocuk in _api.cocuklar(on_plan):
+            if not _api.gorunur(cocuk):
+                continue
+            if _api.sinif_adi(cocuk) in DOGRUDAN_SINIFLAR:
+                return int(cocuk)
+        return None
+    except Exception:
+        return None
+
+
 _kontrolcu = None
 
 
@@ -202,8 +381,32 @@ def _ctrl_tus(karakter: str) -> None:
 
 
 def secimi_kopyala(bekle_ms: int = 300) -> str | None:
-    """Ctrl+C gönderir, pano değişene kadar bekler; değişmezse None."""
+    """Seçimi kopyalar; pano değişene kadar bekler, değişmezse None.
+
+    Doğrudan düzenlenebilir denetim (ör. Windows 11 yeni Not Defteri)
+    varsa WM_COPY mesajı gönderilir; yoksa Ctrl+C tuşları basılır.
+    """
     _win_denetle()
+    hedef = odaktaki_duzenleyici()
+    if hedef is not None:
+        try:
+            aralik = _api.secim_araligi(hedef)
+        except Exception:
+            return None
+        if not aralik:
+            return None
+        bas, son = aralik
+        if bas == son:
+            return None  # seçim yok: beklemeden çık
+        ilk = sira_no()
+        try:
+            if not _api.kopyala(hedef):
+                return None
+        except Exception:
+            return None
+        if not _sira_degisimini_bekle(ilk, bekle_ms):
+            return None
+        return metin_al()
     ilk = sira_no()
     _ctrl_tus("c")
     if not _sira_degisimini_bekle(ilk, bekle_ms):
@@ -212,8 +415,20 @@ def secimi_kopyala(bekle_ms: int = 300) -> str | None:
 
 
 def yapistir() -> None:
-    """Ctrl+V gönderir (önce basılı kalmış değiştirici tuşları bırakır)."""
+    """Panodaki metni yapıştırır.
+
+    Doğrudan düzenlenebilir denetim varsa WM_PASTE mesajı gönderilir;
+    yoksa Ctrl+V tuşları basılır (önce basılı kalmış değiştirici tuşları
+    bırakılır).
+    """
     _win_denetle()
+    hedef = odaktaki_duzenleyici()
+    if hedef is not None:
+        try:
+            _api.yapistir(hedef)
+        except Exception:
+            pass
+        return
     _ctrl_tus("v")
 
 
