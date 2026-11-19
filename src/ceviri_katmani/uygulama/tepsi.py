@@ -118,9 +118,14 @@ class Tepsi:
             ))
         if simdiki and simdiki not in KISAYOL_SECENEKLERI:
             ogeler.append(pystray.MenuItem(
-                f"Özel: {kisayol_adi(simdiki)} (ayar dosyasından)", None, checked=lambda _i=None: True,
+                f"Özel: {kisayol_adi(simdiki)}", None, checked=lambda _i=None: True,
                 radio=True, enabled=False,
             ))
+        ogeler.append(pystray.Menu.SEPARATOR)
+        ogeler.append(pystray.MenuItem(
+            "Kendi kısayolum…",
+            lambda _i=None, _t=None: _yut(self.arayuz.kisayol_kaydet_baslat),
+        ))
         return ogeler
 
     def _otomatik_baslat_durum(self, _item=None) -> bool:

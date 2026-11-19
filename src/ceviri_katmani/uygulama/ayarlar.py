@@ -29,7 +29,7 @@ VARSAYILAN: dict[str, Any] = {
 GECERLI_CEVIRMENLER = ("gemini", "uyumlu", "yerel")
 
 ACIKLAMALAR: dict[str, str] = {
-    "kisayol": "Global kısayol (pynput biçimi, ör. <ctrl>+<shift>+t)",
+    "kisayol": "Global kısayol (pynput biçimi, ör. <ctrl>+<shift>+k)",
     "tetik": "Terminalde mesaj sonuna yazılan tetik (ör. ;en)",
     "cevirmen": "\"gemini\" (önerilen, yedek: yerel model), \"uyumlu\" (kendi OpenAI uyumlu modeliniz) ya da \"yerel\" (metin bilgisayardan çıkmaz)",
     "uyumlu_adres": "OpenAI uyumlu API adresi, ör. https://api.openai.com/v1 ya da Ollama için http://localhost:11434/v1",
@@ -268,8 +268,9 @@ def kaydet(ayarlar: dict[str, Any], yol: Path | None = None) -> bool:
 KISAYOL_SECENEKLERI: tuple[str, ...] = (
     "<ctrl>+<shift>+<space>",
     "<ctrl>+<shift>+y",
-    "<ctrl>+<shift>+t",
 )
+# Ctrl+Shift+T listeden çıkarıldı (tarayıcıda "kapatılan sekmeyi aç"); isteyen
+# "Kendi kısayolum…" ile istediği birleşimi kaydeder (19.11.2026).
 
 
 def kisayol_adi(kisayol: str) -> str:

@@ -37,6 +37,9 @@ class SahteArayuz:
         self.cagrilar.append(("kisayol_sec", k))
         self.kisayol_deger = k
 
+    def kisayol_kaydet_baslat(self):
+        self.cagrilar.append("kisayol_kaydet_baslat")
+
     def cevirmen_sec(self, ad):
         self.cagrilar.append(("cevirmen_sec", ad))
         self.cevirmen_ad = ad
@@ -228,18 +231,24 @@ def test_simge_uret_boyut():
 
 
 def test_kisayol_alt_menusu_secenekler_ve_secim(tepsi):
-    alt = list(tepsi.menu_ogeleri()[7].submenu)
-    assert [o.text for o in alt] == ["Ctrl+Shift+Space", "Ctrl+Shift+Y", "Ctrl+Shift+T"]
-    assert [o.checked for o in alt] == [True, False, False]
+    alt = [o for o in tepsi.menu_ogeleri()[7].submenu if o is not pystray.Menu.SEPARATOR]
+    assert [o.text for o in alt] == ["Ctrl+Shift+Space", "Ctrl+Shift+Y", "Kendi kısayolum…"]
+    assert [o.checked for o in alt[:2]] == [True, False]
     alt[1](None)
     assert ("kisayol_sec", "<ctrl>+<shift>+y") in tepsi.arayuz.cagrilar
 
 
 def test_kisayol_ozel_deger_gosterilir(tepsi):
     tepsi.arayuz.kisayol_deger = "<ctrl>+<shift>+k"
-    alt = list(tepsi.menu_ogeleri()[7].submenu)
-    assert alt[-1].text == "Özel: Ctrl+Shift+K (ayar dosyasından)"
-    assert alt[-1].enabled is False
+    alt = [o for o in tepsi.menu_ogeleri()[7].submenu if o is not pystray.Menu.SEPARATOR]
+    assert alt[-2].text == "Özel: Ctrl+Shift+K"
+    assert alt[-2].enabled is False
+
+
+def test_kendi_kisayolum_kaydi_baslatir(tepsi):
+    alt = [o for o in tepsi.menu_ogeleri()[7].submenu if o is not pystray.Menu.SEPARATOR]
+    alt[-1](None)
+    assert "kisayol_kaydet_baslat" in tepsi.arayuz.cagrilar
 
 
 def test_otomatik_baslat_oge_sira(tepsi):

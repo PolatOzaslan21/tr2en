@@ -99,7 +99,9 @@ Gemini is **recommended**, not required. You can connect any service with an Ope
 
 ## Settings
 
-Tray menu: enable/pause, translator, hotkey (Ctrl+Shift+Space / Ctrl+Shift+Y / Ctrl+Shift+T), recent jobs, show last translation, copy last original, start with Windows.
+Tray menu: enable/pause, translator, hotkey (Ctrl+Shift+Space / Ctrl+Shift+Y or **Kendi kısayolum…** = your own), recent jobs, show last translation, copy last original, start with Windows.
+
+**Your own hotkey (Kendi kısayolum…):** pick it, then press the combination within 10 seconds (e.g. Ctrl+Shift+K; Esc cancels). At least two modifiers are required (one is enough with F keys, e.g. Ctrl+F9); Ctrl+Alt is rejected because it equals AltGr on many layouts. **Note:** if another program uses the same combination, it may stop working there; tr2en warns about well-known conflicts (e.g. Ctrl+Shift+T reopens a closed browser tab).
 
 Everything else is in `%APPDATA%\tr2en\ayarlar.toml` (tray: "Ayarlar dosyasını aç"): timeout, Gemini model, your own model, blocked apps, trailing space. Restart the app after editing.
 

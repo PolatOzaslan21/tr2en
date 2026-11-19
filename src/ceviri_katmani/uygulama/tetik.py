@@ -209,7 +209,64 @@ class Dinleyici:
     def _on_press(self, key, injected: bool = False):
         self._zamanla(lambda: self._on_press_ic(key))
 
+    # ---- "Kendi kısayolum…": sonraki tuş birleşimini kaydet ----
+
+    def kayit_baslat(self, cb: Callable[[set, str | None], None]) -> None:
+        """Bir sonraki birleşim (değiştiriciler + tek tuş) ``cb(degistiriciler, tus)`` ile bildirilir.
+
+        Esc ``tus="esc"`` olarak gelir. Kayıt sürerken mevcut kısayol tetiklenmez.
+        """
+        self._kayit_mods: set = set()
+        self._kayit_cb = cb
+
+    def kayit_bitir(self) -> None:
+        self._kayit_cb = None
+
+    def kayitta_mi(self) -> bool:
+        return getattr(self, "_kayit_cb", None) is not None
+
+    def _degistirici_adi(self, key) -> str | None:
+        Key = self._klavye_modulu().Key
+        adlar = {
+            "ctrl": (Key.ctrl, Key.ctrl_l, Key.ctrl_r),
+            "shift": (Key.shift, Key.shift_l, Key.shift_r),
+            "alt": (Key.alt, Key.alt_l, Key.alt_r, Key.alt_gr),
+            "win": (Key.cmd, Key.cmd_l, Key.cmd_r),
+        }
+        for ad, tuslar in adlar.items():
+            if key in tuslar:
+                return ad
+        return None
+
+    def _tus_adi(self, key) -> str | None:
+        kb = self._klavye_modulu()
+        if isinstance(key, kb.Key):
+            return key.name
+        vk = getattr(key, "vk", None)
+        if vk is not None and (0x41 <= vk <= 0x5A or 0x30 <= vk <= 0x39):
+            return chr(vk).lower()
+        ch = getattr(key, "char", None)
+        if ch and ch.isprintable():
+            return ch.lower()
+        return None
+
+    def _kayit_tusu(self, key) -> None:
+        mod = self._degistirici_adi(key)
+        if mod is not None:
+            self._kayit_mods.add(mod)
+            return
+        cb = self._kayit_cb
+        self._kayit_cb = None
+        ad = self._tus_adi(key)
+        mods = set(self._kayit_mods)
+        if "win" in mods:
+            ad = None  # Win birleşimleri Windows'a ayrılmış; desteklenmez
+        cb(mods, ad)
+
     def _on_press_ic(self, key) -> None:
+        if self.kayitta_mi():
+            self._kayit_tusu(key)
+            return
         kanonik = self._kanonik(key)
         self._hotkey_nesnesi().press(kanonik)
         kb = self._klavye_modulu()

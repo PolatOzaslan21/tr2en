@@ -106,6 +106,8 @@ class Uygulama:
                         self._tetik_isle(*arg)
                     elif tur == "guvensiz":
                         self._guvensiz_isle(arg)
+                    elif tur == "kisayol_kayit":
+                        self._kisayol_kaydi_isle(*arg)
                 except Exception as e:
                     # Beklenmedik hata işçiyi ÖLDÜRMEZ: kullanıcı bilgilendirilir,
                     # döngü devam eder ve sonraki kısayol çalışır (INCELEME-1 bulgu 1).
@@ -496,6 +498,50 @@ class Uygulama:
         self.bildir("Kısayol değişti", self.kisayol_adi())
         if self.tepsi is not None:
             self.tepsi.guncelle()
+
+    KAYIT_SURESI = 10.0
+
+    def kisayol_kaydet_baslat(self) -> None:
+        """Tepsiden "Kendi kısayolum…": sonraki tuş birleşimini kısayol yapar (10 sn, Esc vazgeçer)."""
+        dinleyici = self._dinleyici
+        if dinleyici is None or not hasattr(dinleyici, "kayit_baslat"):
+            self.bildir("Kısayol kaydedilemiyor", "Klavye dinleyicisi çalışmıyor.", "uyari")
+            return
+        dinleyici.kayit_baslat(self._kisayol_kaydi_geldi)
+        self.bildir(
+            "Yeni kısayola şimdi basın",
+            f"{int(self.KAYIT_SURESI)} sn içinde birleşime basın (ör. Ctrl+Shift+K). Vazgeçmek için Esc.",
+        )
+
+        def _sure_doldu() -> None:
+            if self._dinleyici is dinleyici and dinleyici.kayitta_mi():
+                dinleyici.kayit_bitir()
+                self.bildir("Kısayol değişmedi", "Süre doldu; eski kısayol geçerli.")
+
+        zamanlayici = threading.Timer(self.KAYIT_SURESI, _sure_doldu)
+        zamanlayici.daemon = True
+        zamanlayici.start()
+
+    def _kisayol_kaydi_geldi(self, degistiriciler: set, tus: str | None) -> None:
+        """Dinleyici thread'inden çağrılır; işi kuyruğa bırakır (dinleyici burada yeniden kurulamaz)."""
+        self._kuyruk.put(("kisayol_kayit", (degistiriciler, tus)))
+
+    def _kisayol_kaydi_isle(self, degistiriciler: set, tus: str | None) -> None:
+        from .kisayol_kayit import birlesim_olustur
+
+        if tus == "esc":
+            self.bildir("Kısayol değişmedi", "Vazgeçildi; eski kısayol geçerli.")
+            return
+        kisayol, mesaj = birlesim_olustur(degistiriciler, tus)
+        if kisayol is None:
+            self.bildir("Kısayol değişmedi", mesaj, "uyari")
+            return
+        if self.ayarlar.get("kisayol") == kisayol:
+            self.bildir("Kısayol değişmedi", f"{self.kisayol_adi()} zaten kullanılıyor.")
+            return
+        self.kisayol_sec(kisayol)
+        if mesaj and self.ayarlar.get("kisayol") == kisayol:
+            self.bildir(f"Kısayol: {self.kisayol_adi()}", mesaj, "uyari")
 
     def baslat(self) -> None:
         self._calis = True
