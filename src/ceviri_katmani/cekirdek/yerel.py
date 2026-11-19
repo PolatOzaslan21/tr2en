@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from .bolme import birlestir, parcala
@@ -17,6 +18,16 @@ def _varsayilan_klasor() -> Path:
     if yerel:
         return Path(yerel) / "tr2en" / "modeller" / "tc-big-tr-en-int8"
     return Path.home() / ".tr2en" / "modeller" / "tc-big-tr-en-int8"
+
+
+def _ingilizce_gibi(parca: str) -> bool:
+    """Türkçe işareti yok ve en az bir yaygın İngilizce kelime var."""
+    from . import dil
+
+    if dil.turkce_mi(parca):
+        return False
+    kelimeler = re.findall(r"[a-z]+", parca.lower())
+    return any(k in dil._EN_KELIMELER for k in kelimeler)
 
 
 class YerelCevirmen:
@@ -62,6 +73,8 @@ class YerelCevirmen:
         konumlar: list[tuple[int, int]] = []
         for satir_i, parcalar in enumerate(satir_parcalari):
             for parca_i, parca in enumerate(parcalar):
+                if _ingilizce_gibi(parca):
+                    continue  # zaten İngilizce parça olduğu gibi kalır (önceki çeviriyle karışık seçim)
                 girdiler.append(self._src.encode(parca, out_type=str) + ["</s>"])
                 konumlar.append((satir_i, parca_i))
         if not girdiler:

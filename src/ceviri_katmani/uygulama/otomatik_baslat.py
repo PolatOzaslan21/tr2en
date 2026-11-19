@@ -20,6 +20,11 @@ def komut() -> str:
     """Run anahtarına yazılacak komut satırı."""
     if getattr(sys, "frozen", False):
         return f'"{sys.executable}"'
+    # uv ortamındaki pythonw.exe bir KONSOL başlatıcısı (boş pencere açıyor, 19.11.2026);
+    # gui-scripts ile üretilen tr2en.exe gerçek GUI başlatıcısıdır.
+    gui = Path(sys.executable).with_name("tr2en.exe")
+    if gui.is_file():
+        return f'"{gui}"'
     pythonw = Path(sys.executable).with_name("pythonw.exe")
     exe = str(pythonw) if pythonw.is_file() else sys.executable
     return f'"{exe}" -m ceviri_katmani.uygulama'

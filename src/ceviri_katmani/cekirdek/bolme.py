@@ -43,7 +43,13 @@ def _cumle_bol(satir: str) -> list[str]:
     n = len(satir)
     while i < n:
         ch = satir[i]
-        if ch in _CUMLE_SONU and (i + 1 >= n or satir[i + 1].isspace()):
+        sonraki = satir[i + 1] if i + 1 < n else ""
+        # Yapıştırmadan sonra boşluksuz kalan cümleler ("you?bugün") de bölünür (Polat'ın testi, 19.11.2026);
+        # "." için yalnızca küçük harf + Büyük harf ("bitti.Sonra") — "v1.2", "example.com" bölünmesin.
+        bitisik = bool(sonraki) and sonraki.isalpha() and (
+            ch in "!?…" or (ch == "." and i > 0 and satir[i - 1].islower() and sonraki.isupper())
+        )
+        if ch in _CUMLE_SONU and (i + 1 >= n or sonraki.isspace() or bitisik):
             if ch == "." and _abrev_mi(satir, i):
                 i += 1
                 continue

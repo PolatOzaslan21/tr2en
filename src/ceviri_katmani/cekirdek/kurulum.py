@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .cevirmen import CevirmenZinciri
+from .bolme import parcala
 from .dil import turkce_mi
 from .gemini import GeminiCevirmen
 from .korumalar import KorumaliCevirmen
@@ -28,10 +29,18 @@ class Sonuc:
     cevirmen: str | None = None
 
 
+def _turkce_var_mi(metin: str) -> bool:
+    """Bütün metin ya da cümlelerinden biri Türkçe mi? Önceki çeviriyle karışık seçimde
+    ("Hello, how are you? bugün ne yemek istersin") bütün metnin puanı İngilizceye kayıyordu (19.11.2026)."""
+    if turkce_mi(metin):
+        return True
+    return any(turkce_mi(p) for satir in parcala(metin) for p in satir)
+
+
 def akilli_cevir(zincir: CevirmenZinciri, metin: str, dil_kontrolu: bool = True) -> Sonuc:
     """Türkçe değilse dokunmaz; çeviremezse CeviriHatasi fırlatır (orijinal metin çağıranda kalır)."""
     if not metin.strip():
         return Sonuc(metin, "bos")
-    if dil_kontrolu and not turkce_mi(metin):
+    if dil_kontrolu and not _turkce_var_mi(metin):
         return Sonuc(metin, "zaten-ingilizce")
     return Sonuc(zincir.cevir(metin), "cevrildi", zincir.son_kullanilan)

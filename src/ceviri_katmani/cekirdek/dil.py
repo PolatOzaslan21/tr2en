@@ -43,6 +43,8 @@ def turkce_mi(metin: str) -> bool:
     if not metin or not metin.strip():
         return False
     maskeli, _ = maskele(metin)
+    # Tek başına İngilizce "I" Türkçe küçültmede "ı" olup Türkçe puanı veriyordu.
+    maskeli = re.sub(r"\bI\b", "i", maskeli)
     temiz = _YER.sub(" ", _tr_kucuk(maskeli))
     kelimeler = _KELIME.findall(temiz)
     puan = len(_TR_HARF.findall(temiz))

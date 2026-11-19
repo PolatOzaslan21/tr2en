@@ -126,3 +126,39 @@ def test_her_isten_sonra_tepsi_tazelenir():
     u._surec_adi = lambda: None
     u._isci_dongusu()
     assert u.tepsi.adet == 1
+
+
+def test_bitisik_cumleler_bolunur():
+    from ceviri_katmani.cekirdek.bolme import parcala
+
+    assert parcala("Hello, how are you?bugün ne yemek istersin") == [["Hello, how are you?", "bugün ne yemek istersin"]]
+    assert parcala("Kurulum bitti.Sonra test et") == [["Kurulum bitti.", "Sonra test et"]]
+    assert parcala("v1.2 sürümünü example.com adresine yükle") == [["v1.2 sürümünü example.com adresine yükle"]]
+
+
+def test_ingilizce_parca_yerel_ceviriye_girmez():
+    from ceviri_katmani.cekirdek.yerel import _ingilizce_gibi
+
+    assert _ingilizce_gibi("Hello, how are you?")
+    assert not _ingilizce_gibi("bugün ne yemek istersin")
+    assert not _ingilizce_gibi("deploy et")
+
+
+def test_otomatik_baslat_gui_baslaticiyi_tercih_eder(tmp_path, monkeypatch):
+    import sys
+
+    from ceviri_katmani.uygulama import otomatik_baslat
+
+    (tmp_path / "python.exe").write_bytes(b"")
+    (tmp_path / "pythonw.exe").write_bytes(b"")
+    (tmp_path / "tr2en.exe").write_bytes(b"")
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "python.exe"))
+    assert otomatik_baslat.komut() == f'"{tmp_path / "tr2en.exe"}"'
+
+
+def test_karisik_secim_turkce_sayilir():
+    from ceviri_katmani.cekirdek.kurulum import _turkce_var_mi
+
+    assert _turkce_var_mi("Hello, how are you?bugün ne yemek istersin")
+    assert _turkce_var_mi("Hello, how are you? Bugün ne yemek istersin")
+    assert not _turkce_var_mi("Hello, how are you? I am fine.")
