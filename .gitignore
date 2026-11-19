@@ -16,5 +16,6 @@ ayarlar.toml
 
 # Derleme çıktıları
 dist/
+dist-deneme/
 build/
 *.spec

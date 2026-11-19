@@ -31,6 +31,18 @@ uv run --extra yerel --extra uygulama --with "pyinstaller==6.22.3" pyinstaller `
     --hidden-import pystray._win32 `
     --hidden-import pynput.keyboard._win32 `
     --hidden-import pynput.mouse._win32 `
+    --collect-data webview `
+    --collect-binaries webview `
+    --hidden-import webview.platforms.edgechromium `
+    --hidden-import webview.platforms.winforms `
+    --collect-all clr_loader `
+    --collect-all pythonnet `
+    --hidden-import clr `
+    --hidden-import keyring.backends.Windows `
+    --copy-metadata keyring `
+    --hidden-import win32pipe `
+    --hidden-import win32file `
+    --hidden-import win32event `
     --distpath $Cikti --workpath (Join-Path $is "build") --specpath $is `
     --log-level WARN
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller başarısız ($LASTEXITCODE)" }
@@ -38,12 +50,23 @@ if ($LASTEXITCODE -ne 0) { throw "PyInstaller başarısız ($LASTEXITCODE)" }
 $klasor = Join-Path $Cikti "tr2en"
 if (-not (Test-Path (Join-Path $klasor "tr2en.exe"))) { throw "tr2en.exe oluşmadı" }
 if (-not (Test-Path (Join-Path $klasor "_internal\ceviri_katmani\cekirdek\sozluk.tsv"))) { throw "sozluk.tsv pakete girmedi" }
+if (-not (Test-Path (Join-Path $klasor "_internal\ceviri_katmani\uygulama\arayuz\ayarlar.html"))) { throw "ayarlar.html pakete girmedi" }
+$webviewDll = Get-ChildItem -Path $klasor -Recurse -Filter "Microsoft.Web.WebView2*.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $webviewDll) { throw "webview (WebView2) DLL'leri pakete girmedi" }
+$runtimeDll = Get-ChildItem -Path $klasor -Recurse -Filter "Python.Runtime.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $runtimeDll) { throw "Python.Runtime.dll (pythonnet) pakete girmedi" }
 
 $zip = Join-Path $Cikti "tr2en-$Surum-windows-x64.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $klasor -DestinationPath $zip
 function Ozet-Yaz([string]$dosya) {
-    $ozet = (Get-FileHash $dosya -Algorithm SHA256).Hash.ToLower()
+    # Get-FileHash yerine .NET: makinenin PSModulePath ayarı bozuksa da çalışır.
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $ozet = ([BitConverter]::ToString($sha.ComputeHash([System.IO.File]::ReadAllBytes($dosya)))).Replace("-", "").ToLower()
+    } finally {
+        $sha.Dispose()
+    }
     "$ozet  $(Split-Path $dosya -Leaf)" | Set-Content "$dosya.sha256" -Encoding ascii
 }
 Ozet-Yaz $zip
