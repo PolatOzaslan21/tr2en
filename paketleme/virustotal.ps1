@@ -77,12 +77,43 @@ function Dosya-Listesi {
     return $liste
 }
 
+function VT-Cok-Parcali-Gonder {
+    # Invoke-RestMethod -Form, VT'nin reddettiği biçim üretiyor ("Malformed multipart body":
+    # tırnaklı boundary + filename*). Gövde burada elle, sade biçimde kurulur.
+    param([string]$Adres, [System.IO.FileInfo]$Bilgi)
+    Add-Type -AssemblyName System.Net.Http
+    $sinir = "tr2en" + [guid]::NewGuid().ToString("N")
+    $istemci = [System.Net.Http.HttpClient]::new()
+    $istemci.Timeout = [TimeSpan]::FromMinutes(10)
+    $akis = [System.IO.File]::OpenRead($Bilgi.FullName)
+    try {
+        $govde = [System.Net.Http.MultipartFormDataContent]::new($sinir)
+        $govde.Headers.Remove("Content-Type") | Out-Null
+        $govde.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=$sinir") | Out-Null
+        $parca = [System.Net.Http.StreamContent]::new($akis)
+        $parca.Headers.TryAddWithoutValidation("Content-Disposition", "form-data; name=`"file`"; filename=`"$($Bilgi.Name)`"") | Out-Null
+        $parca.Headers.TryAddWithoutValidation("Content-Type", "application/octet-stream") | Out-Null
+        $govde.Add($parca)
+        $istek = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Post, $Adres)
+        foreach ($k in $script:VtBasliklar.Keys) { $istek.Headers.TryAddWithoutValidation($k, [string]$script:VtBasliklar[$k]) | Out-Null }
+        $istek.Content = $govde
+        $yanit = $istemci.SendAsync($istek).GetAwaiter().GetResult()
+        $metin = $yanit.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+        if (-not $yanit.IsSuccessStatusCode) {
+            throw "VT yükleme $([int]$yanit.StatusCode): $metin"
+        }
+        return ($metin | ConvertFrom-Json)
+    } finally {
+        $akis.Dispose()
+        $istemci.Dispose()
+    }
+}
+
 function VT-Dosya-Yukle {
     # Dosyayı yükler; analiz kimliğini döndürür. 32 MB üstü dosyalar için önce
     # upload_url alınır (VT'nin büyük dosya yolu).
     param([string]$Yol)
     $bilgi = Get-Item -LiteralPath $Yol
-    $form = @{ file = $bilgi }
     if ($bilgi.Length -gt $AzamiYukBoyut) {
         VT-Izin-Al
         $yu = Invoke-RestMethod -Uri "$VtKok/files/upload_url" -Method Get -Headers $script:VtBasliklar
@@ -90,10 +121,10 @@ function VT-Dosya-Yukle {
         if ([string]::IsNullOrWhiteSpace($adres)) { throw "upload_url boş döndü" }
         VT-Izin-Al
         # VT belgesi: upload_url'ye POST da x-apikey başlığı ister.
-        return (Invoke-RestMethod -Uri $adres -Method Post -Headers $script:VtBasliklar -Form $form)
+        return (VT-Cok-Parcali-Gonder -Adres $adres -Bilgi $bilgi)
     }
     VT-Izin-Al
-    return (Invoke-RestMethod -Uri "$VtKok/files" -Method Post -Headers $script:VtBasliklar -Form $form)
+    return (VT-Cok-Parcali-Gonder -Adres "$VtKok/files" -Bilgi $bilgi)
 }
 
 function VT-Dosya-Raporu {
