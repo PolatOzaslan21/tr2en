@@ -89,7 +89,8 @@ function VT-Dosya-Yukle {
         $adres = $yu.data
         if ([string]::IsNullOrWhiteSpace($adres)) { throw "upload_url boş döndü" }
         VT-Izin-Al
-        return (Invoke-RestMethod -Uri $adres -Method Post -Form $form)
+        # VT belgesi: upload_url'ye POST da x-apikey başlığı ister.
+        return (Invoke-RestMethod -Uri $adres -Method Post -Headers $script:VtBasliklar -Form $form)
     }
     VT-Izin-Al
     return (Invoke-RestMethod -Uri "$VtKok/files" -Method Post -Headers $script:VtBasliklar -Form $form)
