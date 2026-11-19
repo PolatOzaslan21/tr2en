@@ -39,14 +39,16 @@
 
 ## Kurulum
 
-### Kolay yol: indir ve çalıştır (Windows 10/11)
+### Kolay yol: kurulum dosyası (Windows 10/11)
 
-1. [Son sürüm](https://github.com/PolatOzaslan21/tr2en/releases/latest) sayfasından `tr2en-…-windows-x64.zip` dosyasını indirin (~58 MB).
-2. Zip'i kalıcı bir klasöre çıkarın (ör. `Belgeler\tr2en`) ve içindeki **`tr2en.exe`**'yi çalıştırın. Python gerekmez.
-3. Saatin yanında mavi **EN** simgesi çıkar. Tepsiden "Windows açılışında başlat"ı açabilirsiniz (klasörü sonradan taşırsanız bu ayarı kapatıp yeniden açın).
+1. [Son sürüm](https://github.com/PolatOzaslan21/tr2en/releases/latest) sayfasından `tr2en-…-windows-x64-kurulum.exe` dosyasını indirip çalıştırın (~38 MB). Python ve yönetici izni gerekmez.
+2. Kurulum, Başlat menüsüne **tr2en** kısayolu ekler; isterseniz masaüstü kısayolu ve "Windows açılışında başlat" kutucuklarını da işaretleyin.
+3. Saatin yanında kırmızı/mavi **TR → EN** balon simgesi çıkar. Uygulamayı kapattıysanız Başlat menüsünde "tr2en" yazıp yeniden açabilirsiniz.
 
 - .exe henüz dijital imzalı değil; Windows "bilgisayarınızı korudu" (SmartScreen) uyarısı verirse **Ek bilgi → Yine de çalıştır**'a tıklayın. İndirdiğiniz dosyanın doğruluğunu sürümdeki `.sha256` dosyasıyla kontrol edebilirsiniz.
-- Güncellemek için: tepsiden **Çıkış**, yeni zip'i aynı klasöre çıkarın (ayarlarınız ve model `%APPDATA%` / `%LOCALAPPDATA%` altında kalır).
+- **Güncellemek için:** yeni kurulum dosyasını çalıştırmanız yeterli; açıksa tr2en'i kendisi kapatır, ayarlarınız ve model korunur.
+- **Kaldırmak için:** Ayarlar → Uygulamalar → tr2en → Kaldır. Ayarlarınızın ve indirilen modelin de silinmesini isteyip istemediğiniz sorulur.
+- **Kurulum istemiyorsanız (taşınabilir):** `tr2en-…-windows-x64.zip`'i kalıcı bir klasöre çıkarıp `tr2en.exe`'yi çalıştırın. Güncellerken önce tepsiden **Çıkış** yapıp yeni zip'i aynı klasöre çıkarın.
 
 ### Geliştiriciler için: uv ile
 
