@@ -10,7 +10,7 @@
 param(
     [string[]]$Dosyalar = @(),
     [string]$Surum = "",
-    [int]$Bekle = 15
+    [int]$Bekle = 20
 )
 
 $ErrorActionPreference = "Stop"
@@ -205,8 +205,9 @@ try {
         Write-Host "Yükleniyor: $($is.ad)"
         try {
             $cevap = VT-Dosya-Yukle $yol
-            $is.kimlik = $cevap.data.id
-            if ($cevap.data.type -and $cevap.data.type -ne "analysis") { $is.tur = "file" }
+            # Sonuç /analyses/<id> yerine dosya raporundan (/files/<sha256>) beklenir: v0.2.0'da analiz
+            # durumu 15 dk boyunca "completed" görünmedi; dosya raporu ilk tarama bitince 404'ten çıkar.
+            if (-not [string]::IsNullOrWhiteSpace($cevap.data.id)) { $is.kimlik = $sha; $is.tur = "file" }
             if (-not [string]::IsNullOrWhiteSpace($is.kimlik)) {
                 $is.bitti = $false
                 $yuklenen++
@@ -241,6 +242,11 @@ try {
             try {
                 if ($is.tur -eq "file") {
                     $st = VT-Dosya-Raporu $is.kimlik
+                    $toplamSt = (Sayi-Al $st.malicious) + (Sayi-Al $st.suspicious) + (Sayi-Al $st.undetected) + (Sayi-Al $st.harmless)
+                    if ($toplamSt -eq 0) {
+                        Write-Host "Analiz sürüyor: $($is.ad)"
+                        continue
+                    }
                 } else {
                     VT-Izin-Al
                     $an = Invoke-RestMethod -Uri "$VtKok/analyses/$($is.kimlik)" -Method Get -Headers $script:VtBasliklar
@@ -285,6 +291,21 @@ try {
     Write-Host ""
     Write-Host $bolum
     Write-Host ""
+
+    # Polat (21.11.2026): tek bir motor bile (ör. 1/69 ML yanlış alarmı) zararlı/şüpheli derse ya da
+    # tarama bitmediyse sürüm notuna YAZILMAZ — temiz uygulama hakkında yanlış izlenim yaratmasın.
+    # Sonuç yalnızca bu günlükte kalır; yanlış alarmı ilgili firmaya bildirip yeniden çalıştırın.
+    $bitmeyen = @($isler | Where-Object { -not $_.istatistik })
+    $tespitli = @($isler | Where-Object { $_.istatistik -and ($_.zararli + $_.supheli) -gt 0 })
+    if ($bitmeyen.Count -gt 0 -or $tespitli.Count -gt 0) {
+        foreach ($is in $tespitli) {
+            Write-Host "Tespit var, sürüm notuna eklenmedi: $($is.ad) ($($is.zararli) zararlı, $($is.supheli) şüpheli) https://www.virustotal.com/gui/file/$($is.sha)/detection"
+        }
+        foreach ($is in $bitmeyen) {
+            Write-Host "Tarama bitmedi, sürüm notuna eklenmedi: $($is.ad)"
+        }
+        exit 0
+    }
 
     # ---- sürüm notu ----
     if ([string]::IsNullOrWhiteSpace($Surum)) {
