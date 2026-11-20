@@ -145,13 +145,22 @@ def yerel():
         ("src/proxy.py dosyasındaki hatayı düzelt", "src/proxy.py"),
         ("`uv sync` komutunu çalıştır ve https://example.com/a?b=1 adresine bak", "`uv sync`"),
         ("`uv sync` komutunu çalıştır ve https://example.com/a?b=1 adresine bak", "https://example.com/a?b=1"),
-        ("--model bayrağını kaldırma", "--model"),
+        ("--model bayrağı kaldırılsın", "--model"),
     ],
 )
 def test_gercek_model_korur(yerel, metin, korunacak):
     maskeli, parcalar = maskele(metin)
     sonuc = geri_koy(yerel.cevir(maskeli), parcalar)
     assert korunacak in sonuc
+
+
+@pytest.mark.skipif(not MODEL_VAR, reason="test model klasörü yok")
+def test_gercek_model_olumsuzluk_kaybini_kendisi_reddeder(yerel):
+    # Model "--model bayrağını kaldırma"yı "Remove --model flag" diye çeviriyor (anlam ters);
+    # yerel çevirmen artık parça parça kontrolle bunu kendisi reddeder (21.11.2026).
+    maskeli, _ = maskele("--model bayrağını kaldırma")
+    with pytest.raises(KorumaHatasi, match="olumsuzluk"):
+        yerel.cevir(maskeli)
 
 
 @pytest.mark.skipif(not MODEL_VAR, reason="test model klasörü yok")

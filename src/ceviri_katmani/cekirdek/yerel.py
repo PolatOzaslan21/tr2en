@@ -7,10 +7,17 @@ from pathlib import Path
 
 from .bolme import birlestir, parcala
 from .cevirmen import CeviriHatasi
-from .korumalar import KorumaHatasi
+from .korumalar import KorumaHatasi, karsitlik_kaybi, olumsuzluk_kaybi
 
 ORTAM_DEGISKENI = "CEVIRI_YEREL_MODEL"
 MAX_DECODING_LENGTH = 256
+
+# Satır başı liste işareti: model numarayı cümleye katıyordu ("2. Toplantı…" -> "The 2nd meeting…",
+# çevrimdışı test 21.11.2026). "1." büyük harfle devam ederse ya da metinde en az iki
+# numaralı satır varsa liste sayılır; tek satırlık "3. maddeye göre" gibi sıra sayıları
+# modele olduğu gibi gider.
+_LISTE_ISARETI = re.compile(r"^\s*(?:[-*•]|\d{1,3}\)|\d{1,3}\.(?=\s+[A-ZÇĞİÖŞÜ]))\s+")
+_NUMARALI_SATIR = re.compile(r"^\s*\d{1,3}\.\s+(?=\S)")
 
 
 def _varsayilan_klasor() -> Path:
@@ -67,7 +74,17 @@ class YerelCevirmen:
             raise CeviriHatasi("yerel model yalnızca tr->en")
         if not metin.strip():
             return metin
-        satir_parcalari = parcala(metin)
+        satirlar = metin.split("\n")
+        onekler: list[str] = []
+        liste_var = sum(1 for s in satirlar if _NUMARALI_SATIR.match(s)) >= 2
+        for i, satir in enumerate(satirlar):
+            m = _LISTE_ISARETI.match(satir) or (liste_var and _NUMARALI_SATIR.match(satir))
+            if m and satir[m.end():].strip():
+                onekler.append(m.group(0))
+                satirlar[i] = satir[m.end():]
+            else:
+                onekler.append("")
+        satir_parcalari = parcala("\n".join(satirlar))
         girdiler: list[str] = []
         konumlar: list[tuple[int, int]] = []
         for satir_i, parcalar in enumerate(satir_parcalari):
@@ -89,8 +106,14 @@ class YerelCevirmen:
             tokenlar = [t for t in cevirilen.hypotheses[0] if t != "</s>"]
             if len(tokenlar) >= MAX_DECODING_LENGTH:
                 raise KorumaHatasi("yerel çeviri kesildi")
-            cikti[satir_i][parca_i] = self._tgt.decode(tokenlar)
-        return birlestir(cikti)
+            cevirilen_metin = self._tgt.decode(tokenlar)
+            # Parça parça kontrol: bütün metinde başka bir cümlenin "not"u kaybı gizleyebiliyor.
+            parca = satir_parcalari[satir_i][parca_i]
+            if olumsuzluk_kaybi(parca, cevirilen_metin) or karsitlik_kaybi(parca, cevirilen_metin):
+                raise KorumaHatasi("olumsuzluk çeviride kayboldu")
+            cikti[satir_i][parca_i] = cevirilen_metin
+        satir_ciktilari = birlestir(cikti).split("\n")
+        return "\n".join(o + s for o, s in zip(onekler, satir_ciktilari))
 
     def bosalt(self) -> None:
         """Modeli bellekten atar."""

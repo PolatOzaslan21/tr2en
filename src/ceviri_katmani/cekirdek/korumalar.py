@@ -151,6 +151,8 @@ def olumsuz_tr(metin: str) -> bool:
     """Türkçe metinde olumsuzluk var mı (sezgisel, maskelenmiş metin üzerinde)."""
     m = _kucuk_tr(metin)
     m = re.sub(r"m[ae]d[ae]n\s+önce", "önce", m)
+    # "kusura bakma(yın)" özürdür ("I'm sorry"), olumsuz anlam taşımaz (çevrimdışı test #11, 21.11.2026)
+    m = re.sub(rf"kusura\s+bakm[ae][{_HARF_KUCUK}]*", "", m)
     for kelime in _NEG_SABIT:
         if _kelime_geciyor(m, kelime):
             return True
@@ -184,6 +186,21 @@ def olumsuz_en(metin: str) -> bool:
 def olumsuzluk_kaybi(tr: str, en: str) -> bool:
     """Türkçe olumsuzken İngilizce olumluysa True."""
     return olumsuz_tr(tr) and not olumsuz_en(en)
+
+
+_KARSITLIK_DEGIL = re.compile(r"(?<![a-zçğıöşü])değil\s*,")
+
+
+def karsitlik_kaybi(tr: str, en: str) -> bool:
+    """"X-me değil, Y" kalıbı (ör. "Yapamayacaklarımızdan değil, yapabileceklerimizden"):
+    X'in kendi olumsuzluğu + "değil" İngilizcede en az iki olumsuzluk ister. Tek olumsuzluk
+    kaldıysa anlam büyük ihtimalle tersine dönmüştür (çevrimdışı test #19, 21.11.2026).
+    Tek cümle/parça için kullanılır; bütün metinde sayım anlamsızdır."""
+    m = _kucuk_tr(tr)
+    k = _KARSITLIK_DEGIL.search(m)
+    if not k or not _NEG_EK.search(m[: k.start()]):
+        return False
+    return len(_NEG_EN.findall(en)) < 2
 
 
 def _cikti_kontrol(girdi: str, cikti: str) -> str:

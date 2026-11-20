@@ -69,6 +69,9 @@ OLUMSUZ_TR_DOGRU = [
 
 OLUMSUZ_TR_YANLIS = [
     "bir deneme yaptım",
+    # "kusura bakma(yın)" kalıbı özür demektir ("I'm sorry"); çevrimdışı test #11 (21.11.2026) reddediliyordu
+    "Kusura bakmayın, geç cevap verdim; bu hafta işler çok yoğundu.",
+    "kusura bakma, geciktim",
     # isim (-ma/-me) + ek fiil -dır/-dir: olumsuz geçmiş zaman (-madı/-medi) değil
     "Merhaba dünya, bu bir denemedir.",
     "Asıl sorun bu güncellemedir.",
