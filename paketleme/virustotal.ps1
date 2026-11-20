@@ -199,7 +199,8 @@ try {
                 continue
             }
         } catch {
-            # 404: VT bu dosyayı bilmiyor; yüklenecek.
+            # 404: VT bu dosyayı bilmiyor; yüklenecek. Başka hata ise görünsün (v0.2.0'da rapor okunamadı).
+            Write-Host "Rapor okunamadı ($($is.ad)): $(Guvenli-Metin $_.Exception.Message)"
         }
         Write-Host "Yükleniyor: $($is.ad)"
         try {
