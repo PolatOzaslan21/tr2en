@@ -24,7 +24,7 @@ if ($LASTEXITCODE -ne 0) { throw "sürüm bilgisi üretilemedi" }
 
 uv run --extra yerel --extra uygulama --with "pyinstaller==6.22.3" pyinstaller `
     (Join-Path $PSScriptRoot "giris.py") `
-    --name tr2en --noconsole --onedir --noconfirm --clean `
+    --name tr2en --noconsole --onedir --noconfirm --clean --noupx `
     --icon (Join-Path $PSScriptRoot "tr2en.ico") `
     --version-file $surumDosyasi `
     --collect-data ceviri_katmani `
