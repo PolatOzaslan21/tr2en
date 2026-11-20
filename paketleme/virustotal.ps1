@@ -127,12 +127,21 @@ function VT-Dosya-Yukle {
     return (VT-Cok-Parcali-Gonder -Adres "$VtKok/files" -Bilgi $bilgi)
 }
 
-function VT-Dosya-Raporu {
-    # VT'de zaten bilinen dosya: istatistikler doğrudan rapordan alınır.
-    param([string]$Kimlik)
+function VT-Json-Al {
+    # VT yanıtı alanları data.attributes altındadır. Dosya raporunda yalnızca büyük/küçük harfi
+    # farklı anahtarlar olabildiği için Invoke-RestMethod JSON'u çözemeyip düz metin döndürüyordu
+    # (sonuç hep "0" görünüyordu, 21.11.2026) -> -AsHashtable ile çözülür.
+    param([string]$Adres)
     VT-Izin-Al
-    $rapor = Invoke-RestMethod -Uri "$VtKok/files/$Kimlik" -Method Get -Headers $script:VtBasliklar
-    return $rapor.data.last_analysis_stats
+    $yanit = Invoke-WebRequest -Uri $Adres -Method Get -Headers $script:VtBasliklar
+    return ($yanit.Content | ConvertFrom-Json -AsHashtable -Depth 100)
+}
+
+function VT-Dosya-Raporu {
+    # VT'de bilinen dosyanın son analiz istatistikleri (henüz analiz yoksa hepsi 0).
+    param([string]$Kimlik)
+    $rapor = VT-Json-Al "$VtKok/files/$Kimlik"
+    return [pscustomobject]$rapor["data"]["attributes"]["last_analysis_stats"]
 }
 
 function Bolum-Yerine-Koy {
@@ -248,13 +257,12 @@ try {
                         continue
                     }
                 } else {
-                    VT-Izin-Al
-                    $an = Invoke-RestMethod -Uri "$VtKok/analyses/$($is.kimlik)" -Method Get -Headers $script:VtBasliklar
-                    if ($an.data.status -ne "completed") {
+                    $an = VT-Json-Al "$VtKok/analyses/$($is.kimlik)"
+                    if ($an["data"]["attributes"]["status"] -ne "completed") {
                         Write-Host "Analiz sürüyor: $($is.ad)"
                         continue
                     }
-                    $st = $an.data.stats
+                    $st = [pscustomobject]$an["data"]["attributes"]["stats"]
                 }
                 $is.zararli = Sayi-Al $st.malicious
                 $is.supheli = Sayi-Al $st.suspicious
