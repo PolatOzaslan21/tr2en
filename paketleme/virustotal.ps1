@@ -187,6 +187,20 @@ try {
             tespit     = 0
             zararsiz   = 0
         }
+        # Dosya VT'de zaten taranmışsa yeniden yükleme; mevcut raporu kullan
+        # (ücretsiz kuyruk yavaş; elle yeniden çalıştırma sonucu böyle alır).
+        try {
+            $hazir = VT-Dosya-Raporu $sha
+            $toplam = (Sayi-Al $hazir.malicious) + (Sayi-Al $hazir.suspicious) + (Sayi-Al $hazir.undetected) + (Sayi-Al $hazir.harmless)
+            if ($toplam -gt 0) {
+                Write-Host "Zaten taranmış, rapor kullanılıyor: $($is.ad)"
+                $is.kimlik = $sha; $is.tur = "file"; $is.bitti = $false; $yuklenen++
+                $isler += $is
+                continue
+            }
+        } catch {
+            # 404: VT bu dosyayı bilmiyor; yüklenecek.
+        }
         Write-Host "Yükleniyor: $($is.ad)"
         try {
             $cevap = VT-Dosya-Yukle $yol
