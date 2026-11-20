@@ -51,7 +51,7 @@ Windows açılışında tr2en sessizce tepside başlar; pencereyi açmadan çal�
 3. Saatin yanında kırmızı/mavi **TR → EN** balon simgesi çıkar. Simge önce saatin yanındaki **^** (gizli simgeler) menüsünde görünebilir; sürekli görünsün isterseniz oradan görev çubuğuna sürükleyin. Uygulamayı kapattıysanız Başlat menüsünde "tr2en" yazıp yeniden açabilirsiniz.
 
 - .exe henüz dijital imzalı değil; Windows "bilgisayarınızı korudu" (SmartScreen) uyarısı verirse **Ek bilgi → Yine de çalıştır**'a tıklayın. İndirdiğiniz dosyanın doğruluğunu sürümdeki `.sha256` dosyasıyla kontrol edebilirsiniz.
-- **Her sürümün kurulum dosyası ve zip'i VirusTotal'da taranır**; sonuç bağlantısı sürüm sayfasındaki notun sonundadır.
+- **Sürümlerin kurulum dosyası ve zip'i VirusTotal'da taranır**; tüm motorlarda temiz çıkarsa sonuç bağlantısı sürüm sayfasındaki notun sonuna eklenir.
 - **Yeni sürüm var mı diye sormak için:** pencerede **Hakkında → Güncellemeleri kontrol et**. tr2en kendiliğinden GitHub'a sormaz; yalnızca bu düğmeye basınca sorar.
 - **Güncellemek için:** yeni kurulum dosyasını çalıştırmanız yeterli; açıksa tr2en'i kendisi kapatır, ayarlarınız ve model korunur.
 - **Kaldırmak için:** Ayarlar → Uygulamalar → tr2en → Kaldır. Ayarlarınızın ve indirilen modelin de silinmesini isteyip istemediğiniz sorulur.

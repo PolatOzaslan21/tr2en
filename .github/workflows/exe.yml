@@ -52,8 +52,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { gh release create $env:SURUM --generate-notes --latest --title "tr2en $env:SURUM (Beta)" }
           gh release upload $env:SURUM (Get-ChildItem dist/*.zip, dist/*.exe, dist/*.sha256).FullName --clobber
       - name: VirusTotal
-        # Şimdilik kapalı (20.11): betik var olan raporu okuyamıyor; düzelince `github.ref_type == 'tag'` yap.
-        if: false
+        # Tespit varsa ya da tarama bitmezse sürüm notuna yazmaz (Polat, 21.11.2026).
+        if: github.ref_type == 'tag'
         shell: pwsh
         env:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}

@@ -53,7 +53,7 @@ On first start a wizard asks: local or cloud, requests a Gemini key and lets you
 3. A red/blue **TR → EN** speech-bubble icon appears next to the clock. Windows may first put it in the hidden icons menu (the **^** next to the clock); drag it to the taskbar to keep it visible. If you quit the app, type "tr2en" in the Start menu to open it again.
 
 - The .exe is not code-signed yet; if Windows shows "Windows protected your PC" (SmartScreen), click **More info → Run anyway**. You can verify the download with the `.sha256` file in the release.
-- **Every release's installer and zip are scanned on VirusTotal**; the result link is at the end of the release notes.
+- **Release installers and zips are scanned on VirusTotal**; when every engine reports them clean, the result link is added to the end of the release notes.
 - **To ask whether a newer version exists:** open **Hakkında → Güncellemeleri kontrol et** (About → Check for updates). tr2en does not ask GitHub on its own; it only queries when you press that button.
 - **To update:** just run the new installer; it closes a running tr2en itself and keeps your settings and the model.
 - **To uninstall:** Settings → Apps → tr2en → Uninstall. It asks whether to delete your settings and the downloaded model too.
